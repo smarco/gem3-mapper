@@ -76,7 +76,6 @@ void match_align_swg_chained_add_region(
         const uint64_t text_length = text_matching_length;
         const uint64_t max_bandwidth = region_error+1; // TODO Include CIGAR when generating approximate regions
         const bool left_gap_alignment = (text_trace->strand == Forward);
-        swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
         // Force (re)computing the CIGAR from the alignment-region (missing CIGAR or never computed)
         align_swg(
             key,key_length,text,text_length,

@@ -172,6 +172,8 @@ int integer_to_ascii(char* const buffer,uint64_t number) {
       *centinel = '0' + (char) number;
       ++centinel;
     }
+    default:
+      break;
   }
   // Return number of ciphers written
   return centinel - buffer;

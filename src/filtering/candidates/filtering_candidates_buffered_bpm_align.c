@@ -159,7 +159,7 @@ void filtering_candidates_buffered_bpm_align_discard_subdominant(
 /*
  * BPM-Buffered Prepare Scaffold
  */
-bool filtering_candidates_buffered_bpm_align_prepare_scaffold(
+void filtering_candidates_buffered_bpm_align_prepare_scaffold(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern) {
@@ -180,10 +180,8 @@ bool filtering_candidates_buffered_bpm_align_prepare_scaffold(
   if (max_coverage_bound < global_min_identity ||
       match_scaffold->scaffolding_coverage < max_coverage_bound) {
     match_scaffold->scaffold_type = scaffold_region_chain;
-    return true; // Add to buffer
   } else {
     match_scaffold->scaffold_type = scaffold_levenshtein;
-    return false; // Done
   }
 }
 /*
@@ -193,10 +191,8 @@ void filtering_candidates_buffered_bpm_align_add_region(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     pattern_t* const pattern,
-    const uint64_t candidate_pos,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   // Parameters
-  archive_text_t* const archive_text = filtering_candidates->archive->text;
   alignment_t* const alignment = &filtering_region->alignment;
   const uint64_t num_tiles = alignment->num_tiles;
   // Add candidate to GPU BPM-buffer
@@ -205,22 +201,39 @@ void filtering_candidates_buffered_bpm_align_add_region(
     // Fetch tiles
     alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
     pattern_tile_t* const pattern_tile = pattern->pattern_tiled.tiles + tile_pos;
-    // Retrieve Candidate (if needed)
-    filtering_region_retrieve_text(filtering_region,
-        pattern,archive_text,filtering_candidates->mm_allocator);
     // Add tile to GPU BPM-buffer
     const uint64_t match_distance = alignment_tile->distance;
     if (match_distance!=ALIGN_DISTANCE_INF) {
+      const uint64_t candidate_text_position =
+            filtering_region->text_begin_position + alignment_tile->text_begin_offset;
       const uint64_t tile_offset = pattern_tile->tile_offset;
       text_trace_t* const text_trace = &filtering_region->text_trace;
       const bool left_gap_alignment = (text_trace->strand==Forward);
-      uint8_t* const text = text_trace->text_padded + alignment_tile->text_begin_offset;
       const uint64_t text_length = alignment_tile->text_end_offset - alignment_tile->text_begin_offset;
       gpu_buffer_bpm_align_add_candidate(
-          gpu_buffer_bpm_align,tile_pos,tile_offset,
-          text,text_length,left_gap_alignment);
+          gpu_buffer_bpm_align,candidate_text_position,tile_pos,tile_offset,
+          text_length,left_gap_alignment);
     }
   }
+}
+bool filtering_candidates_buffered_bpm_align_discard_all_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    pattern_t* const pattern,
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  // Traverse all regions and add those accepted
+  const uint64_t num_regions = filtering_candidates_buffered->num_regions;
+  uint64_t candidate_pos;
+  for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
+    // Fetch region
+    filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[candidate_pos];
+    // Filter out exact-matching regions & not-accepted regions
+    if (filtering_region->status != filtering_region_accepted) continue; // Next
+    if (filtering_region->alignment.distance_min_bound==0) continue; // Next
+    // Don't filter out
+    return false;
+  }
+  return true;
 }
 void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
@@ -228,10 +241,16 @@ void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     pattern_t* const pattern,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   archive_text_t* const archive_text = filtering_candidates->archive->text;
+  const uint64_t max_buffered_candidates_aligned =
+      (COUNTER_GET_NUM_SAMPLES(&filtering_candidates->candidates_aligned)==0) ?
+          select_parameters->max_reported_matches :
+          COUNTER_GET_MEAN(&filtering_candidates->candidates_aligned);
   // Traverse all regions and add those accepted
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
-  uint64_t candidate_pos;
+  uint64_t candidate_pos, candidates_added=0;
   for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
     // Fetch region
     filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[candidate_pos];
@@ -242,14 +261,21 @@ void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     filtering_region_retrieve_text(filtering_region,
         pattern,archive_text,filtering_candidates->mm_allocator);
     // Prepare scaffold
-    const bool scaffold_candidate =
-        filtering_candidates_buffered_bpm_align_prepare_scaffold(
-            filtering_candidates,filtering_region,pattern);
-    if (!scaffold_candidate) continue; // Next
-    // Add filtering-region
-    filtering_candidates_buffered_bpm_align_add_region(
-        filtering_candidates,filtering_region,
-        pattern,candidate_pos,gpu_buffer_bpm_align);
+    match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
+    filtering_candidates_buffered_bpm_align_prepare_scaffold(
+        filtering_candidates,filtering_region,pattern);
+    if (match_scaffold->scaffold_type==scaffold_levenshtein) continue; // Next
+    // Check total number of offloaded alignments
+    if (candidates_added < max_buffered_candidates_aligned) {
+      // Add filtering-region
+      filtering_candidates_buffered_bpm_align_add_region(
+          filtering_candidates,filtering_region,
+          pattern,gpu_buffer_bpm_align);
+      ++candidates_added;
+    } else {
+      // Avoid GPU scaffolding
+      match_scaffold->scaffold_type = scaffold_deferred;
+    }
   }
 }
 void filtering_candidates_buffered_bpm_align_add(
@@ -275,13 +301,18 @@ void filtering_candidates_buffered_bpm_align_add(
   // Discard subdominant regions (prepare eligible regions)
   filtering_candidates_buffered_bpm_align_discard_subdominant(
       filtering_candidates,filtering_candidates_buffered,pattern);
-  // Store buffer offset
-  *gpu_buffer_align_offset = gpu_buffer_bpm_align_get_num_candidates(gpu_buffer_bpm_align);
-  // Add the pattern to the buffer (add new queries)
-  gpu_buffer_bpm_align_add_pattern(gpu_buffer_bpm_align,pattern);
-  // Add all eligible filtering regions
-  filtering_candidates_buffered_bpm_align_add_filtering_regions(
-      filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_align);
+  *gpu_buffer_align_offset = gpu_buffer_bpm_align_get_num_candidates(gpu_buffer_bpm_align); // Store buffer offset
+  // Compute if there is any candidate that requires alignment (otherwise filter it out)
+  const bool discard_all =
+      filtering_candidates_buffered_bpm_align_discard_all_candidates(
+          filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_align);
+  if (!discard_all) {
+    // Add the pattern to the buffer (add new queries)
+    gpu_buffer_bpm_align_add_pattern(gpu_buffer_bpm_align,pattern);
+    // Add all eligible filtering regions
+    filtering_candidates_buffered_bpm_align_add_filtering_regions(
+        filtering_candidates,filtering_candidates_buffered,pattern,gpu_buffer_bpm_align);
+  }
   // PROF
   PROF_ADD_COUNTER(GP_CANDIDATE_TILES,gpu_buffer_bpm_align->current_candidates_added);
   PROF_ADD_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED,gpu_buffer_bpm_align->current_candidates_added);
@@ -297,7 +328,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_check(
     alignment_tile_t* const alignment_tile,
     match_alignment_t* const match_alignment_buffered,
     matches_t* const matches) {
-  // Paramters
+  // Parameters
   const uint64_t key_offset = pattern_tile->tile_offset;
   const uint64_t text_begin = alignment_tile->text_begin_offset;
   text_trace_t* const text_trace = &filtering_region->text_trace;
@@ -322,8 +353,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_check(
       matches->cigar_vector,match_alignment_buffered->cigar_offset,
       match_alignment_buffered->cigar_length,matches->cigar_vector,
       match_alignment_check.cigar_offset,match_alignment_check.cigar_length);
-  if (match_alignment_buffered->match_position != match_alignment_check.match_position ||
-      cmp_cigars != 0) {
+  if (match_alignment_buffered->match_position != match_alignment_check.match_position || cmp_cigars != 0) {
     fprintf(stderr,
         "Filtering.Candidates.BPM.Align.Buffered.\n"
         "\tCheck Alignment Tile-CIGAR Failed (PosBuffered=%lu) != (PosChecked=%lu)\n",
@@ -376,7 +406,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
     matches_t* const matches,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     uint64_t* const gpu_buffer_offset) {
-  // Paramters
+  // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   // Check match-distance
   const uint64_t match_distance = alignment_tile->distance;
@@ -406,11 +436,12 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
         "Scaffold levenshtein. Negative coordinates because of padding");
     // Offset wrt text (without padding)
     match_alignment.match_text_offset = alignment_offset - text_padded_left;
-//      // DEBUG
-//      match_alignment_print_pretty(stderr,&match_alignment,matches->cigar_vector,
-//        pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,
-//        text_trace->text_padded + text_begin + alignment_offset,
-//        alignment_tile->text_end_offset - match_alignment.match_text_offset,mm_allocator);
+//    // DEBUG
+//    match_alignment_print_pretty(stderr,&match_alignment,
+//      pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,
+//      text_trace->text_padded + text_begin + alignment_offset,
+//      alignment_tile->text_end_offset - match_alignment.match_text_offset,
+//      matches->cigar_vector,filtering_candidates->mm_allocator);
     // Add the alignment to the scaffold
     const uint64_t matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
     match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
@@ -466,13 +497,19 @@ void filtering_candidates_buffered_bpm_align_retrieve_region(
     vector_insert(filtering_candidates->discarded_regions,filtering_region,filtering_region_t*);
     return;
   }
-  // Exact matching regions
+  // Skip exact matching candidates
   if (filtering_region->alignment.distance_min_bound==0) {
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     return;
   }
-  // Candidates filter from scaffold
+  // Skip finished scaffolds
   if (filtering_region->match_scaffold.scaffold_type==scaffold_levenshtein) {
+    vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
+    return;
+  }
+  // Skip deferred scaffolds
+  if (filtering_region->match_scaffold.scaffold_type==scaffold_deferred) {
+    filtering_region->match_scaffold.scaffold_type = scaffold_region_chain;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     return;
   }

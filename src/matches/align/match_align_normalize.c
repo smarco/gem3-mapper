@@ -77,7 +77,8 @@ void match_align_normalize_cigar(
   while (j < cigar_length) {
     cigar_element_t* const cigar_element = cigar_buffer + j;
     if (!match_align_normalize_cigar_trim(
-        cigar_element,min_context_length,&indel_length,&match_alignment->match_position)) {
+        cigar_element,min_context_length,
+        &indel_length,&match_alignment->match_position)) {
       break;
     }
     // Trim

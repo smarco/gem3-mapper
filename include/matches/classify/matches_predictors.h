@@ -37,19 +37,20 @@ typedef struct {
   double primary_edit_distance_norm;
   double primary_event_distance_norm;
   double primary_swg_score_norm;
+  double primary_error_quality;
   double primary_template_size_sigma_norm;
   /* Subdominant Match */
   double subdominant_edit_distance_norm;
   double subdominant_event_distance_norm;
   double subdominant_swg_score_norm;
   double subdominant_template_size_sigma_norm;
+  uint64_t candidates_subdominant;
+  uint64_t candidates_accepted;
   /* Search Scope */
-  double accepted_candidates;
-  double aligned_candidates;
-  double accepted_matches;
   uint64_t mcs_end1;
   uint64_t mcs_end2;
   /* Mappability */
+  double sequence_length_norm;
   double avg_region_length_norm;
   double max_region_length_norm;
   double kmer_frequency;
@@ -74,12 +75,12 @@ void matches_predictors_compute_pe(
 void matches_predictors_se_print(
     FILE* const stream,
     const char* const sequence_tag,
-    const matches_class_t matches_class,
-    matches_predictors_t* const matches_predictors);
+    matches_predictors_t* const matches_predictors,
+    matches_classification_t* const matches_classification);
 void matches_predictors_pe_print(
     FILE* const stream,
     const char* const sequence_tag,
-    const paired_matches_class_t paired_matches_class,
-    matches_predictors_t* const matches_predictors);
+    matches_predictors_t* const matches_predictors,
+    matches_classification_t* const matches_classification);
 
 #endif /* MATCHES_PREDICTORS_H_ */

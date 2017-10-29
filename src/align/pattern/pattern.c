@@ -40,13 +40,10 @@ void pattern_init_encode(
   // Parameters
   const uint64_t sequence_length = sequence_get_length(sequence);
   const char* const read = sequence_get_read(sequence);
-  // Aux
+  // Set left-clipping (if any)
   uint64_t num_wildcards = 0;           // Number of bases not-allowed
-  uint64_t num_low_quality_bases = 0;   // Number of bases with low quality value
-  uint64_t num_non_canonical_bases = 0; // Number of bases not compliant with the k-mer filter
   int64_t clip_left, clip_right;
   int64_t i, j;
-  // Set left-clipping (if any)
   switch (parameters->clipping) {
     case clipping_disabled:
       i = 0;
@@ -71,29 +68,10 @@ void pattern_init_encode(
       break;
   }
   // Encode read
-  if (pattern->quality_mask == NULL) {
-    for (j=0;i<sequence_length;++i,++j) {
-      const char character = read[i];
-      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      // TODO if (!parameters->allowed_chars[(uint8_t)character]) ++num_wildcards;
-      if (dna_encode(character)==ENC_DNA_CHAR_N) ++num_wildcards;
-      pattern->key[j] = dna_encode(character);
-    }
-  } else {
-    // Encode read
-    for (j=0;i<sequence_length;++i,++j) {
-      const char character = read[i];
-      if (!is_dna_canonical(character)) ++num_non_canonical_bases;
-      // TODO
-//      if (!parameters->allowed_chars[(uint8_t)character]) {
-//        ++num_wildcards;
-//      } else
-//      if (pattern->quality_mask[i]!=qm_real) {
-//        ++num_low_quality_bases;
-//      }
-      if (dna_encode(character)==ENC_DNA_CHAR_N) ++num_wildcards;
-      pattern->key[j] = dna_encode(character);
-    }
+  for (j=0;i<sequence_length;++i,++j) {
+    const char character = read[i];
+    if (!is_dna_canonical(character)) ++num_wildcards;
+    pattern->key[j] = dna_encode(character);
   }
   // Skip right-clipping (if any)
   switch (parameters->clipping) {
@@ -123,8 +101,13 @@ void pattern_init_encode(
   pattern->clip_right = clip_right;
   // Set wildcards & low-quality bases
   pattern->num_wildcards = num_wildcards;
-  pattern->num_low_quality_bases = num_low_quality_bases;
-  pattern->num_non_canonical_bases = num_non_canonical_bases;
+  // Encode qualities
+  if (pattern->quality_mask!=NULL) {
+    char* const qualities = sequence_get_qualities(sequence) + pattern->clip_left;
+    sequence_qualities_model_process(
+        parameters->qualities_format,qualities,
+        pattern->key_length,pattern->quality_mask);
+  }
 }
 void pattern_init_encode_rl(
     pattern_t* const pattern,
@@ -167,10 +150,7 @@ void pattern_init(
       (parameters->qualities_format!=sequence_qualities_ignore) &&
        sequence_has_qualities(sequence);
   if (*do_quality_search) {
-    pattern->quality_mask = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,false);
-    sequence_qualities_model_process(
-        sequence,parameters->qualities_format,
-        parameters->quality_threshold,pattern->quality_mask);
+    pattern->quality_mask = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,true);
   } else {
     pattern->quality_mask = NULL;
   }
@@ -192,24 +172,25 @@ void pattern_init(
     pattern->max_effective_filtering_error = 0;
     pattern->max_effective_bandwidth = 0;
   } else {
-    // Set max-error
+    // Set error
     const uint64_t max_effective_filtering_error =
         parameters->alignment_max_error_nominal +
-        pattern->num_low_quality_bases +
-        pattern->num_non_canonical_bases +
         pattern->num_wildcards;
     pattern->max_effective_filtering_error = MIN(max_effective_filtering_error,key_length);
-    // Set max-bandwidth and adjust (no increment over BPM_MAX_TILE_LENGTH)
+    // Set bandwidth and adjust (no increment over BPM_MAX_TILE_LENGTH)
     const uint64_t max_effective_bandwidth =
         parameters->alignment_max_bandwidth_nominal +
-        pattern->num_low_quality_bases +
-        pattern->num_non_canonical_bases +
         pattern->num_wildcards;
     pattern->max_effective_bandwidth = MIN(max_effective_bandwidth,key_length);
     if (key_length >= BPM_MAX_TILE_LENGTH) {
       const double max_bandwidth_rate = (double)pattern->max_effective_bandwidth/(double)key_length;
       pattern->max_effective_bandwidth = (uint64_t)ceil((double)BPM_MAX_TILE_LENGTH*max_bandwidth_rate);
     }
+    // Set extension error
+    const uint64_t max_extension_error =
+        parameters->alignment_max_extension_error_nominal +
+        pattern->num_wildcards;
+    pattern->max_extension_error = MIN(max_extension_error,key_length);
     // Compile BPM filter
     pattern_tiled_compile(
         &pattern->pattern_tiled,pattern->key,

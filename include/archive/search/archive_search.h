@@ -27,10 +27,11 @@
 #define ARCHIVE_SEARCH_H_
 
 #include "utils/essentials.h"
+#include "text/sequence.h"
 #include "archive/archive.h"
 #include "approximate_search/approximate_search.h"
-#include "text/sequence.h"
 #include "matches/classify/matches_classify.h"
+#include "mapper/mapper_stats.h"
 
 /*
  * Archive Search State
@@ -50,11 +51,9 @@ extern const char* archive_search_pe_state_label[7];
 typedef struct {
   /* Archive */
   archive_t* archive;                        // Archive
-  /* Archive Paired-End-Search (Only end/1 used in PE search) */
-  archive_search_pe_state_t pe_search_state; // Search State
-  bool pair_searched;                        // Paired search performed
-  bool pair_extended;                        // Paired extension performed
-  bool pair_extended_shortcut;               // Paired extension performed (to shortcut)
+  /* PE State */
+  archive_search_pe_state_t pe_search_state; // Search State (only end/1 updated)
+  bool searched;                             // Archive performed
   /* Parameters */
   search_parameters_t search_parameters;     // Search parameters
   sequence_t* sequence;                      // Input Sequence

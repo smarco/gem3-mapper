@@ -27,7 +27,6 @@
 
 #include "approximate_search/approximate_search.h"
 #include "approximate_search/approximate_search_filtering_adaptive.h"
-#include "approximate_search/approximate_search_filtering_complete.h"
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "approximate_search/approximate_search_hybrid.h"
 #include "filtering/candidates/filtering_candidates.h"
@@ -86,6 +85,7 @@ void approximate_search_init(
       &search->filtering_candidates_buffered,mm_allocator);
   // Region Profile
   region_profile_inject_mm(&search->region_profile,mm_allocator);
+  search->num_limited_exact_matches = 0;
   // Nsearch
   search->nsearch_schedule = nsearch_schedule;
   nsearch_schedule_inject_mm(search->nsearch_schedule,mm_allocator);
@@ -116,17 +116,11 @@ void approximate_search_prepare(
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;
   const uint64_t max_complete_error = search->search_parameters->complete_search_error_nominal;
-  search->current_max_complete_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
-  search->current_max_complete_stratum = 0;
+  search->max_search_error = MIN(max_complete_error,search->pattern.max_effective_filtering_error);
 }
 /*
  * Accessors
  */
-void approximate_search_update_mcs(
-    approximate_search_t* const search,
-    const uint64_t max_complete_stratum) {
-  search->current_max_complete_stratum = MAX(search->current_max_complete_stratum,max_complete_stratum);
-}
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->num_filtering_regions;
@@ -158,9 +152,6 @@ void approximate_search(approximate_search_t* const search,matches_t* const matc
     case mapping_adaptive_filtering_fast:
       approximate_search_filtering_adaptive(search,matches); // Adaptive mapping
       break;
-    case mapping_adaptive_filtering_complete:
-      approximate_search_filtering_complete(search,matches); // Filtering complete mapping
-      break;
     case mapping_neighborhood_search_brute_force:
       approximate_search_neighborhood_search_brute_force(search,matches); // Brute-force mapping
       break;
@@ -185,8 +176,7 @@ void approximate_search_print(FILE* const stream,approximate_search_t* const sea
   tab_global_inc();
   tab_fprintf(stream,"=> Search.Stage %s\n",asearch_stage_label[search->search_stage]);
   tab_fprintf(stream,"  => Search.State %s\n",asearch_processing_state_label[search->processing_state]);
-  tab_fprintf(stream,"=> Max.complete.error %lu\n",search->current_max_complete_error);
-  tab_fprintf(stream,"=> MCS %lu\n",search->current_max_complete_stratum);
+  tab_fprintf(stream,"=> Max.complete.error %lu\n",search->max_search_error);
   tab_fprintf(stream,"=> Region.Profile\n");
   tab_global_inc();
   region_profile_print(stream,&search->region_profile,false);

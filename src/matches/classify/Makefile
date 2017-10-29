@@ -16,10 +16,9 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=matches_classify \
-        matches_classify_logit \
-        matches_classify_logit_models \
         matches_metrics \
-        matches_predictors
+        matches_predictors \
+        paired_matches_classify
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

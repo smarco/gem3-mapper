@@ -34,14 +34,11 @@
 void mapper_profile_print_region_profile(FILE* const stream) {
   tab_fprintf(stream,"[GEM]>Profile.Region.Profile\n");
   tab_fprintf(stream,"  --> Num.Profiles             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE),NULL,"    ",true);
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILES_COMPUTED),NULL,"    ",true);
   tab_fprintf(stream,"  --> Num.Regions              ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS),NULL,"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Standard   ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS_STANDARD),
-                       PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS),"    ",true);
-  tab_fprintf(stream,"    --> Num.Regions.Unique     ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS_UNIQUE),
+  tab_fprintf(stream,"    --> Num.Regions.Filtered   ");
+  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS_FILTERED),
                        PROF_GET_COUNTER(GP_REGION_PROFILE_NUM_REGIONS),"    ",true);
   tab_fprintf(stream,"  --> Region.length            ");
   SAMPLER_PRINT(stream,PROF_GET_COUNTER(GP_REGION_PROFILE_REGION_LENGTH),NULL,"nt  ");
@@ -329,7 +326,7 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"      => TIME.Neighborhood.Search             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_NEIGHBORHOOD_SEARCH),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Region.Profile                  ");
-  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_TIMER(GP_MAPPER_ALL));
+  TIMER_PRINT(stream,PROF_GET_TIMER(GP_REGION_PROFILE),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Generate.Candidates             ");
   TIMER_PRINT(stream,PROF_GET_TIMER(GP_AS_GENERATE_CANDIDATES),PROF_GET_TIMER(GP_MAPPER_ALL));
   tab_fprintf(stream,"      => TIME.Process.Candidates              ");
@@ -391,20 +388,11 @@ void mapper_profile_print_approximate_search(FILE* const stream) {
   tab_fprintf(stream,"        --> Accuracy.Miss.Tie                 ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_TIE),
       PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
-  tab_fprintf(stream,"        --> Accuracy.Miss.MMapsD1             ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MMAP_D1),
-      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
   tab_fprintf(stream,"        --> Accuracy.Miss.MMaps               ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MMAP),
       PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
   tab_fprintf(stream,"        --> Accuracy.Miss.Unique              ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_UNIQUE),
-      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
-  tab_fprintf(stream,"        --> Accuracy.Miss.Incomplete          ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE),
-      PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
-  tab_fprintf(stream,"        --> Accuracy.Miss.Frontier            ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER),
       PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_CALLS),"calls",true);
   tab_fprintf(stream,"        --> Accuracy.Miss.Rescued.MaxMatches  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GP_MATCHES_ACCURACY_CASE_MAX_MATCHES),
@@ -420,7 +408,7 @@ void mapper_profile_print_mapper_ranks(FILE* const stream) {
   tab_fprintf(stream,"  => RANKS.Archive.Search        ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_ARCHIVE_SEARCH_SE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
   tab_fprintf(stream,"    => RANKS.Region.Profile      ");
-  COUNTER_PRINT(stream,PROF_GET_RANK(GP_REGION_PROFILE_ADAPTIVE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
+  COUNTER_PRINT(stream,PROF_GET_RANK(GP_REGION_PROFILE),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
   tab_fprintf(stream,"    => RANKS.Generate.Candidates ");
   COUNTER_PRINT(stream,PROF_GET_RANK(GP_AS_GENERATE_CANDIDATES),PROF_GET_RANK(GP_MAPPER_ALL),"ranks",true);
   tab_fprintf(stream,"    => RANKS.Process.Candidates  ");
@@ -457,7 +445,7 @@ void mapper_profile_print_approximate_search_summary(FILE* const stream) {
   mapper_profile_print_candidate_misc(stream);
   // Neighborhood Search
   mapper_profile_print_neighborhood_search(stream);
-  // TODO mapper_profile_print_mapper_ranks(stream);
+  mapper_profile_print_mapper_ranks(stream);
   // I/O
   mapper_profile_print_io(stream);
   // Efficiency Ratios

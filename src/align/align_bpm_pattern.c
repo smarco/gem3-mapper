@@ -24,7 +24,7 @@
  *   algorithms (full or tiled)
  */
 
-#include <gpu/gpu_buffer_bpm_distance.h>
+#include "gpu/gpu_buffer_bpm_distance.h"
 #include "text/dna_text.h"
 #include "align/align_bpm_pattern.h"
 

@@ -109,7 +109,7 @@ uint64_t filtering_candidates_verify_candidates(
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const bool candidate_drop_off = search_parameters->candidate_verification.candidate_local_drop_off;
-  const verification_strategy_t verification_strategy =  search_parameters->candidate_verification.verification_strategy;
+  const verification_strategy_t verification_strategy = search_parameters->candidate_verification.verification_strategy;
   const bool kmer_count_filter = (verification_strategy >= verification_chained);
   // Candidate drop-off filter
   if (candidate_drop_off) {

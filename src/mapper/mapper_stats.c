@@ -36,7 +36,7 @@
 /*
  * Constants
  */
-#define MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES  1000
+#define MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES   100
 #define MAPPER_STATS_TEMPLATE_LENGTH_MARGIN_ERROR   20
 
 /*
@@ -117,7 +117,7 @@ bool mapper_stats_template_length_is_reliable(mapper_stats_t* const search_stats
   const uint64_t num_samples = mapper_stats_template_length_get_num_samples(search_stats);
   const uint64_t num_ci_min_samples =
       mapper_stats_template_length_get_ci_min_samples(search_stats,MAPPER_STATS_TEMPLATE_LENGTH_MARGIN_ERROR);
-  return num_samples > num_ci_min_samples && num_samples > MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES;
+  return num_samples > num_ci_min_samples && num_samples >= MAPPER_STATS_TEMPLATE_LENGTH_MIN_SAMPLES;
 }
 double mapper_stats_template_length_get_mean(mapper_stats_t* const search_stats) {
   return COUNTER_GET_MEAN(&search_stats->unique_template_size);

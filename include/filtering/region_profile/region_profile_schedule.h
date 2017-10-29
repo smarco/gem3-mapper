@@ -33,20 +33,20 @@
 /*
  * Exact Scheduling
  */
-void region_profile_schedule_exact_all(
-    region_profile_t* const region_profile);
+void region_profile_schedule_exact(
+    region_profile_t* const region_profile,
+    const uint64_t candidates_threshold);
 void region_profile_schedule_exact_best(
     region_profile_t* const region_profile,
-    const uint64_t num_regions);
-void region_profile_schedule_exact_thresholded(
-    region_profile_t* const region_profile,
+    const uint64_t num_regions,
     const uint64_t candidates_threshold);
 
 /*
  * Approximate Scheduling
  */
-void region_profile_schedule_all(
+void region_profile_schedule_approximate(
     region_profile_t* const region_profile,
-    const uint64_t region_error);
+    const uint64_t region_error,
+    const uint64_t candidates_threshold);
 
 #endif /* REGION_PROFILE_SCHEDULE_H_ */

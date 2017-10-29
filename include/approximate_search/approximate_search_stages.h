@@ -21,13 +21,7 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  *   Approximate-String-Matching (ASM) module encapsulating
- *   the basic search-stages that many ASM approaches use
- *   Eg. Adaptive-filtering (AF) Search :=
- *         approximate_search_begin() +
- *         approximate_search_exact_filtering_adaptive() +
- *         approximate_search_verify() +
- *         [ approximate_search_align_local() ] +
- *         approximate_search_end();
+ *   the basic search-stages that many ASM approaches use.
  */
 
 #ifndef APPROXIMATE_SEARCH_STAGES_H_

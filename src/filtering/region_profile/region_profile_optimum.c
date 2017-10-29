@@ -27,6 +27,11 @@
 #include "fm_index/fm_index_search.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * Data structures
  */
 typedef struct {
@@ -74,7 +79,8 @@ void region_profile_generate_optimum_fixed(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t num_regions) {
+    const uint64_t num_regions,
+    const uint64_t max_candidates) {
   // Base check
   if (num_regions==0 || key_length/num_regions < region_length) {
     gem_warn_msg("OPS. Not enough bases to extract %lu regions of %lu bases",num_regions,region_length);
@@ -82,6 +88,7 @@ void region_profile_generate_optimum_fixed(
     region_profile->num_filtering_regions = 0;
     return;
   }
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
@@ -163,9 +170,10 @@ void region_profile_generate_optimum_fixed(
     }
   }
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,max_candidates);
   // Free
   mm_allocator_pop_state(mm_allocator);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 /*
  * Region Profile Optimum (Variable region-length)
@@ -210,6 +218,7 @@ void region_profile_generate_optimum_variable(
     region_profile->num_filtering_regions = 0;
     return;
   }
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
@@ -239,7 +248,7 @@ void region_profile_generate_optimum_variable(
   for (i=1;i<num_regions;++i) {
     // Find the minimum candidates split-point from each position
     for (j=0;j<key_length;++j) {
-      uint64_t split_point = 0;
+      split_point = 0;
       uint64_t split_point_occ = UINT32_MAX;
       for (p=j+1;p<key_length;++p) {
         const uint64_t total_occ = occ[j][p-1] + opp[i-1][p].occ;
@@ -266,6 +275,7 @@ void region_profile_generate_optimum_variable(
     p = split_point;
   }
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,ALL);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 

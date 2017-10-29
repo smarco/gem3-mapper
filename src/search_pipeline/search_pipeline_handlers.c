@@ -60,6 +60,14 @@ void search_pipeline_handlers_clear(search_pipeline_handlers_t* const search_pip
   mm_allocator_clear(search_pipeline_handlers->mm_allocator);
 }
 void search_pipeline_handlers_delete(search_pipeline_handlers_t* const search_pipeline_handlers) {
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_decode_end1,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_decode_end2,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_kmer_filter_end1,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_kmer_filter_end2,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_bpm_distance_end1,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_bpm_distance_end2,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_bpm_align_end1,true);
+  filtering_candidates_destroy(&search_pipeline_handlers->fc_bpm_align_end2,true);
   mapper_stats_delete(search_pipeline_handlers->mapper_stats);
   mm_allocator_delete(search_pipeline_handlers->mm_allocator);
   mm_slab_delete(search_pipeline_handlers->mm_slab);

@@ -25,85 +25,51 @@
 #define MATCHES_H_
 
 #include "utils/essentials.h"
-#include "align/align_swg_score.h"
-#include "archive/locator.h"
 #include "archive/search/archive_select_parameters.h"
-#include "text/text_trace.h"
-#include "matches/matches_counters.h"
-#include "matches/align/match_alignment.h"
-#include "matches/matches_cigar.h"
+#include "archive/locator.h"
 #include "matches/classify/matches_metrics.h"
-#include "stats/stats_vector.h"
-
-/*
- * Matches Type
- */
-typedef enum {
-  match_type_regular,           // Regular Match
-  match_type_local,             // Local Match (product of local alignment)
-  match_type_extended           // Extended Match (product of extending PE)
-} match_type;
+#include "matches/matches_counters.h"
+#include "matches/match_trace.h"
 
 /*
  * Matches Classes
  */
 typedef enum {
   matches_class_unmapped    = 0,
-  matches_class_tie_perfect = 1,
-  matches_class_tie         = 2,
-  matches_class_mmap_d1     = 3,
-  matches_class_mmap        = 4,
-  matches_class_unique      = 5,
-} matches_class_t;
-extern const char* matches_class_label[6];
-
-/*
- * Match (Trace-Match)
- */
+  matches_class_mmap        = 1,
+  matches_class_unique      = 2,
+} matches_class_type;
 typedef struct {
-  /* Type */
-  match_type type;                   // Match type
-  /* Location */
-  char* sequence_name;               // Sequence name (After decoding.Eg Chr1)
-  strand_t strand;                   // Mapping Strand
-  bs_strand_t bs_strand;             // Bisulfite Strand
-  uint64_t text_position;            // Position of the match in the text. Local text (Eg wrt Chr1)
-  /* Reference-Text */
-  text_trace_t* text_trace;          // Text-trace
-  uint8_t* text;                     // Pointer to the matching-text
-  uint64_t text_length;              // Length of the matching-text
-  /* Distance/Score */
-  uint64_t event_distance;           // Distance
-  uint64_t edit_distance;            // Edit-Distance
-  int32_t swg_score;                 // SWG Distance/Score
-  uint8_t mapq_score;                // MAPQ Score
-  /* Alignment */
-  match_alignment_t match_alignment; // Match Alignment (CIGAR + ...)
-  void* match_scaffold;              // Supporting Scaffolding
-} match_trace_t;
+  matches_class_type matches_class; // Matches class
+  int64_t delta_group;              // Delta-strata group
+  int64_t wdelta_group;             // Actual delta-strata group (considering maximum complete strata)
+} matches_classification_t;
 
 /*
  * Matches
  */
 typedef struct {
-  /* State */
-  matches_class_t matches_class;
-  uint64_t max_complete_stratum;
+  /* Matches Classification */
+  matches_classification_t classification; //  Matches Classification
   /* Matches Counters */
-  matches_counters_t* counters;        // Global counters
+  matches_counters_t* counters;            // Global counters
+  uint64_t max_complete_stratum;           // Maximum complete stratum
+  bool limited_exact_matches;              // Limited exact matches
+  bool matches_extended;                   // Matches added from PE-extension of the other end
   /* Matches */
-  vector_t* match_traces;              // Matches (match_trace_t*)
-  vector_t* match_traces_local;        // Local Matches (match_trace_t*)
-  vector_t* match_traces_extended;     // Extended Matches (match_trace_t*)
-  ihash_t* match_traces_begin;         // Begin position (of the aligned match) in the text-space
-  ihash_t* match_traces_end;           // End position (of the aligned match) in the text-space
+  vector_t* match_traces;                  // Matches (match_trace_t*)
+  vector_t* match_traces_local;            // Local Matches (match_trace_t*)
+  vector_t* match_traces_extended;         // Extended Matches (match_trace_t*)
+  ihash_t* match_traces_begin;             // Begin position (of the aligned match) in the text-space
+  ihash_t* match_traces_end;               // End position (of the aligned match) in the text-space
+  bool match_replaced;                     // A match has been replaced (can affect paired-end metrics)
   /* CIGAR */
-  vector_t* cigar_vector;              // CIGAR operations storage (cigar_element_t)
+  vector_t* cigar_vector;                  // CIGAR operations storage (cigar_element_t)
   /* Metrics */
-  matches_metrics_t metrics;           // Metrics
+  matches_metrics_t metrics;               // Metrics
   /* MM */
-  mm_slab_t* mm_slab;                  // MM-Slab
-  mm_allocator_t* mm_allocator;        // MM-Allocator
+  mm_slab_t* mm_slab;                      // MM-Slab
+  mm_allocator_t* mm_allocator;            // MM-Allocator
 } matches_t;
 
 /*
@@ -122,7 +88,12 @@ uint64_t matches_get_first_stratum_matches(matches_t* const matches);
 uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches);
 uint8_t matches_get_primary_mapq(matches_t* const matches);
 
-void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs);
+void matches_update_mcs(
+    matches_t* const matches,
+    const uint64_t current_mcs);
+void matches_update_limited_exact_matches(
+    matches_t* const matches,
+    const uint64_t num_exact_matches_limited);
 
 /*
  * Matches Accessors
@@ -132,25 +103,6 @@ uint64_t matches_get_num_match_traces(const matches_t* const matches);
 uint64_t matches_get_num_match_traces_extended(const matches_t* const matches);
 match_trace_t* matches_get_primary_match(const matches_t* const matches);
 match_trace_t** matches_get_match_traces(const matches_t* const matches);
-
-/*
- * Match-Trace
- */
-cigar_element_t* match_trace_get_cigar_buffer(
-    const matches_t* const matches,
-    const match_trace_t* const match_trace);
-uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace);
-uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace);
-int64_t match_trace_get_effective_length(
-    matches_t* const matches,
-    const uint64_t read_length,
-    const uint64_t cigar_buffer_offset,
-    const uint64_t cigar_length);
-int matche_trace_cigar_cmp(
-    vector_t* const cigar_vector_match0,
-    match_trace_t* const match0,
-    vector_t* const cigar_vector_match1,
-    match_trace_t* const match1);
 
 /*
  * Sort
@@ -181,13 +133,6 @@ void matches_local_pending_add_to_regular_matches(
 void matches_local_pending_add_to_extended_matches(
     matches_t* const matches,
     const locator_t* const locator);
-
-/*
- * Filters
- */
-void matches_filter_by_mapq(
-    matches_t* const matches,
-    const uint8_t mapq_threshold);
 
 /*
  * Display

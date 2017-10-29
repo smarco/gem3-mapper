@@ -32,21 +32,27 @@
 #include "matches/classify/matches_predictors.h"
 
 /*
- * Constants
+ * Archive Scoring Utils
  */
-#define MAPQ_CONFIDENCE_SCORE_MIN 10
-
-/*
- * Scoring Utils
- */
-uint8_t archive_score_probability_to_mapq(
-    const double probability,
-    const double sum_probability);
 uint8_t archive_score_probability_scale(
     const double probability,
     const double sum_probability,
     const uint8_t floor,
     const uint8_t ceil);
+uint64_t archive_score_probability_to_mapq(
+    const double probability);
+
+/*
+ * Archive Scoring Logit Classes
+ */
+uint8_t archive_score_matches_se_logit_unique(
+    search_parameters_t* const search_parameters,
+    matches_predictors_t* const matches_predictors,
+    matches_classification_t* const matches_classification);
+uint8_t archive_score_matches_se_logit_mmap(
+    search_parameters_t* const search_parameters,
+    matches_predictors_t* const matches_predictors,
+    matches_classification_t* const matches_classification);
 
 /*
  * Archive Scoring SE

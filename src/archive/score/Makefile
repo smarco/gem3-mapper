@@ -15,7 +15,9 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=archive_score_pe \
+MODULES=archive_score_logit \
+        archive_score_logit_models \
+        archive_score_pe \
         archive_score_se
 
 SRCS=$(addsuffix .c, $(MODULES))

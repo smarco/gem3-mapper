@@ -58,6 +58,8 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
+  // Stats
+  COUNTER_RESET(&filtering_candidates->candidates_aligned);
 }
 void filtering_candidates_init_alignment(
     filtering_candidates_t* const filtering_candidates,

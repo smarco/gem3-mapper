@@ -36,7 +36,8 @@ void region_profile_generate_mem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length);
+    const uint64_t key_length,
+    const uint64_t max_candidates);
 
 /*
  * SMEMs region profile
@@ -45,6 +46,7 @@ void region_profile_generate_smem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length);
+    const uint64_t key_length,
+    const uint64_t max_candidates);
 
 #endif /* REGION_PROFILE_MEM_H_ */

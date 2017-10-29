@@ -69,7 +69,10 @@ void archive_search_se(
   // Compute the full search
   approximate_search(&archive_search->approximate_search,matches);
   // Select Matches
-  archive_select_se_matches(archive_search,&search_parameters->select_parameters,matches);
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  if (!search_parameters->search_paired_parameters.paired_end_search) {
+    archive_select_se_matches(select_parameters,matches);
+  }
   // Select alignment-Model and process accordingly
   archive_score_matches_se(archive_search,matches);
   // Check matches

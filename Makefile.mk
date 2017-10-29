@@ -58,7 +58,7 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 HAVE_ZLIB = 1
 HAVE_BZLIB = 1
 HAVE_OPENMP = 1
-HAVE_CUDA = 1
+HAVE_CUDA = 0
 HAVE_LTO = 1
 HAVE_GOLD = 1
 
@@ -193,10 +193,10 @@ ifeq ($(HAVE_CUDA),1)
   # Paths
   DEF_CUDA=-DHAVE_CUDA
   PATH_CUDA=@CUDA_PATH@
-  NVCC=/usr/local/cuda/bin/nvcc
+  NVCC=/nvcc
   # CUDA Libs
-  CUDA_PATH_INCLUDE+=-I/usr/local/cuda/include
-  CUDA_PATH_LIB+=-L/usr/local/cuda/lib64
+  CUDA_PATH_INCLUDE+=-I
+  CUDA_PATH_LIB+=-L
   CUDA_PROFILE_LIB=-lnvToolsExt
   CUDA_LIB=-lcuda -lcudart -lstdc++
 endif
@@ -206,9 +206,9 @@ endif
 ###############################################################################
 ifeq ($(VTUNE),true)
 # Path
-VTUNE_PATH=/opt/intel/vtune_amplifier_xe/
+VTUNE_PATH=/opt/intel/vtune_amplifier/
 ifeq ("$(wildcard $(VTUNE_PATH))","")
-  VTUNE_PATH=/usr/local/software/intel/vtune_amplifier_xe_2016.3.0.463186/
+  VTUNE_PATH=/usr/local/software/intel/vtune_amplifier/
 endif
 # Libs
 VTUNE_PROFILE_LIB=-Wl,--no-as-needed -ldl

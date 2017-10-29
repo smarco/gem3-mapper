@@ -41,6 +41,11 @@ int32_t paired_map_compute_swg_score(
     const match_trace_t* const match_end2) {
   return match_end1->swg_score+match_end2->swg_score;
 }
+float paired_map_compute_error_quality(
+    const match_trace_t* const match_end1,
+    const match_trace_t* const match_end2) {
+  return (match_end1->error_quality+match_end2->error_quality)/2.0;
+}
 uint64_t paired_map_get_event_distance(paired_map_t* const paired_map) {
   return paired_map->event_distance;
 }

@@ -188,7 +188,7 @@ void region_profile_splitters(
   // Query region profile
   region_profile_query_regions(region_profile,fm_index,key);
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,ALL);
   // Free
   mm_allocator_pop_state(mm_allocator);
 }

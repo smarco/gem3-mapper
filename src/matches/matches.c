@@ -33,29 +33,16 @@
 #define MATCHES_INIT_CIGAR_OPS        5000
 
 /*
- * Matches Classes
- */
-const char* matches_class_label[] =
-{
-    [0] = "unmapped",
-    [1] = "perfect-tie",
-    [2] = "tie",
-    [3] = "mmap-d1",
-    [4] = "mmap",
-    [5] = "unique"
-};
-
-/*
  * Setup
  */
 matches_t* matches_new(void) {
   // Allocate handler
   matches_t* const matches = mm_alloc(matches_t);
-  // Search-matches state
-  matches->matches_class = matches_class_unmapped;
-  matches->max_complete_stratum = ALL;
   // Matches Counters
   matches->counters = matches_counters_new();
+  matches->max_complete_stratum = 0;
+  matches->limited_exact_matches = false;
+  matches->matches_extended = false;
   // MM
   matches->mm_slab = mm_slab_new_(BUFFER_SIZE_1M,BUFFER_SIZE_1M,MM_UNLIMITED_MEM);
   matches->mm_allocator = mm_allocator_new(matches->mm_slab);
@@ -65,6 +52,7 @@ matches_t* matches_new(void) {
   matches->match_traces_extended = vector_new(MATCHES_INIT_GLOBAL_MATCHES,match_trace_t*);
   matches->match_traces_begin = ihash_new(matches->mm_allocator);
   matches->match_traces_end = ihash_new(matches->mm_allocator);
+  matches->match_replaced = false;
   // CIGAR buffer
   matches->cigar_vector = vector_new(MATCHES_INIT_CIGAR_OPS,cigar_element_t);
   // Init metrics
@@ -73,8 +61,9 @@ matches_t* matches_new(void) {
   return matches;
 }
 void matches_clear(matches_t* const matches) {
-  matches->matches_class = matches_class_unmapped;
-  matches->max_complete_stratum = ALL;
+  matches->max_complete_stratum = 0;
+  matches->limited_exact_matches = false;
+  matches->matches_extended = false;
   matches_counters_clear(matches->counters);
   matches_metrics_init(&matches->metrics);
   vector_clear(matches->match_traces);
@@ -82,6 +71,7 @@ void matches_clear(matches_t* const matches) {
   vector_clear(matches->match_traces_extended);
   ihash_clear(matches->match_traces_begin);
   ihash_clear(matches->match_traces_end);
+  matches->match_replaced = false;
   vector_clear(matches->cigar_vector);
   mm_allocator_clear(matches->mm_allocator);
 }
@@ -120,7 +110,7 @@ void matches_recompute_metrics(matches_t* const matches) {
   }
 }
 uint64_t matches_get_first_stratum_matches(matches_t* const matches) {
-  const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&matches->metrics);
+  const uint64_t min_edit_distance = matches->metrics.min1_edit_distance;
   return (min_edit_distance==UINT32_MAX) ? 0 : matches_counters_get_count(matches->counters,min_edit_distance);
 }
 uint64_t matches_get_subdominant_stratum_matches(matches_t* const matches) {
@@ -132,8 +122,19 @@ uint8_t matches_get_primary_mapq(matches_t* const matches) {
   if (num_matches == 0) return 0;
   return matches_get_primary_match(matches)->mapq_score;
 }
-void matches_update_mcs(matches_t* const matches,const uint64_t current_mcs) {
-  matches->max_complete_stratum = MIN(matches->max_complete_stratum,current_mcs);
+void matches_update_mcs(
+    matches_t* const matches,
+    const uint64_t current_mcs) {
+  matches->max_complete_stratum = MAX(matches->max_complete_stratum,current_mcs);
+}
+void matches_update_limited_exact_matches(
+    matches_t* const matches,
+    const uint64_t num_exact_matches_limited) {
+  if (num_exact_matches_limited > 0) {
+    matches->limited_exact_matches = true;
+    matches_counters_add(matches->counters,0,num_exact_matches_limited);
+    matches->max_complete_stratum = 0;
+  }
 }
 /*
  * Index
@@ -175,88 +176,8 @@ match_trace_t** matches_get_match_traces(const matches_t* const matches) {
   return vector_get_mem(matches->match_traces,match_trace_t*);
 }
 /*
- * Match-Trace
- */
-cigar_element_t* match_trace_get_cigar_buffer(
-    const matches_t* const matches,
-    const match_trace_t* const match_trace) {
-  return vector_get_elm(matches->cigar_vector,match_trace->match_alignment.cigar_offset,cigar_element_t);
-}
-uint64_t match_trace_get_cigar_length(const match_trace_t* const match_trace) {
-  return match_trace->match_alignment.cigar_length;
-}
-uint64_t match_trace_get_event_distance(const match_trace_t* const match_trace) {
-  return match_trace->event_distance;
-}
-int64_t match_trace_get_effective_length(
-    matches_t* const matches,
-    const uint64_t read_length,
-    const uint64_t cigar_buffer_offset,
-    const uint64_t cigar_length) {
-  // Exact Match
-  if (cigar_length==0) return read_length; // Even exact-matching matches have CIGAR=1
-  // Traverse CIGAR
-  const cigar_element_t* cigar_element = vector_get_elm(matches->cigar_vector,cigar_buffer_offset,cigar_element_t);
-  int64_t i, effective_length = read_length;
-  for (i=0;i<cigar_length;++i,++cigar_element) {
-    switch (cigar_element->type) {
-      case cigar_ins:
-        effective_length += cigar_element->length;
-        break;
-      case cigar_del:
-        effective_length -= cigar_element->length;
-        break;
-      default:
-        break;
-    }
-  }
-  GEM_INTERNAL_CHECK(effective_length >= 0,"Match effective length must be positive");
-  return effective_length;
-}
-int matche_trace_cigar_cmp(
-    vector_t* const cigar_vector_match0,
-    match_trace_t* const match0,
-    vector_t* const cigar_vector_match1,
-    match_trace_t* const match1) {
-  return matches_cigar_cmp(
-      cigar_vector_match0,match0->match_alignment.cigar_offset,match0->match_alignment.cigar_length,
-      cigar_vector_match1,match1->match_alignment.cigar_offset,match1->match_alignment.cigar_length);
-}
-/*
  * Sorting Matches
  */
-int match_trace_cmp_swg_score(const match_trace_t** const _a,const match_trace_t** const _b) {
-  const match_trace_t* const a = *_a;
-  const match_trace_t* const b = *_b;
-  const int distance_swg = (int)b->swg_score - (int)a->swg_score;
-  if (distance_swg) return distance_swg;
-  const int distance_event = (int)a->event_distance - (int)b->event_distance;
-  if (distance_event) return distance_event;
-  const int distance_edit = (int)a->edit_distance - (int)b->edit_distance;
-  if (distance_edit) return distance_edit;
-  // Untie using position (helps to stabilize & cmp results)
-  if (a->sequence_name < b->sequence_name) return -1;
-  if (a->sequence_name > b->sequence_name) return  1;
-  if (a->text_position < b->text_position) return -1;
-  if (a->text_position > b->text_position) return  1;
-  return 0;
-}
-//void matches_sort_by_swg_score(matches_t* const matches) {
-//  // Sort
-//  const uint64_t num_matches = matches_get_num_match_traces(matches);
-//  match_trace_t** const match_traces = matches_get_match_traces(matches);
-//  qsort(match_traces,num_matches,sizeof(match_trace_t*),
-//      (int (*)(const void *,const void *))match_trace_cmp_swg_score);
-//}
-int match_trace_cmp_genomic_position(const match_trace_t** const _a,const match_trace_t** const _b) {
-  const match_trace_t* const a = *_a;
-  const match_trace_t* const b = *_b;
-  const int cmp_name = gem_strcmp(a->sequence_name,b->sequence_name);
-  if (cmp_name!=0) return cmp_name;
-  if (a->text_position < b->text_position) return -1;
-  if (a->text_position > b->text_position) return  1;
-  return 0;
-}
 void matches_traces_sort_by_genomic_position(
     match_trace_t** const match_traces,
     const uint64_t num_match_traces) {
@@ -343,6 +264,7 @@ void match_trace_copy(
   match_trace_dst->edit_distance = match_trace_src->edit_distance;
   match_trace_dst->event_distance = match_trace_src->event_distance;
   match_trace_dst->swg_score = match_trace_src->swg_score;
+  match_trace_dst->error_quality = match_trace_src->error_quality;
   match_trace_dst->mapq_score = match_trace_src->mapq_score;
   /* Alignment */
   match_trace_dst->match_alignment = match_trace_src->match_alignment;
@@ -411,7 +333,9 @@ void matches_add_match_trace_extended(
       matches_add_match_trace(matches,locator,match_trace,&match_replaced);
   if (match_trace_added!=NULL) {
     match_trace_added->type = match_type_extended;
-    if (!match_replaced) {
+    if (match_replaced) {
+      matches->match_replaced = true;
+    } else {
       vector_insert(matches->match_traces_extended,match_trace_added,match_trace_t*);
     }
   }
@@ -450,24 +374,6 @@ void matches_local_pending_add_to_extended_matches(
   vector_clear(matches->match_traces_local);
 }
 /*
- * Filters
- */
-void matches_filter_by_mapq(
-    matches_t* const matches,
-    const uint8_t mapq_threshold) {
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  match_trace_t** match_in = matches_get_match_traces(matches);
-  match_trace_t** match_out = match_in;
-  uint64_t i;
-  for (i=0;i<num_matches;++i,++match_in) {
-    if ((*match_in)->mapq_score >= mapq_threshold) {
-      *match_out = *match_in;
-      ++match_out;
-    }
-  }
-  vector_update_used(matches->match_traces,match_out);
-}
-/*
  * Display
  */
 void matches_print(
@@ -475,7 +381,6 @@ void matches_print(
     matches_t* const matches) {
   tab_fprintf(stream,"[GEM]>Matches\n");
   tab_global_inc();
-  tab_fprintf(stream,"=> Class %s\n",matches_class_label[matches->matches_class]);
   tab_fprintf(stream,"=> Counters\t");
   matches_counters_print(stream,matches->counters,matches->max_complete_stratum);
   fprintf(stream,"\n");

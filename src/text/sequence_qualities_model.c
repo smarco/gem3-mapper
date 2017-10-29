@@ -26,19 +26,14 @@
 #include "text/sequence_qualities_model.h"
 
 /*
- * Error Msg
- */
-#define GEM_ERROR_QUALITY_NEGATIVE "Negative quality ('%c') at position %"PRIu64""
-
-/*
  * Quality Model (from sequence into qm_values)
  */
 void sequence_qualities_model_process(
-    sequence_t* const sequence,
     const sequence_qualities_format_t quality_format,
-    const uint64_t quality_threshold,
+    char* const qualities,
+    const uint64_t key_length,
     uint8_t* const quality_mask) {
-  uint64_t enc_diff;
+  int64_t enc_diff;
   switch (quality_format) {
     case sequence_qualities_offset_33:
       enc_diff = 33;
@@ -50,12 +45,10 @@ void sequence_qualities_model_process(
       GEM_INVALID_CASE();
       break;
   }
-  const uint64_t key_length = sequence_get_length(sequence);
   uint64_t i;
   for (i=0;i<key_length;++i) {
-    const int64_t quality = *string_char_at(&sequence->qualities,i) - enc_diff;
-    gem_cond_error(quality < 0,QUALITY_NEGATIVE,string_get_buffer(&sequence->qualities)[i],i);
-    quality_mask[i] = (quality >= quality_threshold) ? qm_real : qm_pseudo;
+    const int64_t quality = (int64_t)qualities[i] - enc_diff;
+    quality_mask[i] = quality;
   }
 }
 

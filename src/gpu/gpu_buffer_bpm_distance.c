@@ -21,7 +21,6 @@
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  *            Alejandro Chacon <alejandro.chacond@gmail.com>
- * DESCRIPTION:
  */
 
 #include "gpu/gpu_buffer_bpm_distance.h"

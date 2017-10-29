@@ -76,7 +76,7 @@ void COUNTER_COMBINE_SUM(gem_counter_t* const counter_dst,gem_counter_t* const c
   counter_dst->samples += counter_src->samples;
   counter_dst->min = MIN(counter_dst->min,counter_src->min);
   counter_dst->max = MAX(counter_dst->max,counter_src->max);
-  if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS; // FIXME
+  if (counter_src->m_newS!=0.0) counter_dst->m_newS = counter_src->m_newS;
   if (counter_src->m_newM!=0.0) counter_dst->m_newM = counter_src->m_newM;
   if (counter_src->m_oldS!=0.0) counter_dst->m_oldS = counter_src->m_oldS;
   if (counter_src->m_oldM!=0.0) counter_dst->m_oldM = counter_src->m_oldM;

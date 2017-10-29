@@ -40,7 +40,7 @@ bool filtering_candidates_classify_subdominant_match_edit(
   // The candidate needs to have a expected max-score than the current max
   match_trace_t** const match_traces = matches_get_match_traces(matches);
   const uint64_t candidate_edit_distance_bound = alignment->distance_min_bound;
-  const uint64_t worst_reported_match_edit_distance = match_traces[max_searched_matches-1]->edit_distance;
+  const uint64_t worst_reported_match_edit_distance = match_traces[max_searched_matches-1]->edit_distance; // FIXME Sort by SWG
   return candidate_edit_distance_bound >= worst_reported_match_edit_distance;
 }
 bool filtering_candidates_classify_subdominant_match_swg(

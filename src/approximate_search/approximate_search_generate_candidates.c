@@ -24,10 +24,9 @@
  *   from a region-profile/key-partition
  */
 
-#include <filtering/candidates/filtering_candidates_buffered_process.h>
-#include "align/alignment.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
-#include "approximate_search/approximate_search_control.h"
+#include "align/alignment.h"
+#include "filtering/candidates/filtering_candidates_buffered_process.h"
 #include "filtering/candidates/filtering_candidates_accessors.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
@@ -57,7 +56,22 @@ FILE* benchmark_decode_candidates = NULL;
 /*
  * Generate Candidates from Region-Profile (Exact Regions)
  */
-void approximate_search_generate_candidates(approximate_search_t* const search) {
+void approximate_search_generate_candidates_limit_exact_matches(
+    approximate_search_t* const search) {
+  // Check exact matches (limit the number of matches)
+  region_profile_t* const region_profile = &search->region_profile;
+  search_parameters_t* const search_parameters = search->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  region_search_t* const filtering_region = region_profile->filtering_region;
+  const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
+  if (total_candidates > select_parameters->max_searched_matches) {
+    search->num_limited_exact_matches = total_candidates - select_parameters->max_searched_matches;
+    filtering_region->hi = filtering_region->lo + select_parameters->max_searched_matches;
+    region_profile->total_candidates = select_parameters->max_searched_matches;
+  }
+}
+void approximate_search_generate_candidates(
+    approximate_search_t* const search) {
   PROFILE_START(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
@@ -70,13 +84,14 @@ void approximate_search_generate_candidates(approximate_search_t* const search) 
   PROF_ADD_COUNTER(GP_AS_GENERATE_CANDIDATES_NUM_ELEGIBLE_REGIONS,region_profile->num_filtering_regions);
   region_profile->num_filtered_regions = 0;
   if (region_profile_has_exact_matches(region_profile)) {
+    // Limit exact matches
+    approximate_search_generate_candidates_limit_exact_matches(search);
     // Add exact matches
     filtering_candidates_add_positions_from_interval(
         filtering_candidates,search_parameters,pattern,
         region_search->lo,region_search->hi,
         region_search->begin,region_search->end,
-        (pattern->run_length) ? ALIGN_DISTANCE_UNKNOWN : 0,
-        &region_profile->candidates_limited);
+        (pattern->run_length) ? ALIGN_DISTANCE_UNKNOWN : 0);
     ++(region_profile->num_filtered_regions);
   } else {
     // Add all candidates from the region-profile
@@ -90,8 +105,7 @@ void approximate_search_generate_candidates(approximate_search_t* const search) 
         filtering_candidates_add_positions_from_interval(
             filtering_candidates,search_parameters,pattern,
             region_search[i].lo,region_search[i].hi,
-            region_search[i].begin,region_search[i].end,0,
-            &region_profile->candidates_limited);
+            region_search[i].begin,region_search[i].end,0);
       } else {
         nsearch_levenshtein_base(
             search,pattern->key+region_search[i].begin,

@@ -161,7 +161,7 @@ void output_map_print_match(
 #else
   // Print CIGAR
   bofprintf_char(buffered_output_file,':');
-  const cigar_element_t* const cigar_buffer = match_trace_get_cigar_buffer(matches,match_trace);
+  const cigar_element_t* const cigar_buffer = match_trace_get_cigar_buffer(match_trace,matches->cigar_vector);
   const uint64_t cigar_length = match_trace_get_cigar_length(match_trace);
   switch (output_map_format) {
     case map_format_v2:
@@ -473,7 +473,9 @@ void output_map_paired_end_matches(
         archive_search_end2->sequence);
     // Print COUNTERS
     output_map_print_separator(buffered_output_file,'\t'); // Separator
-    output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);
+    output_map_print_counters(
+        buffered_output_file,paired_matches->counters,
+        paired_matches_get_max_complete_stratum(paired_matches),false);
     if (paired_matches_get_num_maps(paired_matches)==0) {
       buffered_output_file_reserve(buffered_output_file,3);
       bofprintf_string_literal(buffered_output_file,"\t-\n");

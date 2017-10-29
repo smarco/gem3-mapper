@@ -61,12 +61,10 @@ void nsearch_levenshtein_base_step(
     if (next_lo >= next_hi) continue;
     // Keep searching (Supercondensed Neighbourhood)
     if (align_distance <= max_error) {
-      bool candidates_limited;
       filtering_candidates_add_positions_from_interval(
           search->filtering_candidates,search->search_parameters,
-          &search->pattern,next_lo,next_hi,
-          key_offset,key_offset+key_length,
-          align_distance,&candidates_limited);
+          &search->pattern,next_lo,next_hi,key_offset,
+          key_offset+key_length,align_distance);
     } else if (text_length < max_text_length) {
       nsearch_levenshtein_base_step(
           nsearch_state,search,key,key_length,key_offset,
@@ -163,13 +161,16 @@ void nsearch_levenshtein_brute_force(
   // Init
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
+      search->max_search_error,search->archive,
       &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
   nsearch_operation_t* const nsearch_operation = search->nsearch_schedule->pending_searches;
   nsearch_levenshtein_state_prepare(&nsearch_operation->nsearch_state,supercondensed);
   nsearch_operation->text_position = 0;
+  nsearch_operation->search_direction = direction_backward;
+  nsearch_operation->global_key_begin = 0;
+  nsearch_operation->global_key_end = search->pattern.key_length;
 #ifdef NSEARCH_ENUMERATE
   const uint64_t init_lo = 0;
   const uint64_t init_hi = 1;
@@ -181,7 +182,7 @@ void nsearch_levenshtein_brute_force(
   nsearch_levenshtein_brute_force_step(
       search->nsearch_schedule,nsearch_operation,supercondensed,init_lo,init_hi);
   // PROFILE
-  // nsearch_schedule_print_profile(stderr,&nsearch_schedule);
+  // nsearch_schedule_print_profile(stderr,search->nsearch_schedule);
   PROF_ADD_COUNTER(GP_NS_NODES,search->nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,search->nsearch_schedule->profile.ns_nodes_success);
   PROF_ADD_COUNTER(GP_NS_NODES_FAIL,search->nsearch_schedule->profile.ns_nodes_fail);
@@ -196,7 +197,7 @@ void nsearch_levenshtein(
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
+      search->max_search_error,search->archive,
       &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);
@@ -220,7 +221,7 @@ void nsearch_levenshtein_preconditioned(
   // Search
   nsearch_schedule_init(
       search->nsearch_schedule,nsearch_model_levenshtein,
-      search->current_max_complete_error,search->archive,
+      search->max_search_error,search->archive,
       &search->pattern,&search->region_profile,
       search->search_parameters,search->filtering_candidates,
       matches);

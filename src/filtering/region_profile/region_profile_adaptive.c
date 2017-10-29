@@ -135,7 +135,7 @@ void region_profile_generator_close_profile(
     }
   }
   // Select regions & schedule filtering
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,ALL);
 }
 bool region_profile_generator_add_character(
     region_profile_generator_t* const generator,
@@ -212,7 +212,7 @@ bool region_profile_generator_next_region(
     region_profile_t* const region_profile,
     region_profile_generator_t* const generator,
     const region_profile_model_t* const profile_model) {
-  PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   const uint64_t proper_length = fm_index_get_proper_length(generator->fm_index);
   // Delimit regions
@@ -223,7 +223,7 @@ bool region_profile_generator_next_region(
     // Handling wildcards
     if (enc_char == ENC_DNA_CHAR_N) {
       if (region_profile_generator_disallow_character(generator,profile_model)) {
-        PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+        PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
         return true; // New region available
       }
     } else {
@@ -232,14 +232,14 @@ bool region_profile_generator_next_region(
           &generator->rank_mquery,&generator->lo,&generator->hi,enc_char);
       // Add the character to the region profile
       if (region_profile_generator_add_character(generator,profile_model,proper_length)) {
-        PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+        PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
         return true; // New region available
       }
     }
   }
   // EOI
   region_profile_generator_close_profile(generator,profile_model);
-  PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
   return false;
 }
 /*
@@ -253,7 +253,7 @@ void region_profile_generate_adaptive(
     const region_profile_model_t* const profile_model,
     const uint64_t max_regions,
     const bool allow_zero_regions) {
-  PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
@@ -293,7 +293,7 @@ void region_profile_generate_adaptive(
   }
   region_profile_generator_close_profile(&generator,profile_model);
   // DEBUG
-  PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     fprintf(gem_log_get_stream(),"\n");
   }
@@ -307,7 +307,7 @@ void region_profile_generate_adaptive_limited(
     const uint8_t* const key,
     const uint64_t key_length,
     const region_profile_model_t* const profile_model) {
-  PROFILE_START(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
@@ -355,5 +355,5 @@ void region_profile_generate_adaptive_limited(
   region_profile_generator_close_profile(&generator,profile_model);
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) { fprintf(stderr,"\n"); }
-  PROFILE_STOP(GP_REGION_PROFILE_ADAPTIVE,PROFILE_LEVEL);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }

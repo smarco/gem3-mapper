@@ -117,6 +117,7 @@ void match_align_exact(
   match_trace->event_distance = 0;
   match_trace->edit_distance = 0;
   match_trace->swg_score = align_swg_score_match(&search_parameters->swg_penalties,(int32_t)key_length);
+  match_trace->error_quality = (float)SEQUENCE_QUALITIES_MAX;
   // Set position/distance
   match_alignment->match_text_offset = alignment->alignment_tiles->text_begin_offset;
   match_alignment->match_position = text_trace->position + match_alignment->match_text_offset; // Adjust position
@@ -164,6 +165,7 @@ void match_align_pseudoalignment(
   match_trace->edit_distance = match_alignment->score;
   match_trace->event_distance = match_alignment->score;
   match_trace->swg_score = match_alignment->score;
+  match_trace->error_quality = (float)SEQUENCE_QUALITIES_MAX;
   // Store matching text
   match_trace->match_scaffold = NULL;
   match_trace->text = text_trace->text + match_alignment->match_text_offset;
@@ -222,6 +224,10 @@ void match_align_hamming(
   match_trace->swg_score = align_swg_score_cigar_excluding_clipping(
       &search_parameters->swg_penalties,matches->cigar_vector,
       match_alignment->cigar_offset,match_alignment->cigar_length);
+  match_trace->error_quality = matches_cigar_compute_error_quality(
+      matches->cigar_vector,match_alignment->cigar_offset,
+      match_alignment->cigar_length,pattern->quality_mask,
+      pattern->key_length);
   match_trace->match_scaffold = NULL;
   // Add clipping to CIGAR
   match_aling_add_clipping(
@@ -274,6 +280,10 @@ void match_align_levenshtein(
     match_trace->swg_score = align_swg_score_cigar_excluding_clipping(
         &search_parameters->swg_penalties,cigar_vector,
         match_alignment->cigar_offset,match_alignment->cigar_length);
+    match_trace->error_quality = matches_cigar_compute_error_quality(
+        matches->cigar_vector,match_alignment->cigar_offset,
+        match_alignment->cigar_length,pattern->quality_mask,
+        pattern->key_length);
     // Store matching text
     match_trace->match_scaffold = NULL;
     match_alignment->match_text_offset = match_alignment->match_position - text_trace->position;
@@ -328,7 +338,8 @@ void match_align_smith_waterman_gotoh(
   }
   // Normalize CIGAR (Adjust Position, Translate RL, ...)
   match_align_normalize(matches,match_trace,search_parameters);
-  match_align_swg_compute_alignment_type(matches,match_trace,search_parameters);
+  match_align_swg_compute_alignment_type(
+      matches,match_trace,pattern,search_parameters);
   if (match_trace->type == match_type_local) {
     match_trace->swg_score = SWG_SCORE_MIN;
     PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_SWG);
@@ -370,7 +381,8 @@ void match_align_smith_waterman_gotoh_local(
   }
   // Normalize CIGAR (Adjust Position, Translate RL, ...)
   match_align_normalize(matches,match_trace,search_parameters);
-  match_align_swg_compute_alignment_type(matches,match_trace,search_parameters);
+  match_align_swg_compute_alignment_type(
+      matches,match_trace,pattern,search_parameters);
   if (match_trace->type == match_type_local) {
     // Compute Local Alignment
     match_align_swg_local_alignment(

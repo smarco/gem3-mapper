@@ -33,26 +33,12 @@
 #include "mapper/mapper_stats.h"
 
 /*
- * Paired-Matches Classes
- */
-typedef enum {
-  paired_matches_class_unmapped = 0,
-  paired_matches_class_tie_perfect = 1,
-  paired_matches_class_tie = 2,
-  paired_matches_class_mmap_d1 = 3,
-  paired_matches_class_mmap = 4,
-  paired_matches_class_unique = 5,
-} paired_matches_class_t;
-extern const char* paired_matches_class_label[6];
-
-/*
  * Paired Matches
  */
 typedef struct {
-  /* State */
-  paired_matches_class_t paired_matches_class; // Matches Class
-  uint64_t max_complete_stratum;               // MCS
-  /* Matches Counters */
+  /* Classification */
+  matches_classification_t classification;     // Classification
+  /* Counters */
   matches_counters_t* counters;                // Counters
   /* Single-End Matches */
   matches_t* matches_end1;                     // Matches end1
@@ -82,8 +68,10 @@ uint64_t paired_matches_counters_get_count(paired_matches_t* const paired_matche
 uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_matches);
 uint64_t paired_matches_get_first_stratum_num_matches(paired_matches_t* const paired_matches);
 
+uint64_t paired_matches_get_max_complete_stratum(paired_matches_t* const paired_matches);
+
 paired_map_t* paired_matches_get_primary_map(paired_matches_t* const paired_matches);
-paired_map_t* paired_matches_get_secondary_map(paired_matches_t* const paired_matches);
+paired_map_t* paired_matches_get_subdominant_map(paired_matches_t* const paired_matches);
 
 uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches);
 paired_map_t** paired_matches_get_maps(paired_matches_t* const paired_matches);
@@ -92,6 +80,12 @@ uint64_t paired_matches_get_num_discordant_maps(const paired_matches_t* const pa
 paired_map_t** paired_matches_get_discordant_maps(paired_matches_t* const paired_matches);
 
 void paired_matches_limit_maps(const paired_matches_t* const paired_matches,const uint64_t num_maps);
+
+/*
+ * Recompute metrics
+ */
+void paired_matches_recompute_metrics(
+    paired_matches_t* const paired_matches);
 
 /*
  * Adding Paired-Matches

@@ -51,8 +51,7 @@ void filtering_candidates_add_positions_from_interval(
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
-    const uint64_t region_errors,
-    bool* const candidates_limited);
+    const uint64_t region_errors);
 
 /*
  * Adding Region (filtering regions)

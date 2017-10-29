@@ -50,7 +50,8 @@ void region_profile_generate_fixed(
     const uint64_t key_length,
     const uint64_t region_length,
     const uint64_t region_step,
-    const uint64_t region_error);
+    const uint64_t region_error,
+    const uint64_t max_candidates);
 
 /*
  * Cheap k-mer selection
@@ -61,7 +62,8 @@ void region_profile_generate_cks(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t num_regions);
+    const uint64_t num_regions,
+    const uint64_t max_candidates);
 
 /*
  * Factors region profile (divide the read in equal parts)
@@ -71,7 +73,9 @@ void region_profile_generate_factors(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const uint64_t num_regions);
+    const uint64_t num_regions,
+    const uint64_t region_error,
+    const uint64_t max_candidates);
 
 /*
  * Display/Benchmark

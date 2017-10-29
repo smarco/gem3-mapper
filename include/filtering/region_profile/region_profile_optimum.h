@@ -37,7 +37,8 @@ void region_profile_generate_optimum_fixed(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t num_regions);
+    const uint64_t num_regions,
+    const uint64_t max_candidates);
 
 /*
  * Region Profile Optimum (Variable region-length)

@@ -87,7 +87,6 @@ void mapper_profile_print_sam_output(FILE* const stream,const bool paired_end) {
  * Strata-deltas
  */
 void mapper_profile_print_se_matches(FILE* const stream) {
-  profile_t* const profile = PROF_GET_PROFILE();
   tab_fprintf(stream,"[GEM]>Profile.Matches.SE.Strata.Deltas\n");
   tab_fprintf(stream,"  --> Matches.SE.Classification\n");
   tab_fprintf(stream,"    --> Matches.SE.Tie.perfect               ");
@@ -102,26 +101,6 @@ void mapper_profile_print_se_matches(FILE* const stream) {
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_UNIQUE),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
   tab_fprintf(stream,"    --> Matches.SE.Unmapped                  ");
   COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_UNMAPPED),PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"  --> Strata.Deltas.Edit\n");
-  tab_fprintf(stream,"    --> Strata.Deltas.Edit.Unconsistent      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_EDIT_UNCONSISTENT),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"    --> Strata.Deltas.Edit.Consistent        ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_EDIT_CONSISTENT),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_global_inc(); tab_global_inc();
-  stats_vector_display(stream,profile->strata_deltas_edit,true,true,NULL);
-  tab_global_dec(); tab_global_dec();
-  tab_fprintf(stream,"  --> Strata.Deltas.SWG\n");
-  tab_fprintf(stream,"    --> Strata.Deltas.SWG.Unconsistent      ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_SWG_UNCONSISTENT),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_fprintf(stream,"    --> Strata.Deltas.SWG.Consistent        ");
-  COUNTER_PRINT(stream,PROF_GET_COUNTER(GT_MATCHES_SE_SWG_CONSISTENT),
-      PROF_GET_COUNTER(GP_MAPPER_NUM_READS),"reads",true);
-  tab_global_inc(); tab_global_inc();
-  stats_vector_display(stream,profile->strata_deltas_swg,true,true,NULL);
-  tab_global_dec(); tab_global_dec();
 }
 /*
  * Checks

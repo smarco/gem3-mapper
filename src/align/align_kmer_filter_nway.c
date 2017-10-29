@@ -67,6 +67,31 @@
 /*
  * Compile Pattern
  */
+void kmer_counting_compile_nway_allocate_tables(
+    kmer_counting_nway_t* const kmer_counting,
+    const bool count_pattern_kmers,
+    mm_allocator_t* const mm_allocator) {
+  // Profile tables
+  const uint64_t num_tiles = kmer_counting->num_tiles;
+  if (count_pattern_kmers) {
+    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
+    const uint64_t kmer_table_size = kmer_counting->num_kmers*num_tiles*sizeof(uint16_t);
+    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size+2*kmer_table_size,uint8_t,true);
+    kmer_counting->key_tiles = memory;
+    kmer_counting->text_tiles = memory + key_tiles_size;
+    kmer_counting->kmer_count_text = memory + key_tiles_size + text_tiles_size;
+    kmer_counting->kmer_count_pattern = memory + key_tiles_size + text_tiles_size + kmer_table_size;
+  } else {
+    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
+    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
+    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size,uint8_t,true);
+    kmer_counting->key_tiles = memory;
+    kmer_counting->text_tiles = memory + key_tiles_size;
+    kmer_counting->kmer_count_text = NULL;
+    kmer_counting->kmer_count_pattern = NULL;
+  }
+}
 void kmer_counting_compile_nway(
     kmer_counting_nway_t* const kmer_counting,
     uint8_t* const key,
@@ -92,29 +117,17 @@ void kmer_counting_compile_nway(
   // Pattern parameters
   kmer_counting->key = key;
   kmer_counting->key_length = key_length;
-  const uint64_t key_tile_length = DIV_CEIL(key_length,num_tiles);
-  kmer_counting->key_tile_length = key_tile_length;
-  if (kmer_counting->key_tile_length < kmer_counting->kmer_length) return; // Disabled kmer counting
   kmer_counting->num_tiles = num_tiles;
-  // Profile tables
-  if (count_pattern_kmers) {
-    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
-    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
-    const uint64_t kmer_table_size = kmer_counting->num_kmers*num_tiles*sizeof(uint16_t);
-    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size+2*kmer_table_size,uint8_t,true);
-    kmer_counting->key_tiles = memory;
-    kmer_counting->text_tiles = memory + key_tiles_size;
-    kmer_counting->kmer_count_text = memory + key_tiles_size + text_tiles_size;
-    kmer_counting->kmer_count_pattern = memory + key_tiles_size + text_tiles_size + kmer_table_size;
-  } else {
-    const uint64_t key_tiles_size = num_tiles * sizeof(kmer_counting_key_tile_t);
-    const uint64_t text_tiles_size = num_tiles * sizeof(kmer_counting_text_tile_t);
-    void* const memory = mm_allocator_calloc(mm_allocator,key_tiles_size+text_tiles_size,uint8_t,true);
-    kmer_counting->key_tiles = memory;
-    kmer_counting->text_tiles = memory + key_tiles_size;
-    kmer_counting->kmer_count_text = NULL;
-    kmer_counting->kmer_count_pattern = NULL;
+  kmer_counting->key_tile_length = DIV_CEIL(key_length,num_tiles);
+  // Check min-tile length
+  if (kmer_counting->key_tile_length < kmer_counting->kmer_length) {
+    kmer_counting->enabled = false;
+    kmer_counting->key_tiles = NULL;
+    return;
   }
+  kmer_counting->enabled = true;
+  // Profile tables
+  kmer_counting_compile_nway_allocate_tables(kmer_counting,count_pattern_kmers,mm_allocator);
   // Count kmers in pattern (chunks)
   uint16_t* const kmer_count_pattern = kmer_counting->kmer_count_pattern;
   uint64_t chunk_idx = 0, chunk_offset = 0;
@@ -175,7 +188,6 @@ void kmer_counting_prepare_tiling(
     pattern_tiling_init(
         &pattern_tiling,kmer_counting->key_length,
         kmer_counting->key_tile_length,text_length,adjusted_max_error);
-    const uint64_t num_tiles = kmer_counting->num_tiles;
     kmer_counting_text_tile_t* const text_tiles = kmer_counting->text_tiles;
     uint64_t chunk_idx;
     for (chunk_idx=0;chunk_idx<num_tiles;++chunk_idx) {
@@ -565,20 +577,20 @@ uint64_t kmer_counting_min_bound_nway(
     const uint64_t max_error,
     mm_allocator_t* const mm_allocator) {
   PROFILE_START(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
-  // Check min-length condition
-  const uint64_t kmer_length = kmer_counting->kmer_length;
-  if (kmer_counting->key_tile_length < kmer_length) {
+  // Check enabled
+  if (!kmer_counting->enabled) {
     PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_NA);
     return 0; // Don't filter
   }
+  // Prepare filter
+  if (kmer_counting->kmer_count_text==NULL) return 0; // Don't filter
+  const uint64_t num_tiles = kmer_counting->num_tiles;
+  memset(kmer_counting->kmer_count_text,0,kmer_counting->num_kmers*num_tiles*sizeof(uint16_t));
   // Prepare tiling
   kmer_counting_prepare_tiling(kmer_counting,text_length,max_error);
   // MM Push
   mm_allocator_push_state(mm_allocator);
-  // Prepare filter
-  const uint64_t num_tiles = kmer_counting->num_tiles;
-  memset(kmer_counting->kmer_count_text,0,kmer_counting->num_kmers*num_tiles*sizeof(uint16_t));
   // Prepare sliding window (pointers to the profile counters going out the sliding window)
   const uint64_t sliding_window_length = MIN(text_length,kmer_counting->sliding_window_length);
   const uint64_t kmer_window_length = 2*sliding_window_length;

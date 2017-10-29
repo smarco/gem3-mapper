@@ -35,7 +35,7 @@ VERSION=$(shell if [ -d $(ROOT_PATH)/.git ]; then git describe --abbrev=4 --dirt
 ###############################################################################
 # Tools
 ###############################################################################
-GEM_TOOLS=gem-mapper gem-indexer gem-constructor gem-retriever
+GEM_TOOLS=gem-mapper gem-indexer gem-mappability gem-retriever
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 
@@ -90,7 +90,10 @@ $(FOLDER_BIN)/gem-mapper: $(FOLDER_BUILD)/*.o gem-mapper.c
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 
 $(FOLDER_BIN)/gem-indexer: $(FOLDER_BUILD)/*.o gem-indexer.c
-	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(DEF_CUDA) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)
+	
+$(FOLDER_BIN)/gem-mappability: $(FOLDER_BUILD)/*.o gem-mappability.c 
+	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS)  
 	
 $(FOLDER_BIN)/gem-retriever: $(FOLDER_BUILD)/*.o gem-retriever.c
 	$(CC) $(GEM_FLAGS) $(GEM_VERSION) $(notdir $@).c $(FOLDER_BUILD)/*.o -o $@ $(FLAGS_LINK) $(GEM_PATHS) $(GEM_LIBS) 

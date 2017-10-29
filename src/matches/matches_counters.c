@@ -48,68 +48,72 @@ void matches_counters_delete(matches_counters_t* const counters) {
   vector_delete(counters->counts);
   mm_free(counters);
 }
-
 /*
  * Counters
  */
-uint64_t matches_counters_get_num_counters(matches_counters_t* const counters) {
-  return vector_get_used(counters->counts);
+uint64_t matches_counters_get_num_counters(
+    matches_counters_t* const matches_counters) {
+  return vector_get_used(matches_counters->counts);
 }
-uint64_t* matches_counters_get_counts(matches_counters_t* const counters) {
-  return vector_get_mem(counters->counts,uint64_t);
+uint64_t* matches_counters_get_counts(
+    matches_counters_t* const matches_counters) {
+  return vector_get_mem(matches_counters->counts,uint64_t);
 }
-uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance) {
-  return *vector_get_elm(counters->counts,distance,uint64_t);
+uint64_t matches_counters_get_count(
+    matches_counters_t* const matches_counters,
+    const uint64_t distance) {
+  return *vector_get_elm(matches_counters->counts,distance,uint64_t);
 }
-uint64_t matches_counters_get_total_count(matches_counters_t* const counters) {
-  return counters->total_count;
+uint64_t matches_counters_get_total_count(
+    matches_counters_t* const matches_counters) {
+  return matches_counters->total_count;
 }
 void matches_counters_add(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t distance,
     const uint64_t num_matches) {
-  vector_t* const counts = counters->counts;
+  vector_t* const counters = matches_counters->counts;
   // Reserve Memory
-  if (distance >= vector_get_used(counts)) {
-    vector_reserve(counts,distance+1,true);
-    vector_set_used(counts,distance+1);
+  if (distance >= vector_get_used(counters)) {
+    vector_reserve(counters,distance+1,true);
+    vector_set_used(counters,distance+1);
   }
   // Add matches
-  *vector_get_elm(counts,distance,uint64_t) += num_matches;
-  counters->total_count += num_matches;
+  *vector_get_elm(counters,distance,uint64_t) += num_matches;
+  matches_counters->total_count += num_matches;
 }
 void matches_counters_sub(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t distance,
     const uint64_t num_matches) {
-  uint64_t* const counts = vector_get_elm(counters->counts,distance,uint64_t);
-  *counts -= num_matches;
-  counters->total_count -= num_matches;
+  uint64_t* const counters = vector_get_elm(matches_counters->counts,distance,uint64_t);
+  *counters -= num_matches;
+  matches_counters->total_count -= num_matches;
 }
 /*
  * Utils
  */
-uint64_t matches_counters_compact(matches_counters_t* const counters) {
-  const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
-  int64_t i = vector_get_used(counters->counts)-1;
+uint64_t matches_counters_compact(matches_counters_t* const matches_counters) {
+  const uint64_t* const counts = vector_get_mem(matches_counters->counts,uint64_t);
+  int64_t i = vector_get_used(matches_counters->counts)-1;
   while (i>=0 && counts[i]==0) --i;
-  vector_set_used(counters->counts,++i);
+  vector_set_used(matches_counters->counts,++i);
   return i;
 }
 void matches_counters_compute_matches_to_report(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t min_reported_strata,
     const uint64_t max_reported_matches,
     uint64_t* const matches_to_report,
     uint64_t* const strata_to_report) {
   // Compact counters (Shrink the counters to the last non-zero stratum)
-  const uint64_t max_strata = matches_counters_compact(counters); // Strata is one based
+  const uint64_t max_strata = matches_counters_compact(matches_counters); // Strata is one based
   if (max_strata==0) {
     *matches_to_report = 0;
     *strata_to_report = 0;
     return;
   }
-  const uint64_t* const counts = vector_get_mem(counters->counts,uint64_t);
+  const uint64_t* const counts = vector_get_mem(matches_counters->counts,uint64_t);
   uint64_t current_stratum=0, total_matches=0, total_complete_strata=0;
   // Maximum stratum to decode (increased by @min_reported_strata)
   while (current_stratum < max_strata && total_complete_strata < min_reported_strata) {
@@ -128,6 +132,47 @@ void matches_counters_compute_matches_to_report(
   }
   *matches_to_report = total_matches;
   *strata_to_report = (total_matches!=0) ? current_stratum : 0;
+}
+uint64_t matches_counters_count_first_subdominant(
+    matches_counters_t* const matches_counters) {
+  const uint64_t* const counters = vector_get_mem(matches_counters->counts,uint64_t);
+  const uint64_t total_counters = vector_get_used(matches_counters->counts);
+  uint64_t i;
+  for (i=0;i<total_counters;++i) {
+    if (counters[i]!=0) break;
+  }
+  if (i==total_counters) return 0;
+  for (++i;i<total_counters;++i) {
+    if (counters[i]!=0) return counters[i];
+  }
+  return 0;
+}
+void matches_counters_count_delta_edit(
+    matches_counters_t* const matches_counters,
+    int64_t* const best_edit_distance,
+    int64_t* const subdominant_edit_distance) {
+  const uint64_t* const counters = vector_get_mem(matches_counters->counts,uint64_t);
+  const uint64_t total_counters = vector_get_used(matches_counters->counts);
+  uint64_t i;
+  *best_edit_distance = -1;
+  *subdominant_edit_distance = -1;
+  for (i=0;i<total_counters;++i) {
+    if (counters[i]!=0) {
+      *best_edit_distance = i;
+      if (counters[i]>1) {
+        *subdominant_edit_distance = i;
+        return;
+      }
+      break;
+    }
+  }
+  if (i==total_counters) return;
+  for (++i;i<total_counters;++i) {
+    if (counters[i]!=0) {
+      *subdominant_edit_distance = i;
+      return;
+    }
+  }
 }
 /*
  * Display

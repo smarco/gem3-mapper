@@ -71,6 +71,9 @@ typedef struct {
   vector_t* discarded_regions;                     // Discarded regions (filtering_region_t*)
   /* Cache */
   filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
+  /* Stats */
+  uint64_t current_candidates_aligned;             // Current number of candidates aligned
+  gem_counter_t candidates_aligned;                // Tracks candidates aligned
   /* MM */
   mm_allocator_t* mm_allocator;                    // MM-Allocator
 } filtering_candidates_t;

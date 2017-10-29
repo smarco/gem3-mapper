@@ -422,8 +422,9 @@ void output_sam_print_opt_field_tag_NM(
   buffered_output_file_reserve(buffered_output_file,6+INT_MAX_LENGTH);
   // Calculate edit-distance
   const uint64_t edit_distance =
-      matches_cigar_compute_edit_distance__excluding_clipping(matches->cigar_vector,
-          match_trace->match_alignment.cigar_offset,match_trace->match_alignment.cigar_length);
+      matches_cigar_compute_edit_distance__excluding_clipping(
+          matches->cigar_vector,match_trace->match_alignment.cigar_offset,
+          match_trace->match_alignment.cigar_length);
   bofprintf_string_literal(buffered_output_file,"\tNM:i:");
   bofprintf_uint64(buffered_output_file,edit_distance);
 }
@@ -727,7 +728,9 @@ void output_sam_print_opt_field_tag_X4_pe(
   buffered_output_file_reserve(buffered_output_file,6); // Reserve
   bofprintf_string_literal(buffered_output_file,"\tX4:Z:");
   // Print COUNTERS
-  output_map_print_counters(buffered_output_file,paired_matches->counters,paired_matches->max_complete_stratum,false);
+  output_map_print_counters(
+      buffered_output_file,paired_matches->counters,
+      paired_matches_get_max_complete_stratum(paired_matches),false);
 }
 void output_sam_print_opt_field_tag_X5(
     buffered_output_file_t* const buffered_output_file,

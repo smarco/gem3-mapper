@@ -77,7 +77,7 @@ void filtering_candidates_extend_match(
   // Parameters
   archive_t* const archive = filtering_candidates->archive;
   archive_text_t* const archive_text = archive->text;
-  const uint64_t max_filtering_error = candidate_pattern->max_effective_filtering_error;
+  const uint64_t max_extension_error = candidate_pattern->max_extension_error;
   /*
    * Retrieve text-candidate
    */
@@ -91,7 +91,7 @@ void filtering_candidates_extend_match(
   uint64_t candidate_begin_position, candidate_end_position;
   filtering_candidates_compute_extension_region(filtering_candidates,
       search_onward,extended_match_position,extended_effective_length,
-      candidate_pattern->key_length,max_filtering_error,max_template_size,
+      candidate_pattern->key_length,max_extension_error,max_template_size,
       &candidate_begin_position,&candidate_end_position);
   const uint64_t candidate_length = candidate_end_position-candidate_begin_position;
   text_trace_t text_trace;
@@ -102,10 +102,9 @@ void filtering_candidates_extend_match(
   /*
    * Verify candidate region (may contain multiple matches)
    */
-  uint64_t candidates_found =
-      filtering_region_verify_extension(
-          filtering_candidates,&text_trace,
-          candidate_begin_position,candidate_pattern);
+  const uint64_t candidates_found = filtering_region_verify_extension(
+      filtering_candidates,&text_trace,candidate_begin_position,
+      candidate_pattern,max_extension_error);
   text_trace_destroy(&text_trace,filtering_candidates->mm_allocator); // Free
   if (candidates_found==0) { PROFILE_STOP(GP_FC_EXTEND_MATCH,PROFILE_LEVEL); return; }
   /*

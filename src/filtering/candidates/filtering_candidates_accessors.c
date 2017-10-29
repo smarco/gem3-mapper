@@ -176,8 +176,7 @@ void filtering_candidates_add_positions_from_interval(
     const uint64_t interval_hi,
     const uint64_t region_begin_pos,
     const uint64_t region_end_pos,
-    const uint64_t region_errors,
-    bool* const candidates_limited) {
+    const uint64_t region_errors) {
   // Check total candidates
   const uint64_t total_candidates = interval_hi-interval_lo;
   if (gem_expect_false(total_candidates==0)) return;
@@ -191,10 +190,8 @@ void filtering_candidates_add_positions_from_interval(
       select_parameters->min_reported_strata_nominal==0 &&
       total_candidates > select_parameters->max_searched_matches) {
     interval_top = interval_lo + select_parameters->max_searched_matches;
-    *candidates_limited = true;
   } else {
     interval_top = interval_hi;
-    *candidates_limited = false;
   }
   // Store candidate positions
   uint64_t index_position;

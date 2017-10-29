@@ -129,10 +129,17 @@ uint64_t matches_cigar_compute_matching_bases(
 
 int64_t matches_cigar_element_effective_length(
     const cigar_element_t* const cigar_element);
-int64_t matches_cigar_effective_length(
+int64_t matches_cigar_compute_effective_length(
     vector_t* const cigar_vector,
     const uint64_t cigar_offset,
     const uint64_t cigar_length);
+
+float matches_cigar_compute_error_quality(
+    vector_t* const cigar_vector,
+    const uint64_t cigar_offset,
+    const uint64_t cigar_length,
+    uint8_t* const quality_mask,
+    const uint64_t quality_mask_length);
 
 /*
  * CIGAR Vector Compare

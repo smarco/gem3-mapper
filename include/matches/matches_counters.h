@@ -44,31 +44,43 @@ void matches_counters_delete(matches_counters_t* const counters);
 /*
  * Counters
  */
-uint64_t matches_counters_get_num_counters(matches_counters_t* const counters);
-uint64_t* matches_counters_get_counts(matches_counters_t* const counters);
+uint64_t matches_counters_get_num_counters(
+    matches_counters_t* const matches_counters);
+uint64_t* matches_counters_get_counts(
+    matches_counters_t* const matches_counters);
 
-uint64_t matches_counters_get_count(matches_counters_t* const counters,const uint64_t distance);
-uint64_t matches_counters_get_total_count(matches_counters_t* const counters);
+uint64_t matches_counters_get_count(
+    matches_counters_t* const matches_counters,
+    const uint64_t distance);
+uint64_t matches_counters_get_total_count(
+    matches_counters_t* const matches_counters);
 
 void matches_counters_add(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t distance,
     const uint64_t num_matches);
 void matches_counters_sub(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t distance,
     const uint64_t num_matches);
 
 /*
  * Utils
  */
-uint64_t matches_counters_compact(matches_counters_t* const counters);
+uint64_t matches_counters_compact(matches_counters_t* const matches_counters);
 void matches_counters_compute_matches_to_report(
-    matches_counters_t* const counters,
+    matches_counters_t* const matches_counters,
     const uint64_t min_reported_strata,
     const uint64_t max_reported_matches,
     uint64_t* const matches_to_report,
     uint64_t* const strata_to_report);
+
+uint64_t matches_counters_count_first_subdominant(
+    matches_counters_t* const matches_counters);
+void matches_counters_count_delta_edit(
+    matches_counters_t* const matches_counters,
+    int64_t* const best_edit_distance,
+    int64_t* const subdominant_edit_distance);
 
 /*
  * Display

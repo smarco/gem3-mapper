@@ -26,193 +26,154 @@
 #include "archive/score/archive_score_pe.h"
 #include "archive/score/archive_score_se.h"
 #include "archive/search/archive_search_pe.h"
+#include "archive/score/archive_score_logit.h"
+#include "archive/score/archive_score_logit_models.h"
 #include "matches/classify/matches_classify.h"
-#include "matches/classify/matches_classify_logit.h"
-#include "matches/classify/matches_classify_logit_models.h"
 
 /*
  * Profile
  */
 #define PROFILE_LEVEL PMED
 
-/*
- * PE Predictors Model
- */
-const matches_classify_logit_model_t* archive_score_matches_pe_get_model(
-    search_parameters_t* const search_parameters) {
-  if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
-    return &logit_model_paired_end_fast;
-  } else {
-    return &logit_model_paired_end_sensitive;
-  }
-}
-/*
- * PE Score Categories
- */
-uint8_t archive_score_matches_pe_default_mmaps_d1(
-    const matches_classify_logit_model_t* const classify_model,
-    const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_mmaps_d1(classify_model,matches_predictors);
-  if (pr < PAIRED_MATCHES_MIN_CI) return 5;
-  if (pr < PAIRED_MATCHES_TIES_CI) return 7;
-  return archive_score_probability_scale(pr-PAIRED_MATCHES_TIES_CI,1.-PAIRED_MATCHES_TIES_CI,10,28);
-}
-uint8_t archive_score_matches_pe_default_mmap(
-    const matches_classify_logit_model_t* const classify_model,
-    const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_mmaps(classify_model,matches_predictors);
-  if (pr < PAIRED_MATCHES_MIN_CI) return 5;
-  if (pr < PAIRED_MATCHES_MMAPS_CI) return 8;
-  return archive_score_probability_scale(pr-PAIRED_MATCHES_MMAPS_CI,1.-PAIRED_MATCHES_MMAPS_CI,30,48);
-}
-uint8_t archive_score_matches_pe_default_unique(
-    const matches_classify_logit_model_t* const classify_model,
-    const matches_predictors_t* const matches_predictors) {
-  const double pr = matches_classify_logit_unique(classify_model,matches_predictors);
-  if (pr < PAIRED_MATCHES_MIN_CI) return 5;
-  if (pr < PAIRED_MATCHES_UNIQUE_CI) return 9;
-  return archive_score_probability_scale(pr-PAIRED_MATCHES_UNIQUE_CI,1.-PAIRED_MATCHES_UNIQUE_CI,50,59);
-}
+///*
+// * Archive Scoring Logit Classes
+// */
+//const archive_score_logit_model_t* archive_score_matches_pe_get_model(
+//    search_parameters_t* const search_parameters) {
+//  if (search_parameters->mapping_mode==mapping_adaptive_filtering_fast) {
+//    return &logit_model_paired_end_fast;
+//  } else {
+//    return &logit_model_paired_end_sensitive;
+//  }
+//}
+//uint8_t archive_score_matches_pe_logit_unique(
+//    search_parameters_t* const search_parameters,
+//    matches_predictors_t* const matches_predictors,
+//    matches_classification_t* const matches_classification) {
+//  // Fetch logit model
+//  const archive_score_logit_model_t* const classify_model =
+//      archive_score_matches_pe_get_model(search_parameters);
+//  // Compute probability
+//  const double pr = archive_score_logit_unique(
+//      classify_model,matches_predictors,matches_classification);
+//  if (pr >= 1.0) return 59;
+//  const uint64_t mapq_score = archive_score_probability_to_mapq(pr);
+//  return (uint8_t)MIN(mapq_score,59);
+//}
+//uint8_t archive_score_matches_pe_logit_mmap(
+//    search_parameters_t* const search_parameters,
+//    matches_predictors_t* const matches_predictors,
+//    matches_classification_t* const matches_classification) {
+//  // Fetch logit model
+//  const archive_score_logit_model_t* const classify_model =
+//      archive_score_matches_pe_get_model(search_parameters);
+//  // Compute probability
+//  const double pr = archive_score_logit_mmap(
+//      classify_model,matches_predictors,matches_classification);
+//  if (pr >= 1.0) return 59;
+//  const uint64_t mapq_score = archive_score_probability_to_mapq(pr);
+//  return (uint8_t)MIN(mapq_score,59);
+//}
 /*
  * PE Scoring Models
  */
 void archive_score_matches_pe_default(
-    paired_matches_t* const paired_matches,
-    const matches_classify_logit_model_t* const classify_model) {
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches) {
   // Parameters
   const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
-  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
-  // Unmapped
-  if (paired_matches->paired_matches_class==paired_matches_class_unmapped) return;
+  if (num_maps==0) return; // Unmmapped
   // Score subdominant matches (MAPQ=0)
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
   uint64_t i;
   for (i=0;i<num_maps;++i) paired_maps[i]->mapq_score = 0;
   // Classify
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
   paired_map_t* const primary_map = paired_maps[0];
-  match_trace_t* const primary_end1 = primary_map->match_trace_end1;
-  match_trace_t* const primary_end2 = primary_map->match_trace_end2;
+  //  match_trace_t* const primary_end1 = primary_map->match_trace_end1;
+  //  match_trace_t* const primary_end2 = primary_map->match_trace_end2;
   // Discordant
-  if (primary_map->pair_relation==pair_relation_discordant ||
-      primary_end1->type == match_type_local || primary_end2->type == match_type_local) {
-    primary_map->mapq_score = 2;
+  if (primary_map->pair_relation==pair_relation_discordant) {
+    primary_map->mapq_score = 0;
     return;
   }
-  const bool high_quality_ends =
-      primary_end1->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN &&
-      primary_end2->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN;
+  // Classify
   matches_predictors_t matches_predictors;
-  switch (paired_matches->paired_matches_class) {
-    case paired_matches_class_tie_perfect:
-      if (num_maps==2) {
-        primary_map->mapq_score = 1;
+  matches_predictors_compute_pe(&matches_predictors,paired_matches);
+  // Score
+  const int64_t delta = paired_matches->classification.delta_group;
+  const int64_t wdelta_group = paired_matches->classification.wdelta_group;
+  if (matches_end1->classification.delta_group==0 ||
+      matches_end2->classification.delta_group==0) {
+    if (delta==0) {
+      paired_map_t* const subdominant_map = paired_maps[1];
+      primary_map->mapq_score = MIN(subdominant_map->template_length_sigma,4);
+    } else {
+      primary_map->mapq_score = 5 + ((wdelta_group <= 0) ? 0 : MIN(wdelta_group,10));
+    }
+  } else {
+    if (delta == 0) { // Tie
+      primary_map->mapq_score = 0;
+    } else {
+      if (wdelta_group > 1) {
+        primary_map->mapq_score = 60;
+      } else {
+        primary_map->mapq_score =
+            (primary_map->match_trace_end1->mapq_score +
+             primary_map->match_trace_end2->mapq_score)/2;
       }
-      break;
-    case paired_matches_class_tie:
-      primary_map->mapq_score = (high_quality_ends) ? 4 : 3;
-      break;
-    case paired_matches_class_mmap_d1:
-      matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      primary_map->mapq_score = (high_quality_ends) ?
-          29 : archive_score_matches_pe_default_mmaps_d1(classify_model,&matches_predictors);
-      break;
-    case paired_matches_class_mmap:
-      matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      primary_map->mapq_score = (high_quality_ends) ?
-          49 : archive_score_matches_pe_default_mmap(classify_model,&matches_predictors);
-      break;
-    case paired_matches_class_unique:
-      matches_predictors_compute_pe(&matches_predictors,paired_matches);
-      primary_map->mapq_score = (high_quality_ends) ?
-          60 : archive_score_matches_pe_default_unique(classify_model,&matches_predictors);
-      break;
-    default:
-      GEM_INVALID_CASE();
-      break;
+    }
   }
 }
-void archive_score_matches_pe_stratify(
-    paired_matches_t* const paired_matches,
-    const matches_classify_logit_model_t* const classify_model) {
+void archive_score_matches_pe_classify(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    paired_matches_t* const paired_matches) {
   // Parameters
   const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
-  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
-  // Unmmapped
-  if (paired_matches->paired_matches_class==paired_matches_class_unmapped) return;
-  // Score subdominant matches (MAPQ=0)
-  uint64_t i;
-  for (i=0;i<num_maps;++i) paired_maps[i]->mapq_score = 0;
+  if (num_maps==0) return; // Unmmapped
   // Discordant
-  paired_map_t* const primary_map = paired_maps[0];
+  paired_map_t* const primary_map = paired_matches_get_primary_map(paired_matches);
   if (primary_map->pair_relation==pair_relation_discordant) {
+    primary_map->mapq_score = 0;
+    return;
+  }
+  if (primary_map->match_trace_end1->type == match_type_local ||
+      primary_map->match_trace_end2->type == match_type_local) {
     primary_map->mapq_score = 1;
     return;
   }
   // Classify
-  match_trace_t* const primary_end1 = primary_map->match_trace_end1;
-  match_trace_t* const primary_end2 = primary_map->match_trace_end2;
-  const bool high_quality_ends =
-      primary_end1->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN &&
-      primary_end2->mapq_score >= MAPQ_CONFIDENCE_SCORE_MIN;
-//  const bool quality_one = (primary_end1->mapq_score > 0 || primary_end2->mapq_score > 0);
-//  const bool subdominant_both = (primary_end1->mapq_score==0 && primary_end2->mapq_score==0);
-//  const bool subdominant_one = (primary_end1->mapq_score==0 || primary_end2->mapq_score==0);
-//  const bool d0_limited_end1 = paired_matches->matches_end1->matches_class == matches_class_tie_perfect &&
-//                               paired_matches->matches_end1->metrics.limited_candidates;
-//  const bool d0_limited_end2 = paired_matches->matches_end2->matches_class == matches_class_tie_perfect &&
-//                               paired_matches->matches_end2->metrics.limited_candidates;
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
   matches_predictors_t matches_predictors;
   matches_predictors_compute_pe(&matches_predictors,paired_matches);
-  switch (paired_matches->paired_matches_class) {
-    case paired_matches_class_tie_perfect: {
-      primary_map->mapq_score = 1;
-      break;
+  // Score
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
+  const int64_t delta = paired_matches->classification.delta_group;
+  const int64_t wdelta_group = paired_matches->classification.wdelta_group;
+  if (matches_end1->classification.delta_group==0 ||
+      matches_end2->classification.delta_group==0) {
+    if (delta==0) {
+      paired_map_t* const subdominant_map = paired_maps[1];
+      primary_map->mapq_score = 10 + MIN(subdominant_map->template_length_sigma,30);
+    } else {
+      primary_map->mapq_score = 50 + ((wdelta_group <= 0) ? 0 : MIN(wdelta_group,30));
     }
-    case paired_matches_class_tie: {
+  } else {
+    if (delta == 0) { // Tie
       primary_map->mapq_score = 2;
-      break;
-    }
-    case paired_matches_class_mmap_d1: {
-      if (high_quality_ends) {
-        primary_map->mapq_score = 38;
+    } else {
+      if (wdelta_group > 1) {
+        primary_map->mapq_score = 161;
       } else {
-        const double pr = matches_classify_logit_mmaps_d1(classify_model,&matches_predictors);
-        if (pr < 0.90) {
-          primary_map->mapq_score = 39;
-        } else {
-          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,40,90);
-        }
+        primary_map->mapq_score = 100 +
+            (primary_map->match_trace_end1->mapq_score +
+             primary_map->match_trace_end2->mapq_score)/2;
       }
-      break;
     }
-    case paired_matches_class_mmap: {
-      if (high_quality_ends) {
-        primary_map->mapq_score = 98;
-      } else {
-        const double pr = matches_classify_logit_mmaps(classify_model,&matches_predictors);
-        if (pr < 0.90) {
-          primary_map->mapq_score = 99;
-        } else {
-          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,100,150);
-        }
-      }
-      break;
-    }
-    case paired_matches_class_unique: {
-      if (high_quality_ends) {
-        primary_map->mapq_score = 198;
-      } else {
-        const double pr = matches_classify_logit_unique(classify_model,&matches_predictors);
-        if (pr < 0.90) {
-          primary_map->mapq_score = 199;
-        } else {
-          primary_map->mapq_score = archive_score_probability_scale(pr-0.90,1.0-0.90,200,250);
-        }
-      }
-      break;
-    }
-    default:
-      GEM_INVALID_CASE();
-      break;
   }
 }
 /*
@@ -227,10 +188,6 @@ void archive_score_matches_pe(
   // Check no-align model
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
   if (search_parameters->match_alignment_model==match_alignment_model_none) return;
-  // Fetch predictors-model
-  const matches_classify_logit_model_t* const classify_model = archive_score_matches_pe_get_model(search_parameters);
-  // Classify
-  paired_matches_classify(paired_matches);
   /*
    * Select scoring model
    */
@@ -238,21 +195,20 @@ void archive_score_matches_pe(
   switch (search_parameters->mapq_model_pe) {
     case mapq_model_none: break;
     case mapq_model_classify:
-      archive_score_matches_pe_stratify(paired_matches,classify_model);
+      archive_score_matches_pe_classify(archive_search_end1,archive_search_end2,paired_matches);
       break;
     case mapq_model_gem:
-      archive_score_matches_pe_default(paired_matches,classify_model);
+      archive_score_matches_pe_default(archive_search_end1,archive_search_end2,paired_matches);
       break;
     case mapq_model_dump_predictors: {
       // Score default
-      archive_score_matches_pe_stratify(paired_matches,classify_model);
+      archive_score_matches_pe_classify(archive_search_end1,archive_search_end2,paired_matches);
       // Compute predictors
       matches_predictors_t matches_predictors;
       matches_predictors_compute_pe(&matches_predictors,paired_matches);
       // Dump predictors
-      matches_predictors_pe_print(
-          stdout,sequence_get_tag(archive_search_end1->sequence),
-          paired_matches->paired_matches_class,&matches_predictors);
+      char* const sequence_tag = sequence_get_tag(archive_search_end1->sequence);
+      matches_predictors_pe_print(stdout,sequence_tag,&matches_predictors,&paired_matches->classification);
       break;
     }
     default:

@@ -7,39 +7,45 @@
 
 # Definitions
 ROOT_PATH=..
+GEM_CUTTER=$(if $(shell ls -A gem-cutter),1,0)
 include $(ROOT_PATH)/Makefile.mk
 
 all: devel
 
 release: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=gpu_modules release
-	cp -u gpu_modules/build/*.o ../build
+	$(MAKE) --directory=gem-cutter release
+	cp -u gem-cutter/build/*.o ../build
 endif
 
 devel: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=gpu_modules devel
-	cp -u gpu_modules/build/*.o ../build
+	$(MAKE) --directory=gem-cutter devel
+	cp -u gem-cutter/build/*.o ../build
 endif
 
 profile: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=gpu_modules profile
-	cp -u gpu_modules/build/*.o ../build
+	$(MAKE) --directory=gem-cutter profile
+	cp -u gem-cutter/build/*.o ../build
 endif
 
 debug: setup
 ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=gpu_modules debug
-	cp -u gpu_modules/build/*.o ../build
+	$(MAKE) --directory=gem-cutter debug
+	cp -u gem-cutter/build/*.o ../build
 endif
+
+clean: setup
+ifeq ($(and $(HAVE_CUDA),$(GEM_CUTTER)),)
+	$(MAKE) --directory=gem-cutter clean
+endif
+	@rm -rf build
 
 setup: 
 	@mkdir -p build
-
-clean:
-ifeq ($(HAVE_CUDA),1)
-	$(MAKE) --directory=gpu_modules clean
+ifeq ($(GEM_CUTTER),0)
+	@git submodule update --init --recursive
+	GEM_CUTTER=1
 endif
-	@rm -rf build
+

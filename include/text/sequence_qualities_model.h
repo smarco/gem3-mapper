@@ -30,6 +30,11 @@
 #include "text/sequence.h"
 
 /*
+ * Constants
+ */
+#define SEQUENCE_QUALITIES_MAX 93
+
+/*
  * Quality Data Structures
  */
 typedef enum {
@@ -37,18 +42,14 @@ typedef enum {
   sequence_qualities_offset_33,
   sequence_qualities_offset_64
 } sequence_qualities_format_t;
-typedef enum {
-  qm_real=0,
-  qm_pseudo=1
-} quality_type_t;
 
 /*
  * Quality Models
  */
 void sequence_qualities_model_process(
-    sequence_t* const sequence,
     const sequence_qualities_format_t quality_format,
-    const uint64_t quality_threshold,
+    char* const qualities,
+    const uint64_t key_length,
     uint8_t* const quality_mask);
 
 #endif /* SEQUENCE_QUALITIES_MODEL_H_ */

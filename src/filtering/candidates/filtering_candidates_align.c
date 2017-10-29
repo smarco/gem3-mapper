@@ -82,6 +82,7 @@ bool filtering_candidates_align_region(
         filtering_region_align(
             filtering_candidates,region,
             pattern,matches,&match_trace);
+    ++(filtering_candidates->current_candidates_aligned);
     if (!match_trace_aligned) return false; // Not aligned
   }
   // Add to matches
@@ -173,6 +174,7 @@ void filtering_candidates_align_candidates(
       filtering_candidates_reserve_discarded_regions(filtering_candidates,num_filtering_regions);
   // Clear cache
   filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
+  filtering_candidates->current_candidates_aligned = 0;
   // Traverse all accepted candidates (text-space)
   uint64_t n;
   for (n=0;n<num_filtering_regions;++n) {
@@ -184,7 +186,6 @@ void filtering_candidates_align_candidates(
             filtering_candidates,filtering_region,pattern,matches);
     if (candidate_subdominant) {
       PROF_INC_COUNTER(GP_FC_SELECT_PRUNE_HIT);
-      matches_metrics_set_limited_candidates(&matches->metrics,true);
       filtering_region->status = filtering_region_accepted_subdominant;
       continue;
     }
@@ -199,7 +200,7 @@ void filtering_candidates_align_candidates(
     }
   }
   // Clean
-  uint64_t num_regions_out = 0, num_regions_discarded = 0;
+  uint64_t num_regions_discarded = 0;
   for (n=0;n<num_filtering_regions;++n) {
     filtering_region_t* const filtering_region = regions_in[n];
     if (filtering_region->status==filtering_region_accepted) {
@@ -210,7 +211,7 @@ void filtering_candidates_align_candidates(
   }
   // Update used
   matches_metrics_add_accepted_candidates(&matches->metrics,num_filtering_regions);
-  filtering_candidates_set_num_regions(filtering_candidates,num_regions_out);
+  filtering_candidates_set_num_regions(filtering_candidates,0);
   filtering_candidates_add_num_discarded_regions(filtering_candidates,num_regions_discarded);
   // DEBUG
   gem_cond_debug_block(DEBUG_FILTERING_CANDIDATES) {

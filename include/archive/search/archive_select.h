@@ -29,6 +29,8 @@
 
 #include "archive/search/archive_search.h"
 #include "archive/search/archive_select_parameters.h"
+#include "matches/matches.h"
+#include "matches/paired_matches.h"
 
 /*
  * Setup
@@ -40,7 +42,6 @@ void archive_select_configure_pe(archive_search_t* const archive_search);
  * Select Paired-Matches
  */
 void archive_select_se_matches(
-    archive_search_t* const archive_search,
     select_parameters_t* const select_parameters,
     matches_t* const matches);
 void archive_select_pe_matches(

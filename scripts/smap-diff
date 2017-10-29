@@ -1,3 +1,0 @@
-#!/bin/bash
-
-diff -ty <(./scripts/smap $1) <(./scripts/smap $2)

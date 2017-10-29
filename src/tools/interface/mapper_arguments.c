@@ -41,99 +41,89 @@ option_t gem_mapper_options[] = {
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
   { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
   { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'none'|'uncalled'|'masked'|'fixed,<left_clip>,<right_clip>'", "(default=uncalled)" },
-  /* Qualities */
-  { 'q', "quality-format", REQUIRED, TYPE_STRING, 3, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
-  { 300, "quality-threshold", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>", "(default=26, that is e<=2e-3)" },
+  { 'q', "quality-format", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   /* Single-end Alignment */
-  { 400, "mapping-mode", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
-  { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
-  { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
-  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.12, 12%)" },
-  { 401, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
-  { 403, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
-  { 404, "alignment-global-min-score", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
-  { 405, "alignment-local", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
-  { 406, "alignment-local-min-identity", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=40)" },
-  { 407, "alignment-local-min-score", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_USER, "<number|percentage>" , "(default=20)" },
-  { 408, "alignment-force-full-swg", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=false)" },
-  { 409, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
-  { 410, "alignment-curation", OPTIONAL, TYPE_STRING, 4, VISIBILITY_ADVANCED, "" , "(default=true)" },
-  { 411, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 4, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
-  { 412, "candidate-generation", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<strategy>[,<arguments>]" , "" },
-  { 413, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
-  { 414, "candidate-verification", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
-  { 415, "qgram-filter", REQUIRED, TYPE_STRING, 4, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
-  { 416, "candidate-drop-off", OPTIONAL, TYPE_STRING, 10, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
+  { 300, "mapping-mode", REQUIRED, TYPE_STRING, 3, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
+  { 'E', "complete-search-error", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.04, 4%)" },
+  { 's', "complete-strata-after-best", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=1)" },
+  { 'e', "alignment-max-error", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "<number|percentage>" , "(default=0.12, 12%)" },
+  { 301, "alignment-max-bandwidth", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_ADVANCED, "<number|percentage>" , "(default=0.20, 20%)" },
+  { 303, "alignment-global-min-identity", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "<number|percentage>" , "(default=80%)" },
+  { 304, "alignment-global-min-score", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "<number|percentage>" , "(default=0.20)" },
+  { 305, "alignment-local", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "'never'|'if-unmapped'" , "(default=if-unmapped)" },
+  { 306, "alignment-local-min-identity", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "<number|percentage>" , "(default=40)" },
+  { 307, "alignment-local-min-score", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_USER, "<number|percentage>" , "(default=20)" },
+  { 308, "alignment-force-full-swg", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
+  { 309, "alignment-scaffolding-min-matching_length", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=10)" },
+  { 310, "alignment-curation", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=true)" },
+  { 311, "alignment-curation-min-end-context", REQUIRED, TYPE_FLOAT, 3, VISIBILITY_DEVELOPER, "<number|percentage>" , "(default=2)" },
+  { 312, "candidate-generation", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<strategy>[,<arguments>]" , "" },
+  { 313, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
+  { 314, "candidate-verification", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
+  { 315, "qgram-filter", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
   /* Paired-end Alignment */
-  { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "" , "" },
-  { 'l', "min-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=disabled)" },
-  { 'L', "max-template-length", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number>" , "(default=10000)" },
-  { 500, "discordant-pair-search", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
-  { 501, "pair-orientation", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=FR)" },
-  { 502, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=RF)" },
-  { 503, "pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
-  { 504, "discordant-pair-layout", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
-  // TODO { 505, "pe-extension", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'none'|'recovery'|'shortcut'|'all'" , "(default=none)" },
-  { 506, "pe-template-length", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
+  { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 4, VISIBILITY_USER, "" , "" },
+  { 'l', "min-template-length", REQUIRED, TYPE_INT, 4, VISIBILITY_USER, "<number>" , "(default=disabled)" },
+  { 'L', "max-template-length", REQUIRED, TYPE_INT, 4, VISIBILITY_USER, "<number>" , "(default=10000)" },
+  { 400, "discordant-pair-search", REQUIRED, TYPE_STRING, 4, VISIBILITY_USER, "'always'|'if-no-concordant'|'never'" , "(default=if-no-concordant)" },
+  { 401, "pair-orientation", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=FR)" },
+  { 402, "discordant-pair-orientation", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'FR'|'RF'|'FF'|'RR'" , "(default=RF)" },
+  { 403, "pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
+  { 404, "discordant-pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
+  { 406, "pe-template-length", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
   /* Bisulfite Alignment */
-  { 601, "bisulfite-read", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
+  { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
   /* Alignment Score */
-  { 700, "alignment-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
-  { 701, "gap-affine-penalties", REQUIRED, TYPE_STRING, 7, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
-  { 'A', "matching-score", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=1)" },
-  { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=4)" },
-  { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=6)" },
-  { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 7, VISIBILITY_ADVANCED, "" , "(default=1)" },
+  { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
+  { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
+  { 'A', "matching-score", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
+  { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=4)" },
+  { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=6)" },
+  { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
   /* MAQ Score */
-  { 800, "mapq-model", REQUIRED, TYPE_STRING, 8, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
-  // TODO { 801, "mapq-threshold", REQUIRED, TYPE_INT, 8, VISIBILITY_DEVELOPER, "<number>" , "(default=0)" },
+  { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
   /* Reporting */
-  { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 9, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
-  { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  9, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
+  { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 8, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
+  { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  8, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
   /* Output Format */
-  { 'F',  "output-format", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
-  { 1000, "sam-compact", OPTIONAL, TYPE_STRING, 10, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
-  { 'r',  "sam-read-group-header", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "<read_group_header> (i.e. '@RG\\tID:xx\\tSM:yy')" , "(default=NULL)" },
-  { 1001, "sam-gem-compatible", OPTIONAL, TYPE_STRING, 10, VISIBILITY_DEVELOPER, "'true'|'false'" , "(default=false)" },
-  { 1002, "map-format", REQUIRED, TYPE_INT, 10, VISIBILITY_DEVELOPER, "'1'|'2'|'3'" , "(default=2)" },
+  { 'F',  "output-format", REQUIRED, TYPE_STRING, 9, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
+  { 900, "sam-compact", OPTIONAL, TYPE_STRING, 9, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
+  { 'r',  "sam-read-group-header", REQUIRED, TYPE_STRING, 9, VISIBILITY_USER, "<read_group_header> (i.e. '@RG\\tID:xx\\tSM:yy')" , "(default=NULL)" },
+  { 901, "sam-gem-compatible", OPTIONAL, TYPE_STRING, 9, VISIBILITY_DEVELOPER, "'true'|'false'" , "(default=false)" },
+  { 902, "map-format", REQUIRED, TYPE_INT, 9, VISIBILITY_DEVELOPER, "'1'|'2'|'3'" , "(default=2)" },
   /* System */
-  { 't',  "threads", REQUIRED, TYPE_STRING, 11, VISIBILITY_USER, "<number>" , "(default=#cores)" },
-  { 1100, "max-memory", REQUIRED, TYPE_STRING, 11, VISIBILITY_DEVELOPER, "<maximum-memory>" , "(Eg 2GB)" },
-  { 1101, "tmp-folder", REQUIRED, TYPE_STRING, 11, VISIBILITY_DEVELOPER, "<temporal_dir_path>" , "(default=/tmp/)" },
-  /* CUDA Settings */
+  { 't',  "threads", REQUIRED, TYPE_STRING, 10, VISIBILITY_USER, "<number>" , "(default=#cores)" },
+  { 1000, "max-memory", REQUIRED, TYPE_STRING, 10, VISIBILITY_DEVELOPER, "<maximum-memory>" , "(Eg 2GB)" },
+  { 1001, "tmp-folder", REQUIRED, TYPE_STRING, 10, VISIBILITY_DEVELOPER, "<temporal_dir_path>" , "(default=/tmp/)" },
 #ifdef HAVE_CUDA
-  { 1200, "gpu", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=disabled)"},
-  { 1201, "gpu-devices", REQUIRED, TYPE_STRING, 12, VISIBILITY_USER, "", "(default=all)"},
-  { 1202, "gpu-buffers-model", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "<#BSearch,#BDecode,#BKmer,#BBPMDistance,#BBPMAlign,BufferSize>" , "(default=2,3,3,3,3,1M)" },
+  /* CUDA Settings */
+  { 1100, "gpu", OPTIONAL, TYPE_STRING, 11, VISIBILITY_USER, "", "(default=disabled)"},
+  { 1101, "gpu-devices", REQUIRED, TYPE_STRING, 11, VISIBILITY_USER, "", "(default=all)"},
+  { 1102, "gpu-buffers-model", REQUIRED, TYPE_STRING, 11, VISIBILITY_DEVELOPER, "<#BSearch,#BDecode,#BKmer,#BBPMDistance,#BBPMAlign,BufferSize>" , "(default=2,3,3,3,3,1M)" },
 #endif /* HAVE_CUDA */
-  /* Presets/Hints */
-  /* Debug */
-  { 'c', "check-alignments", REQUIRED, TYPE_STRING, 14, VISIBILITY_DEVELOPER, "'correct'|'best'|'complete'" , "" },
   /* Miscellaneous */
-  { 1500, "profile", OPTIONAL, TYPE_STRING, 15, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
-  { 'v',  "verbose", OPTIONAL, TYPE_STRING, 15, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
-  { 1501, "progress-step", REQUIRED, TYPE_INT, 15, VISIBILITY_DEVELOPER, "" , "(default=100000)" },
-  { 1502, "version", NO_ARGUMENT, TYPE_STRING, 15, VISIBILITY_USER, "" , "" },
-  { 'h',  "help", OPTIONAL, TYPE_NONE, 15, VISIBILITY_USER, "" , "(print usage)" },
+  { 'c',  "check-alignments", REQUIRED, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "'correct'|'best'|'complete'" , "" },
+  { 1200, "profile", OPTIONAL, TYPE_STRING, 12, VISIBILITY_DEVELOPER, "'sum'|'min'|'max'|'mean'|'sample'" , "(disabled)" },
+  { 'v',  "verbose", OPTIONAL, TYPE_STRING, 12, VISIBILITY_USER, "'quiet'|'user'|'dev'" , "(default=user)" },
+  { 1201, "progress-step", REQUIRED, TYPE_INT, 12, VISIBILITY_DEVELOPER, "" , "(default=100000)" },
+  { 1202, "version", NO_ARGUMENT, TYPE_STRING, 12, VISIBILITY_USER, "" , "" },
+  { 'h',  "help", OPTIONAL, TYPE_NONE, 12, VISIBILITY_USER, "" , "(print usage)" },
   {  0, "", 0, 0, 0, false, "", ""}
 };
 char* gem_mapper_groups[] = {
   /*  0 */ "Null",
   /*  1 */ "Unclassified",
   /*  2 */ "I/O",
-  /*  3 */ "Qualities",
-  /*  4 */ "Single-end Alignment",
-  /*  5 */ "Paired-end Alignment",
-  /*  6 */ "Bisulfite Alignment",
-  /*  7 */ "Alignment Score",
-  /*  8 */ "MAPQ Score",
-  /*  9 */ "Reporting",
-  /* 10 */ "Output-format",
-  /* 11 */ "System",
-  /* 12 */ "CUDA Settings",
-  /* 13 */ "Presets/Hints",
-  /* 14 */ "Debug",
-  /* 15 */ "Miscellaneous",
+  /*  3 */ "Single-end Alignment",
+  /*  4 */ "Paired-end Alignment",
+  /*  5 */ "Bisulfite Alignment",
+  /*  6 */ "Alignment Score",
+  /*  7 */ "MAPQ Score",
+  /*  8 */ "Reporting",
+  /*  9 */ "Output-format",
+  /* 10 */ "System",
+  /* 11 */ "CUDA Settings",
+  /* 12 */ "Miscellaneous",
 };
 
 /*
@@ -218,11 +208,6 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
       mapper_error_msg("Option '--gpu' can only operate with '--mapping-mode' in {'fast'|'sensitive'}");
     }
   }
-  /* Qualities */
-  mapper_cond_error_msg(search->quality_threshold > 94,
-      "Quality threshold is too high (please consider lowering it or run ignoring qualities)");
-  mapper_cond_error_msg(search->quality_threshold == 0,
-      "Quality threshold is zero (all base-calls will be considered wrong)");
   /* Reporting */
   mapper_cond_error_msg(
       parameters->min_reported_strata_set && parameters->max_reported_matches_set,
@@ -347,18 +332,6 @@ bool gem_mapper_parse_arguments_io(
         }
       }
       return true;
-  }
-  // Not found
-  return false;
-}
-bool gem_mapper_parse_arguments_qualities(
-    mapper_parameters_t* const parameters,
-    const int option,
-    char* optarg) {
-  // Parameters
-  search_parameters_t* const search = &parameters->search_parameters;
-  // Qualities
-  switch (option) {
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg, "ignore")) {
         search->qualities_format = sequence_qualities_ignore;
@@ -371,9 +344,8 @@ bool gem_mapper_parse_arguments_qualities(
             "Option '-q|--quality-format' must be 'ignore', 'offset-33' or 'offset-64'");
       }
       return true;
-    case 300: // --quality-threshold (default=26, that is e<=2e-3)
-      input_text_parse_extended_uint64(optarg, &search->quality_threshold);
-      return true;
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -386,23 +358,37 @@ bool gem_mapper_parse_arguments_single_end(
   search_parameters_t* const search = &parameters->search_parameters;
   // Single-End
   switch (option) {
-    case 400: // --mapping-mode in {'fast'|'sensitive'|'customed'} (default=fast)
+    case 300: // --mapping-mode in {'fast'|'sensitive'|'customed'} (default=fast)
       // Filtering Modes
       if (gem_strcaseeq(optarg,"fast")) {
         search->mapping_mode = mapping_adaptive_filtering_fast;
-      } else if (gem_strcaseeq(optarg,"complete-filtering")) {
-        search->mapping_mode = mapping_adaptive_filtering_complete;
       // NS Modes
       } else if (gem_strcaseeq(optarg,"complete-brute-force")) {
         search->mapping_mode = mapping_neighborhood_search_brute_force;
       } else if (gem_strcaseeq(optarg,"complete-partition")) {
+        search->nsearch_parameters.filtering_cutoff = false;
+        search->nsearch_parameters.matches_accuracy_cutoff = false;
+        search->nsearch_parameters.matches_max_searched_cutoff = false;
+        search->mapping_mode = mapping_neighborhood_search_partition;
+      } else if (gem_strcaseeq(optarg,"complete-partition-filter")) {
+        search->nsearch_parameters.filtering_cutoff = true;
+        search->nsearch_parameters.matches_accuracy_cutoff = false;
+        search->nsearch_parameters.matches_max_searched_cutoff = false;
         search->mapping_mode = mapping_neighborhood_search_partition;
       // Hybrid Modes
-      } else if (gem_strcaseeq(optarg,"sensitive")) {
+      } else if (gem_strcaseeq(optarg,"sensitive") ||
+                 gem_strcaseeq(optarg,"hybrid")) {
         search->mapping_mode = mapping_hybrid_sensitive;
+      // Complete Modes
+      } else if (gem_strcaseeq(optarg,"complete-pure")) {
+        search->nsearch_parameters.filtering_cutoff = false;
+        search->nsearch_parameters.matches_accuracy_cutoff = false;
+        search->nsearch_parameters.matches_max_searched_cutoff = false;
+        search->mapping_mode = mapping_hybrid_complete;
       } else if (gem_strcaseeq(optarg,"customed") ||
-                 gem_strcaseeq(optarg,"complete") ||
-                 gem_strcaseeq(optarg,"complete-hybrid")) {
+                 gem_strcaseeq(optarg,"complete")) {
+        search->nsearch_parameters.matches_accuracy_cutoff = false;
+        search->nsearch_parameters.matches_max_searched_cutoff = false;
         search->mapping_mode = mapping_hybrid_complete;
       } else {
         mapper_error_msg("Option '--mapping-mode' must be 'fast'|'sensitive'|'customed'");
@@ -417,16 +403,16 @@ bool gem_mapper_parse_arguments_single_end(
     case 'e': // --alignment-max-error (default=0.12, 12%)
       search->alignment_max_error = atof(optarg);
       return true;
-    case 401: // --alignment-max-bandwidth (default=0.20, 20%)
+    case 301: // --alignment-max-bandwidth (default=0.20, 20%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_max_bandwidth);
       return true;
-    case 403: // --alignment-global-min-identity (default=80%)
+    case 303: // --alignment-global-min-identity (default=80%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_identity);
       return true;
-    case 404: // --alignment-global-min-score (default=40%)
+    case 304: // --alignment-global-min-score (default=40%)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_global_min_swg_threshold);
       return true;
-    case 405: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
+    case 305: // --alignment-local in {'never'|'if-unmapped'} (default=if-unmapped)
       if (gem_strcaseeq(optarg,"never")) {
         search->alignment_local = local_alignment_never;
       } else if (gem_strcaseeq(optarg,"if-unmapped")) {
@@ -435,60 +421,68 @@ bool gem_mapper_parse_arguments_single_end(
         mapper_error_msg("Option '--alignment-local' must be 'never'|'if-unmapped'");
       }
       return true;
-    case 406: // --alignment-local-min-identity (default=40)
+    case 306: // --alignment-local-min-identity (default=40)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_identity);
       return true;
-    case 407: // --alignment-local-min-score (default=20)
+    case 307: // --alignment-local-min-score (default=20)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_local_min_swg_threshold);
       return true;
-    case 408: // --alignment-force-full-swg (default=true)
+    case 308: // --alignment-force-full-swg (default=true)
       search->alignment_force_full_swg = input_text_parse_extended_bool(optarg);
       return true;
-    case 409: // --alignment-scaffolding-min-matching_length (default=10)
+    case 309: // --alignment-scaffolding-min-matching_length (default=10)
       input_text_parse_extended_double(optarg,(double*)&search->alignment_scaffolding_min_matching_length);
       return true;
-    case 410: // --alignment-curation (default=true)
+    case 310: // --alignment-curation (default=true)
       search->cigar_curation = input_text_parse_extended_bool(optarg);
       return true;
-    case 411: // --alignment-curation-min-end-context (default=2)
+    case 311: // --alignment-curation-min-end-context (default=2)
       input_text_parse_extended_double(optarg,(double*)&search->cigar_curation_min_end_context);
       return true;
-    case 412: { // --candidate-generation <strategy>,<num_regions>,<region_length>,<region_step>
-      char *strategy=NULL, *num_regions=NULL, *region_length=NULL, *region_step=NULL, *region_error=NULL;
+    case 312: { // --candidate-generation <strategy>,[...]
+      char *strategy=NULL, *num_regions=NULL, *region_length=NULL;
+      char *region_step=NULL, *region_error=NULL, *max_candidates=NULL;
       if (strncasecmp(optarg,"fixed,",6)==0) {
-        // --candidate-generation fixed,<region_length>,<region_step>,<region_error>
-        const int num_arguments = input_text_parse_csv_arguments(optarg,4,
-            &strategy,&region_length,&region_step,&region_error);
-        mapper_cond_error_msg(num_arguments!=4,
-            "Invalid usage '--candidate-generation fixed,<region_length>,<region_step>,<region_error>'");
+        // --candidate-generation fixed,<region_length>,<region_step>,<region_error>,<max_candidates>
+        const int num_arguments = input_text_parse_csv_arguments(
+            optarg,5,&strategy,&region_length,&region_step,&region_error,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=5,
+            "Invalid usage '--candidate-generation fixed,<region_length>,<region_step>,<region_error>,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_fixed;
         input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
         input_text_parse_extended_uint64(region_step,&search->region_profile_model.region_step);
         input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
       } else if (strncasecmp(optarg,"CKS,",4)==0) {
-        // --candidate-generation CKS,<num_regions>,<region_length>
-        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_length);
-        mapper_cond_error_msg(num_arguments!=3,
-            "Invalid usage '--candidate-generation CKS,<num_regions>,<region_length>'");
+        // --candidate-generation CKS,<num_regions>,<region_length>,<max_candidates>
+        const int num_arguments = input_text_parse_csv_arguments(
+            optarg,4,&strategy,&num_regions,&region_length,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=4,
+            "Invalid usage '--candidate-generation CKS,<num_regions>,<region_length>,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_CKS;
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
         input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
       } else if (strncasecmp(optarg,"OPS,",4)==0) {
-        // --candidate-generation OPS,<num_regions>,<region_length>
-        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_length);
-        mapper_cond_error_msg(num_arguments!=3,
-            "Invalid usage '--candidate-generation OPS,<num_regions>,<region_length>'");
+        // --candidate-generation OPS,<num_regions>,<region_length>,<max_candidates>
+        const int num_arguments = input_text_parse_csv_arguments(
+            optarg,4,&strategy,&num_regions,&region_length,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=4,
+            "Invalid usage '--candidate-generation OPS,<num_regions>,<region_length>,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_OPS;
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
         input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
       } else if (strncasecmp(optarg,"factors,",8)==0) {
-        // --candidate-generation factors,<num_regions>,<region_error>
-        const int num_arguments = input_text_parse_csv_arguments(optarg,3,&strategy,&num_regions,&region_error);
-        mapper_cond_error_msg(num_arguments!=3,
-            "Invalid usage '--candidate-generation factors,<num_regions>,<region_error>'");
+        // --candidate-generation factors,<num_regions>,<region_error>,<max_candidates>
+        const int num_arguments = input_text_parse_csv_arguments(
+            optarg,4,&strategy,&num_regions,&region_error,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=4,
+            "Invalid usage '--candidate-generation factors,<num_regions>,<region_error>,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_factor;
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
         input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
       } else if (strncasecmp(optarg,"adaptive,",9)==0) {
         // --candidate-generation adaptive
         mapper_cond_error_msg(strcasecmp(optarg,"adaptive")!=0,"Invalid usage '--candidate-generation adaptive'");
@@ -498,32 +492,36 @@ bool gem_mapper_parse_arguments_single_end(
         mapper_cond_error_msg(strcasecmp(optarg,"adaptive-limited")!=0,
             "Invalid usage '--candidate-generation adaptive-limited'");
         search->region_profile_model.strategy = region_profile_adaptive_limited;
-      } else if (strncasecmp(optarg,"MEM,",4)==0) {
+      } else if (strncasecmp(optarg,"MEM",3)==0) {
         // --candidate-generation MEM
-        mapper_cond_error_msg(strcasecmp(optarg,"MEM")!=0,"Invalid usage '--candidate-generation MEM'");
+        const int num_arguments = input_text_parse_csv_arguments(optarg,2,&strategy,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=2,"Invalid usage '--candidate-generation MEM,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_MEM;
-      } else if (strncasecmp(optarg,"SMEM,",5)==0) {
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
+      } else if (strncasecmp(optarg,"SMEM",4)==0) {
         // --candidate-generation SMEM
-        mapper_cond_error_msg(strcasecmp(optarg,"SMEM")!=0,"Invalid usage '--candidate-generation SMEM'");
+        const int num_arguments = input_text_parse_csv_arguments(optarg,2,&strategy,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=2,"Invalid usage '--candidate-generation SMEM,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_SMEM;
-      } else if (strncasecmp(optarg,"OPP,",4)==0) {
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
+      } else if (strncasecmp(optarg,"OPP",3)==0) {
         // --candidate-generation OPP,<num_regions>
         const int num_arguments = input_text_parse_csv_arguments(optarg,2,&strategy,&num_regions);
-        mapper_cond_error_msg(num_arguments!=2,
-            "Invalid usage '--candidate-generation OPP,<num_regions>'");
+        mapper_cond_error_msg(num_arguments!=2,"Invalid usage '--candidate-generation OPP,<num_regions>'");
         search->region_profile_model.strategy = region_profile_OPP;
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
-      } else if (strncasecmp(optarg,"test,",5)==0) {
-        // --candidate-generation <strategy>,<num_regions>,<region_length>,<region_step>,<region_error>
-        const int num_arguments = input_text_parse_csv_arguments(optarg,5,
-            &strategy,&num_regions,&region_length,&region_step,&region_error);
-        mapper_cond_error_msg(num_arguments!=5,
-            "Invalid usage '--candidate-generation fixed,<num_regions>,<region_length>,<region_step>,<region_error>'");
+      } else if (strncasecmp(optarg,"test,",4)==0) {
+        // --candidate-generation <strategy>,<num_regions>,<region_length>,<region_step>,<region_error>,<max_candidates>
+        const int num_arguments = input_text_parse_csv_arguments(optarg,6,
+            &strategy,&num_regions,&region_length,&region_step,&region_error,&max_candidates);
+        mapper_cond_error_msg(num_arguments!=6,
+            "Invalid usage '--candidate-generation test,<num_regions>,<region_length>,<region_step>,<region_error>,<max_candidates>'");
         search->region_profile_model.strategy = region_profile_test;
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
         input_text_parse_extended_uint64(region_length,&search->region_profile_model.region_length);
         input_text_parse_extended_uint64(region_step,&search->region_profile_model.region_step);
         input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
+        input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
       } else {
         mapper_error_msg(
             "Invalid <strategy> from option '--candidate-generation'. "
@@ -532,7 +530,7 @@ bool gem_mapper_parse_arguments_single_end(
       }
       return true;
     }
-    case 413: { // --candidate-generation-adaptive <app_threshold>,<app_steps>,<app_dec>
+    case 313: { // --candidate-generation-adaptive <app_threshold>,<app_steps>,<app_dec>
       char *region_th=NULL, *max_steps=NULL, *dec_factor=NULL;
       const int num_arguments = input_text_parse_csv_arguments(
           optarg,3,&region_th,&max_steps,&dec_factor);
@@ -544,7 +542,7 @@ bool gem_mapper_parse_arguments_single_end(
       search->region_profile_model.strategy = region_profile_adaptive;
       return true;
     }
-    case 414: // --candidate-verification in 'BPM'|'chained'
+    case 314: // --candidate-verification in 'BPM'|'chained'
       if (gem_strcaseeq(optarg,"BPM")) {
         search->candidate_verification.verification_strategy = verification_BPM;
       } else if (gem_strcaseeq(optarg,"chained")) {
@@ -553,7 +551,7 @@ bool gem_mapper_parse_arguments_single_end(
         mapper_error_msg("Option '--candidate-verification' must be 'BPM'|'chained'");
       }
       return true;
-    case 415: { // --qgram-filter <num_slices>,<qgram_length>
+    case 315: { // --qgram-filter <num_slices>,<qgram_length>
       char *kmer_tiles=NULL, *qgram_length=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,2,&kmer_tiles,&qgram_length);
       mapper_cond_error_msg(num_arguments!=2,"Option '--qgram-filter' wrong arguments (<kmer_tiles>,<qgram_length>)");
@@ -561,9 +559,11 @@ bool gem_mapper_parse_arguments_single_end(
       input_text_parse_extended_uint64(qgram_length,&search->candidate_verification.kmer_length);
       return true;
     }
-    case 416: // --candidate-drop-off in {'true'|'false'} (default=true)
+    case 316: // --candidate-drop-off in {'true'|'false'} (default=true)
       search->candidate_verification.candidate_local_drop_off = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       return true;
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -586,7 +586,7 @@ bool gem_mapper_parse_arguments_paired_end(
     case 'L': // --max-template-length (default=10000)
       input_text_parse_extended_uint64(optarg,&paired_search->max_template_length);
       return true;
-    case 500: // --discordant-pair-search in 'always'|'if-no-concordant'|'never' (default=if-no-concordant)
+    case 400: // --discordant-pair-search in 'always'|'if-no-concordant'|'never' (default=if-no-concordant)
       if (gem_strcaseeq(optarg,"always")) {
         paired_search->pair_discordant_search = pair_discordant_search_always;
       } else if (gem_strcaseeq(optarg,"if-no-concordant")) {
@@ -597,7 +597,7 @@ bool gem_mapper_parse_arguments_paired_end(
         mapper_error_msg("Option '--search-discordant' must be 'always'|'if-no-concordant'|'never'");
       }
       return true;
-    case 501: { // --pair-orientation in {'FR'|'RF'|'FF'|'RR'} (default=FR)
+    case 401: { // --pair-orientation in {'FR'|'RF'|'FF'|'RR'} (default=FR)
       // Init null
       paired_search->pair_orientation[pair_orientation_FR] = pair_relation_invalid;
       paired_search->pair_orientation[pair_orientation_RF] = pair_relation_invalid;
@@ -623,7 +623,7 @@ bool gem_mapper_parse_arguments_paired_end(
       }
       return true;
     }
-    case 502: { // --discordant-pair-orientation in {'FR'|'RF'|'FF'|'RR'} (default=RF)
+    case 402: { // --discordant-pair-orientation in {'FR'|'RF'|'FF'|'RR'} (default=RF)
       // Start parsing
       char *discordant_pair_orientation = strtok(optarg,",");
       while (discordant_pair_orientation!=NULL) {
@@ -644,7 +644,7 @@ bool gem_mapper_parse_arguments_paired_end(
       }
       return true;
     }
-    case 503: { // --pair-layout in {'separate'|'overlap'|'contain'} (default=separated,overlap,contain)
+    case 403: { // --pair-layout in {'separate'|'overlap'|'contain'} (default=separated,overlap,contain)
       paired_search->pair_layout[pair_layout_separate] = pair_relation_invalid;
       paired_search->pair_layout[pair_layout_overlap] = pair_relation_invalid;
       paired_search->pair_layout[pair_layout_contain] = pair_relation_invalid;
@@ -664,7 +664,7 @@ bool gem_mapper_parse_arguments_paired_end(
       }
       return true;
     }
-    case 504: { // --discordant-pair-layout in {'separate'|'overlap'|'contain'} (default=none)
+    case 404: { // --discordant-pair-layout in {'separate'|'overlap'|'contain'} (default=none)
       char *pair_layout = strtok(optarg,","); // Start parsing
       while (pair_layout!=NULL) {
         if (gem_strcaseeq(pair_layout,"separate")) {
@@ -681,7 +681,7 @@ bool gem_mapper_parse_arguments_paired_end(
       }
       return true;
     }
-    case 505: // --pe-extension in {'none'|'recovery'|'shortcut'|'all'} (default=none)
+    case 405: // --pe-extension in {'none'|'recovery'|'shortcut'|'all'} (default=none)
       if (gem_strcaseeq(optarg,"none")) {
         paired_search->paired_end_extension_shortcut = false;
         paired_search->paired_end_extension_recovery = false;
@@ -698,7 +698,7 @@ bool gem_mapper_parse_arguments_paired_end(
         mapper_error_msg("Option '--pe-extension' must be 'none'|'recovery'|'shortcut'|'all'");
       }
       return true;
-    case 506: { // --pe-template-length=<min>,<max>,<samples> (default=0,800,100)
+    case 406: { // --pe-template-length=<min>,<max>,<samples> (default=0,800,100)
       char *min=NULL, *max=NULL, *num_samples=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,3,&min,&max,&num_samples);
       mapper_cond_error_msg(num_arguments!=2,"Option '--pe-template-length' wrong number of arguments");
@@ -710,6 +710,8 @@ bool gem_mapper_parse_arguments_paired_end(
       input_text_parse_extended_uint64(num_samples,&paired_search->template_length_estimation_samples);
       return true;
     }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -722,7 +724,7 @@ bool gem_mapper_parse_arguments_bisulfite(
   search_parameters_t* const search = &parameters->search_parameters;
   // Bisulfite
   switch (option) {
-    case 601: // --bisulfite_read
+    case 500: // --bisulfite_read
       if (gem_strcaseeq(optarg,"inferred")) {
         search->bisulfite_read = bisulfite_read_inferred;
         return true;
@@ -747,6 +749,8 @@ bool gem_mapper_parse_arguments_bisulfite(
       gem_cond_fatal_error_msg(num_arguments!=2,"Option '--bisulfite_suffix' wrong number of arguments");
       return true;
     }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -759,7 +763,7 @@ bool gem_mapper_parse_arguments_alignment_score(
   search_parameters_t* const search = &parameters->search_parameters;
   // Alignment score
   switch (option) {
-    case 700: // --alignment-model
+    case 600: // --alignment-model
       if (gem_strcaseeq(optarg,"none") || gem_strcaseeq(optarg,"pseudoalignment")) {
         search->match_alignment_model = match_alignment_model_none;
       } else if (gem_strcaseeq(optarg,"hamming")) {
@@ -772,7 +776,7 @@ bool gem_mapper_parse_arguments_alignment_score(
         mapper_error_msg("Option '--alignment-model' must be 'none'|'hamming'|'edit'|'gap-affine'");
       }
       return true;
-    case 701: { // --gap-affine-penalties (A,B,O,X) (default=1,4,6,1)
+    case 601: { // --gap-affine-penalties (A,B,O,X) (default=1,4,6,1)
       char *matching=NULL, *mismatch=NULL, *gap_open=NULL, *gap_extension=NULL;
       const int num_arguments = input_text_parse_csv_arguments(optarg,4,&matching,&mismatch,&gap_open,&gap_extension);
       mapper_cond_error_msg(num_arguments!=4,"Option '--gap-affine-penalties' wrong number of arguments");
@@ -816,6 +820,8 @@ bool gem_mapper_parse_arguments_alignment_score(
       search->swg_penalties.gap_extension_score = -((int32_t)gap_extension_penalty);
       return true;
     }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -828,7 +834,7 @@ bool gem_mapper_parse_arguments_mapq_score(
   search_parameters_t* const search = &parameters->search_parameters;
   // MAPQ score
   switch (option) {
-    case 800: // --mapq-model in {'none'|'gem'|'classify'|'dump-predictors'} (default=gem)
+    case 700: // --mapq-model in {'none'|'gem'|'classify'|'dump-predictors'} (default=gem)
       if (gem_strcaseeq(optarg,"none")) {
         search->mapq_model_se = mapq_model_none;
       } else if (gem_strcaseeq(optarg,"gem")) {
@@ -841,12 +847,8 @@ bool gem_mapper_parse_arguments_mapq_score(
         mapper_error_msg("Option '--mapq-model' must be in {'none'|'gem'}");
       }
       return true;
-    case 801: { // --mapq-threshold <number>
-      uint64_t mapq_threshold;
-      input_text_parse_extended_uint64(optarg,&mapq_threshold);
-      search->mapq_threshold = MIN(255,mapq_threshold);
-      return true;
-    }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -867,6 +869,8 @@ bool gem_mapper_parse_arguments_reporting(
       parameters->max_reported_matches_set = true;
       input_text_parse_extended_uint64(optarg,&search->select_parameters.max_reported_matches);
       return true;
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -886,16 +890,16 @@ bool gem_mapper_parse_arguments_output_format(
         mapper_error_msg("Option '-F|--output-format' must be 'MAP' or 'SAM'");
       }
       return true;
-    case 1000: // --sam-compact in {'true'|'false'} (default=true)
+    case 900: // --sam-compact in {'true'|'false'} (default=true)
       parameters->io.sam_parameters.compact_xa = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       return true;
     case 'r': // --sam-read-group-header
       output_sam_parse_read_group_header(optarg,&parameters->io.sam_parameters);
       return true;
-    case 1001: // --sam-gem-compatible in {'true'|'false'} (default=true)
+    case 901: // --sam-gem-compatible in {'true'|'false'} (default=true)
       parameters->io.sam_parameters.print_gem_fields = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       return true;
-    case 1002: { // --map-format in {'1'|'2'|'3'} (default=1)
+    case 902: { // --map-format in {'1'|'2'|'3'} (default=1)
       const uint64_t format_version = atol(optarg);
       if (format_version==1) {
         parameters->io.map_parameters.format_version = map_format_v1;
@@ -908,6 +912,8 @@ bool gem_mapper_parse_arguments_output_format(
       }
       return true;
     }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -920,16 +926,18 @@ bool gem_mapper_parse_arguments_system(
   switch (option) {
     case 't': // --threads
       mapper_cond_error_msg(parse_integer_system(optarg,&parameters->system.num_threads),
-          "Option '--threads-cuda'. Error parsing 'num_selecting_threads'");
+          "Option '--threads'. Error parsing 'num_threads'");
       return true;
-    case 1100: // --max-memory
+    case 1000: // --max-memory
       mapper_cond_error_msg(
           input_text_parse_size(optarg,&(parameters->system.max_memory)),
           "Error parsing --max-memory. '%s' not a valid size (Eg. 2GB)",optarg);
       return true;
-    case 1101: // --tmp-folder
+    case 1001: // --tmp-folder
       parameters->system.tmp_folder = optarg;
       return true;
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -940,14 +948,14 @@ bool gem_mapper_parse_arguments_gpu(
     char* optarg) {
   // GPU
   switch (option) {
-    case 1200: // --gpu
+    case 1100: // --gpu
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       parameters->cuda.gpu_enabled = true;
       if (optarg && gem_strcaseeq(optarg,"emulated")) {
         parameters->cuda.cpu_emulation = true;
       }
       return true;
-    case 1201: // --gpu-devices (default=all)
+    case 1101: // --gpu-devices (default=all)
       if (gem_strcaseeq(optarg,"all")) {
         parameters->cuda.gpu_devices = UINT64_MAX;
       } else {
@@ -964,7 +972,7 @@ bool gem_mapper_parse_arguments_gpu(
         }
       }
       break;
-    case 1202: { // --gpu-buffers-model=2,3,3,1M
+    case 1102: { // --gpu-buffers-model=2,3,3,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char* num_fmi_bsearch_buffers=NULL;
       char* num_fmi_decode_buffers=NULL;
@@ -1007,6 +1015,8 @@ bool gem_mapper_parse_arguments_gpu(
           "Option '--gpu-buffers-model'. Error parsing 'buffer_size'");
       return true;
     }
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -1037,7 +1047,7 @@ bool gem_mapper_parse_arguments_misc(
       }
       return true;
     }
-    case 1500: // --profile in {'sum'|'min'|'max'|'mean'|'sample'}
+    case 1200: // --profile in {'sum'|'min'|'max'|'mean'|'sample'}
       parameters->misc.profile = true;
       if (optarg) {
         if (gem_strcaseeq(optarg,"SUM")) {
@@ -1074,10 +1084,10 @@ bool gem_mapper_parse_arguments_misc(
         parameters->misc.verbose_dev = false;
       }
       return true;
-    case 1501: // --progress-step
+    case 1201: // --progress-step
       input_text_parse_extended_uint64(optarg,&parameters->io.mapper_ticker_step);
       return true;
-    case 1502: // --version
+    case 1202: // --version
       fprintf(stderr,"%s\n",parameters->gem_version);
       exit(0);
     case 'h':
@@ -1091,6 +1101,8 @@ bool gem_mapper_parse_arguments_misc(
         mapper_error_msg("Help argument not valid {'user','advanced'}");
       }
       exit(0);
+    default:
+      return false; // Not found
   }
   // Not found
   return false;
@@ -1119,8 +1131,6 @@ void gem_mapper_parse_arguments(
     if ((option=getopt_long(argc,argv,getopt_short,getopt_options,&option_index))==-1) break;
     /* I/O */
     if (gem_mapper_parse_arguments_io(parameters,option,optarg)) continue;
-    /* Qualities */
-    if (gem_mapper_parse_arguments_qualities(parameters,option,optarg)) continue;
     /* Single-end Alignment */
     if (gem_mapper_parse_arguments_single_end(parameters,option,optarg)) continue;
     /* Paired-end Alignment */

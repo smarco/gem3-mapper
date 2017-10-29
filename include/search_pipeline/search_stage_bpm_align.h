@@ -28,6 +28,8 @@
 #include "archive/search/archive_search.h"
 #include "search_pipeline/search_stage_state.h"
 #include "search_pipeline/search_pipeline_handlers.h"
+#include "matches/matches.h"
+#include "matches/paired_matches.h"
 
 /*
  * Search-group BPM-Align

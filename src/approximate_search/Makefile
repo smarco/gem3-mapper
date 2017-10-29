@@ -30,9 +30,7 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 # Modules
 ###############################################################################
-MODULES=approximate_search_control \
-        approximate_search_filtering_adaptive \
-        approximate_search_filtering_complete \
+MODULES=approximate_search_filtering_adaptive \
         approximate_search_generate_candidates \
         approximate_search_hybrid \
         approximate_search_neighborhood \

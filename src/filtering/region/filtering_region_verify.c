@@ -196,13 +196,12 @@ uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     text_trace_t* const text_trace,
     const uint64_t index_position,
-    pattern_t* const pattern) {
+    pattern_t* const pattern,
+    const uint64_t max_filtering_error) {
   PROFILE_START(GP_FC_EXTEND_VERIFY_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Text (candidate)
   const uint8_t* const text = text_trace->text;
   const uint64_t text_length = text_trace->text_length;
-  // Pattern
-  const uint64_t max_filtering_error = pattern->max_effective_filtering_error;
   // Myers's BPM algorithm
   const uint64_t num_matches_found =
       bpm_compute_edit_distance_all(

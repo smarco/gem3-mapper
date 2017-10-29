@@ -24,49 +24,18 @@
  *   PE-search stages
  */
 
-#include "matches/paired_matches_accuracy.h"
 #include "archive/search/archive_search_pe_extend.h"
 #include "archive/search/archive_select.h"
 #include "archive/score/archive_score_se.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
-//#include "archive/search/archive_search_pe.h"
-//#include "archive/search/archive_search_se_stepwise.h"
+#include "matches/classify/matches_classify.h"
+#include "matches/classify/paired_matches_classify.h"
 
 /*
  * Profile
  */
 #define PROFILE_LEVEL PHIGH
 
-
-/*
- * Configure extension
- *   All extensions are done against the forward strand. If the candidate is in the reverse,
- *   the reverse-candidate region is generated reverse-complementing the forward. Thus, all
- *   the extension is done using @forward_search_state (matches contain all the strand needed info)
- */
-void archive_search_pe_extend_matches_configure(
-    archive_search_t* const archive_search_end1,
-    archive_search_t* const archive_search_end2,
-    paired_matches_t* const paired_matches,
-    const sequence_end_t candidate_end,
-    archive_search_t** const candidate_archive_search,
-    matches_t** const extended_matches,
-    matches_t** const candidate_matches) {
-  // Parameters
-  matches_t* const matches_end1 = paired_matches->matches_end1;
-  matches_t* const matches_end2 = paired_matches->matches_end2;
-  if (candidate_end==paired_end2) {
-    // Extend towards end/2
-    *candidate_archive_search = archive_search_end2;
-    *extended_matches = matches_end1;
-    *candidate_matches = matches_end2;
-  } else {
-    // Extend towards end/1
-    *candidate_archive_search = archive_search_end1;
-    *extended_matches = matches_end2;
-    *candidate_matches = matches_end1;
-  }
-}
 /*
  * Perform extensions
  */
@@ -97,8 +66,7 @@ void archive_search_pe_extend_matches_ends(
     match_trace_t* const extended_match = extended_match_traces[i];
     // Skip extended or subdominant ends
     if (extended_match->type == match_type_extended) continue;
-    if (paired_matches_accuracy_subdominant_end(
-          paired_matches,search_parameters,candidate_matches,extended_match)) continue;
+    if (paired_matches_classify_subdominant_end(paired_matches,candidate_matches,extended_match)) continue;
     // Extend (filter nearby region)
     PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTEND_NUM_MATCHES);
     vector_clear(candidate_matches->match_traces_extended);
@@ -106,8 +74,17 @@ void archive_search_pe_extend_matches_ends(
         filtering_candidates,candidate_pattern,
         extended_match,mapper_stats,
         paired_matches,candidate_end);
+    // (Re)Score Matches
+    const uint64_t num_matches_result = matches_get_num_match_traces_extended(candidate_matches);
+    if (num_matches_result > 0 || candidate_matches->match_replaced) {
+      archive_score_matches_se(candidate_archive_search,candidate_matches);
+      // Recompute metrics in case updated SE match was paired
+      if (candidate_matches->match_replaced) {
+        paired_matches_recompute_metrics(paired_matches);
+      }
+      candidate_matches->match_replaced = false;
+    }
     // Cross-Pair extended matches
-    const uint64_t num_matches_result = vector_get_used(candidate_matches->match_traces_extended);
     match_trace_t** const matches_result = vector_get_mem(candidate_matches->match_traces_extended,match_trace_t*);
     uint64_t j;
     for (j=0;j<num_matches_result;++j) {
@@ -121,9 +98,11 @@ void archive_search_pe_extend_matches_ends(
             matches_result[j],extended_match);
       }
     }
-    // Check Accuracy Reached (Quick abandon condition)
-    if (paired_matches_accuracy_reached(paired_matches,search_parameters)) return;
+    // Check Search Accomplished (Quick abandon condition)
+    if (paired_matches_classify_search_accomplished(paired_matches)) return;
   }
+  // Update matches extended
+  extended_matches->matches_extended = true;
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_EXTEND_CANDIDATES,PROFILE_LEVEL);
 }
 /*
@@ -136,22 +115,27 @@ void archive_search_pe_extend_matches(
     const sequence_end_t candidate_end) {
   // Parameters
   search_parameters_t* const search_parameters = &archive_search_end1->search_parameters;
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
   mapper_stats_t* const mapper_stats = archive_search_end1->mapper_stats;
   // Configure extension
   archive_search_t* candidate_archive_search;
   matches_t* extended_matches, *candidate_matches;
-  archive_search_pe_extend_matches_configure(
-      archive_search_end1,archive_search_end2,paired_matches,candidate_end,
-      &candidate_archive_search,&extended_matches,&candidate_matches);
+  if (candidate_end==paired_end2) {
+    // Extend towards end/2
+    candidate_archive_search = archive_search_end2;
+    extended_matches = matches_end1;
+    candidate_matches = matches_end2;
+  } else {
+    // Extend towards end/1
+    candidate_archive_search = archive_search_end1;
+    extended_matches = matches_end2;
+    candidate_matches = matches_end1;
+  }
   // Perform extension
   archive_search_pe_extend_matches_ends(
       candidate_archive_search,candidate_end,
       search_parameters,mapper_stats,
       extended_matches,candidate_matches,
       paired_matches);
-  // (Re)Score Matches
-  if (matches_get_num_match_traces_extended(candidate_matches) > 0) {
-    PROF_INC_COUNTER(GP_ARCHIVE_SEARCH_PE_EXTENSION_RECOVERY_SUCCESS);
-    archive_score_matches_se(candidate_archive_search,candidate_matches);
-  }
 }

@@ -70,6 +70,7 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
   search_parameters->complete_search_error = 0.04;
   search_parameters->complete_strata_after_best = 1.0;
   search_parameters->alignment_max_error = 0.12;
+  search_parameters->alignment_max_extension_error = 0.20;
   search_parameters->alignment_max_bandwidth = 0.20;
   search_parameters->alignment_force_full_swg = false;
   search_parameters->alignment_global_min_identity = 0.80;
@@ -82,7 +83,7 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
   search_parameters->alignment_scaffolding_min_coverage = 0.80;
   search_parameters->alignment_scaffolding_min_matching_length = 10.0;
   search_parameters->cigar_curation = true;
-  search_parameters->cigar_curation_min_end_context = 2.0;
+  search_parameters->cigar_curation_min_end_context = 0.0;
   /* Candidate verification */
   search_parameters->candidate_verification.verification_strategy = verification_chained;
   search_parameters->candidate_verification.candidate_local_drop_off = false;
@@ -95,7 +96,6 @@ void search_parameters_init_alignment(search_parameters_t* const search_paramete
 void select_parameters_init_mapq(search_parameters_t* const search_parameters) {
   search_parameters->mapq_model_se = mapq_model_gem;
   search_parameters->mapq_model_pe = mapq_model_gem;
-  search_parameters->mapq_threshold = 0;
 }
 void select_parameters_init_gpu(search_parameters_t* const search_parameters) {
   search_parameters->gpu_stage_region_profile_enabled = false;
@@ -114,8 +114,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_parameters->clip_left = 0;
   search_parameters->clip_right = 0;
   // Qualities
-  search_parameters->qualities_format = sequence_qualities_ignore;
-  search_parameters->quality_threshold = 26;
+  search_parameters->qualities_format = sequence_qualities_offset_33;
   // Approximate Search
   region_profile_model_init(&search_parameters->region_profile_model);
   nsearch_parameters_init(&search_parameters->nsearch_parameters);
@@ -145,7 +144,6 @@ void search_configure_quality_model(
     const sequence_qualities_format_t qualities_format,
     const uint64_t quality_threshold) {
   search_parameters->qualities_format = qualities_format;
-  search_parameters->quality_threshold = quality_threshold;
 }
 void search_configure_alignment_model(
     search_parameters_t* const search_parameters,
@@ -206,6 +204,7 @@ void search_instantiate_values(
   SEARCH_INSTANTIATE_VALUE(search_parameters,complete_search_error,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,complete_strata_after_best,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_max_error,pattern_length);
+  SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_max_extension_error,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_max_bandwidth,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_global_min_identity,pattern_length);
   SEARCH_INSTANTIATE_VALUE(search_parameters,alignment_global_min_swg_threshold,max_swg_score);

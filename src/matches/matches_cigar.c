@@ -201,12 +201,10 @@ void matches_cigar_reverse(
     SWAP(*origin,*flipped);
     if (origin->type == cigar_mismatch) origin->mismatch = dna_encoded_complement(origin->mismatch);
     if (flipped->type == cigar_mismatch) flipped->mismatch = dna_encoded_complement(flipped->mismatch);
-    // FIXME In case of indel, flip @origin->indel.indel_text (only SAM.MD field is using it)
   }
   if (cigar_length%2) {
     cigar_element_t* const middle = cigar_buffer + middle_point;
     if (middle->type == cigar_mismatch) middle->mismatch = dna_encoded_complement(middle->mismatch);
-    // FIXME In case of indel, flip @origin->indel.indel_text (only SAM.MD field is using it)
   }
 }
 void matches_cigar_reverse_colorspace(
@@ -281,7 +279,7 @@ uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     switch (cigar_buffer[i].type) {
       case cigar_match: break;
       case cigar_mismatch:
-        edit_distance += cigar_buffer[i].type;
+        edit_distance++;
         break;
       case cigar_del:
         if (i==0 || i==cigar_length-1) break;
@@ -339,7 +337,7 @@ int64_t matches_cigar_element_effective_length(
   }
   return 0;
 }
-int64_t matches_cigar_effective_length(
+int64_t matches_cigar_compute_effective_length(
     vector_t* const cigar_vector,
     const uint64_t cigar_offset,
     const uint64_t cigar_length) {
@@ -352,6 +350,48 @@ int64_t matches_cigar_effective_length(
   }
   // Return effective length
   return effective_length;
+}
+float matches_cigar_compute_error_quality(
+    vector_t* const cigar_vector,
+    const uint64_t cigar_offset,
+    const uint64_t cigar_length,
+    uint8_t* const quality_mask,
+    const uint64_t quality_mask_length){
+  // No quality mask or Exact Match
+  if (quality_mask==NULL || cigar_length==0) return (float)SEQUENCE_QUALITIES_MAX;
+  // Traverse CIGAR
+  const cigar_element_t* cigar_element = vector_get_elm(cigar_vector,cigar_offset,cigar_element_t);
+  uint64_t error_quality = 0, error_count = 0;
+  uint64_t i, j, read_pos = 0;
+  for (i=0;i<cigar_length;++i,++cigar_element) {
+    switch (cigar_element->type) {
+      case cigar_match:
+        read_pos += cigar_element->length;
+        break;
+      case cigar_mismatch:
+        error_quality += quality_mask[read_pos];
+        ++error_count;
+        ++read_pos;
+        break;
+      case cigar_ins:
+        if (i==0 || i==cigar_length-1) break; // Skip
+        error_quality += quality_mask[read_pos];
+        ++error_count;
+        break;
+      case cigar_del:
+        if (i>0 && i<cigar_length-1) { // Skip trims
+          for (j=0;j<cigar_element->length;++j,++error_count) {
+            error_quality += quality_mask[read_pos+j];
+          }
+        }
+        read_pos += cigar_element->length;
+        break;
+      default:
+        break;
+    }
+  }
+  // Return average
+  return (error_count!=0) ? (float)error_quality/(float)error_count : (float)SEQUENCE_QUALITIES_MAX;
 }
 /*
  * CIGAR Vector Compare

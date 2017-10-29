@@ -40,6 +40,7 @@ typedef struct {
   uint64_t event_distance;             // Distance of the paired-alignment
   uint64_t edit_distance;              // Edit Distance of the paired-alignment
   int32_t swg_score;                   // Distance of the paired-alignment
+  float error_quality;                 // Average errors quality
   pair_relation_t pair_relation;       // Pair relation (concordant/discordant)
   pair_orientation_t pair_orientation; // Pair orientation (FR,RF,FF,RR)
   pair_layout_t pair_layout;           // Pair layout (pair_layout_separate,pair_layout_overlap,pair_layout_contain)
@@ -56,6 +57,9 @@ uint64_t paired_map_compute_edit_distance(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
 int32_t paired_map_compute_swg_score(
+    const match_trace_t* const match_end1,
+    const match_trace_t* const match_end2);
+float paired_map_compute_error_quality(
     const match_trace_t* const match_end1,
     const match_trace_t* const match_end2);
 

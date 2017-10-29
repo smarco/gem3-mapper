@@ -666,7 +666,7 @@ void constructor_nsearch_region_permutations_n(
     const uint64_t left_length) {
   // Parameters
   const uint64_t key_length = search->pattern.key_length;
-  const uint64_t max_error = search->current_max_complete_error;
+  const uint64_t max_error = search->max_search_error;
   //
   uint64_t i;
   if (left_length==0) return;
@@ -725,12 +725,18 @@ void constructor_allocator() {
 void constructor_ns_init(
     approximate_search_t* const search,
     mm_allocator_t* const mm_allocator) {
+  // Archive
+  search->archive = NULL;
+  // Filtering Candidates
+  search->filtering_candidates = NULL;
+  // MM
+  search->mm_allocator = mm_allocator;
   // Search Parameters
   const uint64_t max_error = parameters.number;
   const char* const key = parameters.name_input_file;
   const uint64_t key_length = strlen(key);
   // Configure ASM-search
-  search->current_max_complete_error = max_error;
+  search->max_search_error = max_error;
   search->region_profile.num_filtering_regions = 0;
   // Configure Key
   uint64_t i;
@@ -740,9 +746,14 @@ void constructor_ns_init(
   search->pattern.key_length = key_length;
   // Configure search-parameters
   search_parameters_t* search_parameters = mm_allocator_alloc(mm_allocator,search_parameters_t);
-  region_profile_model_init(&search_parameters->region_profile_model);
-  nsearch_parameters_init(&search_parameters->nsearch_parameters);
   search->search_parameters = search_parameters;
+  region_profile_model_init(&search_parameters->region_profile_model);
+  region_profile_inject_mm(&search->region_profile,mm_allocator);
+  // Nsearch
+  search->nsearch_schedule = mm_allocator_alloc(mm_allocator,nsearch_schedule_t);
+  search->nsearch_schedule->quick_abandon = false;
+  nsearch_parameters_init(&search_parameters->nsearch_parameters);
+  nsearch_schedule_inject_mm(search->nsearch_schedule,mm_allocator);
 }
 void constructor_ns_hamming_brute() {
   // Init NS-search
@@ -770,18 +781,35 @@ void constructor_ns_hamming_2regions() {
   constructor_ns_init(&search,mm_allocator); // Configure
   // Configure Region Profile
   const uint64_t key_length = search.pattern.key_length;
-  const uint64_t max_error = search.current_max_complete_error;
+  const uint64_t max_error = search.max_search_error;
   region_profile_t* const region_profile = &search.region_profile;
-  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,2,region_search_t,true);
+  region_profile->filtering_region = mm_allocator_calloc(mm_allocator,3,region_search_t,true);
+
+//  region_profile->filtering_region[0].begin = 0;
+//  region_profile->filtering_region[0].end = 4;
+//  region_profile->filtering_region[0].min = 2;
+//  region_profile->filtering_region[0].max = max_error-2;
+//  region_profile->filtering_region[1].begin = 4;
+//  region_profile->filtering_region[1].end = key_length;
+//  region_profile->filtering_region[1].min = 2;
+//  region_profile->filtering_region[1].max = max_error-2;
+//  region_profile->num_filtering_regions = 2;
+
   region_profile->filtering_region[0].begin = 0;
-  region_profile->filtering_region[0].end = 3;
+  region_profile->filtering_region[0].end = 2;
+  region_profile->filtering_region[1].begin = 2;
+  region_profile->filtering_region[1].end = 4;
+  region_profile->filtering_region[2].begin = 4;
+  region_profile->filtering_region[2].end = key_length;
+
   region_profile->filtering_region[0].min = 1;
-  region_profile->filtering_region[0].max = max_error-1;
-  region_profile->filtering_region[1].begin = 3;
-  region_profile->filtering_region[1].end = key_length;
+  region_profile->filtering_region[0].max = max_error-2;
   region_profile->filtering_region[1].min = 1;
-  region_profile->filtering_region[1].max = max_error-1;
-  region_profile->num_filtering_regions = 2;
+  region_profile->filtering_region[1].max = max_error-2;
+  region_profile->filtering_region[2].min = 1;
+  region_profile->filtering_region[2].max = max_error-2;
+  region_profile->num_filtering_regions = 3;
+
   // Search
   nsearch_hamming_preconditioned(&search,NULL);
 }
@@ -847,7 +875,7 @@ void constructor_ns_edit_2regions() {
   constructor_ns_init(&search,mm_allocator); // Configure
   // Configure region-profile
   const uint64_t key_length = search.pattern.key_length;
-  const uint64_t max_error = search.current_max_complete_error;
+  const uint64_t max_error = search.max_search_error;
   region_profile_t* const region_profile = &search.region_profile;
   region_profile->filtering_region = mm_allocator_calloc(mm_allocator,2,region_search_t,true);
   region_profile->filtering_region[0].begin = 0;
@@ -1142,8 +1170,10 @@ int main(int argc,char** argv) {
   //  constructor_itoa();
   // constructor_swg();
 
-  constructor_allocator();
-  return 0;
+  //constructor_allocator();
+  //return 0;
+
+  gruntime_init(8,"");
 
   if (gem_strcaseeq(parameters.option,"hamming-brute")) {
     constructor_ns_hamming_brute();
@@ -1181,7 +1211,7 @@ int main(int argc,char** argv) {
   //constructor_vector_sort_pos(parameters.param1,parameters.param2);
 
   // constructor_numa();
-  constructor_show_mem();
+  // constructor_show_mem();
 
   return 0;
 }

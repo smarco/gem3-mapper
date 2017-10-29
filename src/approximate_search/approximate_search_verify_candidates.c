@@ -28,7 +28,6 @@
 #include <filtering/candidates/filtering_candidates_buffered_bpm_distance.h>
 #include <filtering/candidates/filtering_candidates_buffered_kmer_filter.h>
 #include "approximate_search/approximate_search_verify_candidates.h"
-#include "approximate_search/approximate_search_control.h"
 #include "filtering/candidates/filtering_candidates_process.h"
 #include "filtering/candidates/filtering_candidates_verify.h"
 #include "filtering/candidates/filtering_candidates_extend.h"

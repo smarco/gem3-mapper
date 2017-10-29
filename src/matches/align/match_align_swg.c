@@ -48,9 +48,8 @@ void match_align_swg_check(
     text_trace_t* const text_trace,
     match_alignment_t* const match_alignment,
     mm_allocator_t* const mm_allocator) {
-  match_alignment->effective_length =
-      matches_cigar_effective_length(matches->cigar_vector,
-          match_alignment->cigar_offset,match_alignment->cigar_length);
+  match_alignment->effective_length = matches_cigar_compute_effective_length(
+      matches->cigar_vector,match_alignment->cigar_offset,match_alignment->cigar_length);
   const bool check_correct = match_alignment_check(
       stderr,match_alignment,
       pattern->key,pattern->key_length,
@@ -71,6 +70,7 @@ void match_align_swg_check(
 void match_align_swg_compute_alignment_type(
     matches_t* const matches,
     match_trace_t* const match_trace,
+    pattern_t* const pattern,
     search_parameters_t* const search_parameters) {
   // Parameters
   swg_penalties_t* const swg_penalties = &search_parameters->swg_penalties;
@@ -82,11 +82,16 @@ void match_align_swg_compute_alignment_type(
   const uint64_t cigar_offset = match_alignment->cigar_offset;
   const uint64_t cigar_length = match_alignment->cigar_length;
   const uint64_t matching_bases = matches_cigar_compute_matching_bases(cigar_vector,cigar_offset,cigar_length);
+  match_alignment->effective_length = matches_cigar_compute_effective_length(cigar_vector,cigar_offset,cigar_length);
   match_trace->event_distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
   match_trace->edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
-  match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
   match_trace->text_length = match_alignment->effective_length;
-  match_trace->swg_score = align_swg_score_cigar_excluding_clipping(swg_penalties,cigar_vector,cigar_offset,cigar_length);
+  match_trace->swg_score = align_swg_score_cigar_excluding_clipping(
+      swg_penalties,cigar_vector,cigar_offset,cigar_length);
+  match_trace->error_quality =
+      matches_cigar_compute_error_quality(
+          cigar_vector,cigar_offset,cigar_length,
+          pattern->quality_mask,pattern->key_length);
   // Classify
   if (matching_bases < global_min_identity) {
     PROF_INC_COUNTER(GP_ALIGNED_DISCARDED_MATCHING_BASES);

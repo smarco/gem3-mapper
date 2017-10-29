@@ -20,7 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- * DESCRIPTION:
+ *            Alejandro Chacon <alejandro.chacon@uab.es>
  */
 
 #ifndef GPU_BUFFER_BPM_DISTANCE_H_

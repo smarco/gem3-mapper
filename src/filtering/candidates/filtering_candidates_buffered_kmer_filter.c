@@ -87,7 +87,8 @@ void filtering_candidates_buffered_kmer_filter_add_filtering_regions(
     // Filter out exact-matches & key-trimmed regions
     if (filtering_region->alignment.distance_min_bound==0 ||
         filtering_region->key_trimmed ||
-        pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH) {
+        pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH ||
+        !pattern_tiled->kmer_filter_nway.enabled) {
       continue; // Next
     }
     // Prepare Kmer-filter (candidate)
@@ -175,7 +176,8 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
   }
   // Detect trimmed matches
   if (filtering_region->key_trimmed ||
-      pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH) {
+      pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH ||
+      !pattern_tiled->kmer_filter_nway.enabled) {
     alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);

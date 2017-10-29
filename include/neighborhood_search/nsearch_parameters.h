@@ -32,6 +32,7 @@ typedef struct {
   bool matches_max_searched_cutoff;
   uint64_t filtering_max_candidates_acc;
   // Filtering search-drop limits
+  bool filtering_cutoff;
   uint64_t filtering_quick_th;
   uint64_t filtering_region_opt_th;
   uint64_t filtering_region_opt_steps;

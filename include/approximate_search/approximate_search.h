@@ -81,12 +81,12 @@ typedef struct {
   bool do_quality_search;                                        // Quality search
   asearch_stage_t search_stage;                                  // Current Search Stage
   asearch_processing_state_t processing_state;                   // Current Processing State
-  uint64_t current_max_complete_error;                           // Current max-error allowed (adjusted by matches found)
-  uint64_t current_max_complete_stratum;                         // Current mcs reached by the search (adjusted by matches found)
+  uint64_t max_search_error;                                     // Search max-error (can be adjusted on-the-fly by matches found)
   /* Filtering Structures */
   region_profile_t region_profile;                               // Region Profile
   filtering_candidates_t* filtering_candidates;                  // Filtering Candidates
   filtering_candidates_buffered_t filtering_candidates_buffered; // Filtering Candidates Buffered
+  uint64_t num_limited_exact_matches;                            // Number of exact matches limited
   /* GPU buffer(s) offsets */
   uint64_t gpu_buffer_fmi_search_offset;                         // FMI-Buffer search offset
   uint64_t gpu_buffer_fmi_decode_offset;                         // FMI-Buffer decode offset
@@ -122,10 +122,6 @@ void approximate_search_prepare(
 /*
  * Accessors
  */
-void approximate_search_update_mcs(
-    approximate_search_t* const search,
-    const uint64_t max_complete_stratum);
-
 uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search);
 uint64_t approximate_search_get_num_filtering_candidates(const approximate_search_t* const search);

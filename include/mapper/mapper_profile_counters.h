@@ -147,16 +147,15 @@
 /*
  * Region Profile
  */
-#define GP_REGION_PROFILE_ADAPTIVE                          250
+#define GP_REGION_PROFILE                                   250
 #define GP_REGION_PROFILE_QUIT_PROFILE                      251
 
-#define GP_REGION_PROFILE                                   259
+#define GP_REGION_PROFILES_COMPUTED                         259
 #define GP_REGION_PROFILE_NUM_REGIONS                       260
-#define GP_REGION_PROFILE_NUM_REGIONS_UNIQUE                261
-#define GP_REGION_PROFILE_NUM_REGIONS_STANDARD              262
-#define GP_REGION_PROFILE_REGION_LENGTH                     263
-#define GP_REGION_PROFILE_REGION_CANDIDATES                 264
-#define GP_REGION_PROFILE_TOTAL_CANDIDATES                  265
+#define GP_REGION_PROFILE_NUM_REGIONS_FILTERED              261
+#define GP_REGION_PROFILE_REGION_LENGTH                     264
+#define GP_REGION_PROFILE_REGION_CANDIDATES                 265
+#define GP_REGION_PROFILE_TOTAL_CANDIDATES                  266
 
 /*
  * Filtering Candidates (Verifying)
@@ -284,16 +283,8 @@
 #define GP_MATCHES_ACCURACY_CASE_MAX_MATCHES                603
 #define GP_MATCHES_ACCURACY_CASE_UNMAPPED                   604
 #define GP_MATCHES_ACCURACY_CASE_TIE                        605
-#define GP_MATCHES_ACCURACY_CASE_MMAP_D1                    606
 #define GP_MATCHES_ACCURACY_CASE_MMAP                       607
 #define GP_MATCHES_ACCURACY_CASE_UNIQUE                     608
-#define GP_MATCHES_ACCURACY_CASE_MAP_INCOMPLETE             609
-#define GP_MATCHES_ACCURACY_CASE_MAP_FRONTIER               610
-
-#define GT_MATCHES_SE_EDIT_UNCONSISTENT                     611
-#define GT_MATCHES_SE_EDIT_CONSISTENT                       612
-#define GT_MATCHES_SE_SWG_UNCONSISTENT                      613
-#define GT_MATCHES_SE_SWG_CONSISTENT                        614
 
 #define GT_MATCHES_SE_TIE_PERFECT                           615
 #define GT_MATCHES_SE_TIE                                   616

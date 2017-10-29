@@ -46,10 +46,9 @@ typedef struct {
   uint32_t* rl_runs_acc;             // Length of each run (accumulated)
   /* Pattern Properties */
   uint64_t num_wildcards;
-  uint64_t num_low_quality_bases;
-  uint64_t num_non_canonical_bases;
   uint64_t max_effective_filtering_error;
   uint64_t max_effective_bandwidth;
+  uint64_t max_extension_error;
   /* Alignment filters */
   pattern_tiled_t pattern_tiled;
 } pattern_t;

@@ -20,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacon@uab.es>
  * DESCRIPTION:
  *   GPU-adaptor module provides support data-structures and functions
  *   to offload the adaptive search of key partitions (adaptive region-profile)

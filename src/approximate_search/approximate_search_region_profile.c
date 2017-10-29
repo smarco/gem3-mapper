@@ -59,8 +59,9 @@ void approximate_search_region_profile_buffered_print_benchmark(approximate_sear
 void approximate_search_region_profile_stats(region_profile_t* const region_profile) {
 #ifdef GEM_PROFILE
   uint64_t total_candidates = 0;
-  PROF_INC_COUNTER(GP_REGION_PROFILE);
+  PROF_INC_COUNTER(GP_REGION_PROFILES_COMPUTED);
   PROF_ADD_COUNTER(GP_REGION_PROFILE_NUM_REGIONS,region_profile->num_filtering_regions);
+  PROF_ADD_COUNTER(GP_REGION_PROFILE_NUM_REGIONS_FILTERED,region_profile->num_filtered_regions);
   REGION_PROFILE_ITERATE(region_profile,region,position) {
     PROF_ADD_COUNTER(GP_REGION_PROFILE_REGION_LENGTH,region->end-region->begin);
     PROF_ADD_COUNTER(GP_REGION_PROFILE_REGION_CANDIDATES,(region->hi-region->lo));
@@ -77,7 +78,7 @@ void approximate_search_region_profile_static_close_profile(
     const uint64_t filtering_threshold) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
-  region_profile_schedule_exact_thresholded(region_profile,filtering_threshold);
+  region_profile_schedule_exact(region_profile,filtering_threshold);
   // Check total number of filtering-regions & Set State
   const uint64_t min_num_regions = region_profile->num_filtering_regions/2;
   if (region_profile->total_candidates!=0 &&
@@ -93,7 +94,7 @@ void approximate_search_region_profile_adaptive_close_profile(
     const uint64_t filtering_threshold) {
   // Parameters
   region_profile_t* const region_profile = &search->region_profile;
-  region_profile_schedule_exact_thresholded(region_profile,filtering_threshold);
+  region_profile_schedule_exact(region_profile,filtering_threshold);
   // Check number of regions & Set State
   if (region_profile->num_filtering_regions == 0) {
     search->processing_state = asearch_processing_state_no_regions;
@@ -128,27 +129,32 @@ void approximate_search_region_profile(approximate_search_t* const search) {
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
           parameters->region_profile_model.region_step,
-          parameters->region_profile_model.region_error);
+          parameters->region_profile_model.region_error,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_factor:
       region_profile_generate_factors(
           region_profile,fm_index,key,key_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.region_error,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_CKS:
       region_profile_generate_cks(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_OPS:
       region_profile_generate_optimum_fixed(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_adaptive:
@@ -171,11 +177,15 @@ void approximate_search_region_profile(approximate_search_t* const search) {
       break;
     case region_profile_MEM:
       // MEM
-      region_profile_generate_mem(region_profile,fm_index,key,key_length);
+      region_profile_generate_mem(
+          region_profile,fm_index,key,key_length,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_SMEM:
-      region_profile_generate_smem(region_profile,fm_index,key,key_length);
+      region_profile_generate_smem(
+          region_profile,fm_index,key,key_length,
+          parameters->region_profile_model.max_candidates);
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_test:
@@ -184,30 +194,39 @@ void approximate_search_region_profile(approximate_search_t* const search) {
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
           parameters->region_profile_model.region_step,
-          parameters->region_profile_model.region_error);
+          parameters->region_profile_model.region_error,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"Fixed",false);
       // CKS
       region_profile_generate_cks(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"CKS",false);
       // OPS
       region_profile_generate_optimum_fixed(
           region_profile,fm_index,key,key_length,
           parameters->region_profile_model.region_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"OPS",false);
       // Factor
       region_profile_generate_factors(
           region_profile,fm_index,key,key_length,
-          parameters->region_profile_model.num_regions);
+          parameters->region_profile_model.num_regions,
+          parameters->region_profile_model.region_error,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"Factors",false);
       // MEM
-      region_profile_generate_mem(region_profile,fm_index,key,key_length);
+      region_profile_generate_mem(
+          region_profile,fm_index,key,key_length,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"MEM",false);
       // SMEM
-      region_profile_generate_smem(region_profile,fm_index,key,key_length);
+      region_profile_generate_smem(
+          region_profile,fm_index,key,key_length,
+          parameters->region_profile_model.max_candidates);
       region_profile_print_pretty(stderr,region_profile,"SMEM",false);
       // Adaptive
       region_profile_generate_adaptive(

@@ -34,13 +34,12 @@ SUBDIRS=align \
         classify \
         scaffold
         
-MODULES=matches \
+MODULES=match_trace \
+        matches \
         matches_cigar \
         matches_counters \
-        matches_accuracy \
         paired_map \
-        paired_matches \
-        paired_matches_accuracy
+        paired_matches
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

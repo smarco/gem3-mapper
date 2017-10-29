@@ -135,13 +135,11 @@ void archive_search_pe_print(
   search_parameters_print(stream,&archive_search_end1->search_parameters);
   tab_global_dec();
   tab_fprintf(stream,"=> End/1\n");
-  tab_fprintf(stream,"  => Searched %s\n",archive_search_end1->pair_searched ? "yes" : "no");
-  tab_fprintf(stream,"  => Extended %s (shortcut-extension=%s)\n",
-      archive_search_end1->pair_extended ? "yes" : "no",
-      archive_search_end1->pair_extended_shortcut ? "yes" : "no");
+  tab_fprintf(stream,"  => Searched %s\n",archive_search_end1->searched ? "yes" : "no");
+  tab_fprintf(stream,"  => Extended %s \n",paired_matches->matches_end1->matches_extended ? "yes" : "no");
   tab_fprintf(stream,"=> End/2\n");
-  tab_fprintf(stream,"  => Searched %s\n",archive_search_end2->pair_searched ? "yes" : "no");
-  tab_fprintf(stream,"  => Extended %s\n",archive_search_end2->pair_extended ? "yes" : "no");
+  tab_fprintf(stream,"  => Searched %s\n",archive_search_end2->searched ? "yes" : "no");
+  tab_fprintf(stream,"  => Extended %s\n",paired_matches->matches_end2->matches_extended ? "yes" : "no");
   if (!mapper_stats_template_length_is_reliable(archive_search_end1->mapper_stats)) {
     tab_fprintf(stream,"=> Template-length 'n/a'\n");
   } else {

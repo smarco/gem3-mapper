@@ -1,3 +1,0 @@
-#!/bin/bash
-
-./scripts/smap-diff $1 $2 | grep -C 8 " [<>|] "

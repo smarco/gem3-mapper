@@ -21,7 +21,6 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "matches/paired_matches_accuracy.h"
 #include "matches/paired_matches.h"
 
 /*
@@ -50,9 +49,6 @@ const char* paired_matches_class_label[] =
 paired_matches_t* paired_matches_new(void) {
   // Alloc
   paired_matches_t* const paired_matches = mm_alloc(paired_matches_t);
-  // State
-  paired_matches->paired_matches_class = paired_matches_class_unmapped;
-  paired_matches->max_complete_stratum = ALL;
   // Matches Counters
   paired_matches->counters = matches_counters_new();
   // Single-End Matches
@@ -70,9 +66,6 @@ paired_matches_t* paired_matches_new(void) {
   return paired_matches;
 }
 void paired_matches_clear(paired_matches_t* const paired_matches,const bool clear_matches) {
-  // State
-  paired_matches->paired_matches_class = paired_matches_class_unmapped;
-  paired_matches->max_complete_stratum = ALL;
   // Matches Counters
   matches_counters_clear(paired_matches->counters);
   // Single-End Matches
@@ -116,13 +109,23 @@ uint64_t paired_matches_counters_get_total_count(paired_matches_t* const paired_
   return matches_counters_get_total_count(paired_matches->counters);
 }
 uint64_t paired_matches_get_first_stratum_num_matches(paired_matches_t* const paired_matches) {
-  const uint64_t min_edit_distance = matches_metrics_get_min_edit_distance(&paired_matches->metrics);
+  const uint64_t min_edit_distance = paired_matches->metrics.min1_edit_distance;
   return (min_edit_distance==UINT32_MAX) ? 0 : paired_matches_counters_get_count(paired_matches,min_edit_distance);
+}
+uint64_t paired_matches_get_max_complete_stratum(paired_matches_t* const paired_matches) {
+  matches_t* const matches_end1 = paired_matches->matches_end1;
+  matches_t* const matches_end2 = paired_matches->matches_end2;
+  const uint64_t mcs_end1 = ((matches_end1->limited_exact_matches) ? 0 : matches_end1->max_complete_stratum);
+  const uint64_t mcs_end2 = ((matches_end2->limited_exact_matches) ? 0 : matches_end2->max_complete_stratum);
+  uint64_t mcs_pair = MIN(mcs_end1,mcs_end2);
+  if (matches_end1->matches_extended) mcs_pair = MAX(mcs_pair,mcs_end1);
+  if (matches_end2->matches_extended) mcs_pair = MAX(mcs_pair,mcs_end2);
+  return mcs_pair;
 }
 paired_map_t* paired_matches_get_primary_map(paired_matches_t* const paired_matches) {
   return paired_matches_get_maps(paired_matches)[0];
 }
-paired_map_t* paired_matches_get_secondary_map(paired_matches_t* const paired_matches) {
+paired_map_t* paired_matches_get_subdominant_map(paired_matches_t* const paired_matches) {
   return paired_matches_get_maps(paired_matches)[1];
 }
 uint64_t paired_matches_get_num_maps(const paired_matches_t* const paired_matches) {
@@ -141,6 +144,24 @@ void paired_matches_limit_maps(const paired_matches_t* const paired_matches,cons
   vector_set_used(paired_matches->paired_maps,num_maps);
 }
 /*
+ * Recompute metrics
+ */
+void paired_matches_recompute_metrics(paired_matches_t* const paired_matches) {
+  // Parameters
+  matches_metrics_t* const metrics = &paired_matches->metrics;
+  // ReCompute distance metrics
+  const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
+  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
+  matches_metrics_init(metrics);
+  uint64_t i;
+  for (i=0;i<num_maps;++i) {
+    const paired_map_t* const paired_map = paired_maps[i];
+    matches_metrics_update(
+        &paired_matches->metrics,paired_map->event_distance,
+        paired_map->edit_distance,paired_map->swg_score);
+  }
+}
+/*
  * Paired-Map Compare
  */
 int paired_matches_cmp_swg_score(const paired_map_t* const a,const paired_map_t* const b) {
@@ -152,7 +173,7 @@ int paired_matches_cmp_swg_score(const paired_map_t* const a,const paired_map_t*
   // Compare template-length-sigmas
   const int template_length_sigmas_diff = (int)a->template_length_sigma - (int)b->template_length_sigma;
   if (template_length_sigmas_diff) return template_length_sigmas_diff;
-  if (a->template_length_sigma==0.0 || a->template_length_sigma==MAX_TEMPLATE_LENGTH_SIGMAS) {
+  if (a->template_length_sigma<=0.0 || a->template_length_sigma>=MAX_TEMPLATE_LENGTH_SIGMAS) {
     const int template_length_diff = (int)a->template_length - (int)b->template_length;
     if (template_length_diff) return template_length_diff;
   }
@@ -196,10 +217,9 @@ void paired_matches_add_map(
   // Add paired map
   paired_matches_add_map_insert_sorted(paired_matches,paired_map);
   // Update metrics
-  paired_matches_metrics_update(
+  matches_metrics_update(
       &paired_matches->metrics,paired_map->event_distance,
-      paired_map->edit_distance,paired_map->swg_score,
-      paired_map->template_length_sigma);
+      paired_map->edit_distance,paired_map->swg_score);
 }
 void paired_matches_add(
     paired_matches_t* const paired_matches,
@@ -216,6 +236,7 @@ void paired_matches_add(
   const uint64_t pair_event_distance = paired_map_compute_event_distance(match_trace_end1,match_trace_end2);
   const uint64_t pair_edit_distance = paired_map_compute_edit_distance(match_trace_end1,match_trace_end2);
   const int32_t pair_swg_score = paired_map_compute_swg_score(match_trace_end1,match_trace_end2);
+  const float pair_error_quality = paired_map_compute_error_quality(match_trace_end1,match_trace_end2);
   paired_map_t* const paired_map = mm_allocator_alloc(mm_allocator,paired_map_t);
   // Setup
   paired_map->match_trace_end1 = match_trace_end1;
@@ -231,6 +252,7 @@ void paired_matches_add(
   paired_map->event_distance = pair_event_distance;
   paired_map->edit_distance = pair_edit_distance;
   paired_map->swg_score = pair_swg_score;
+  paired_map->error_quality = pair_error_quality;
   paired_map->mapq_score = 0;
   // Insert
   switch (pair_relation) {
@@ -336,6 +358,7 @@ uint64_t paired_matches_compute_template_length(
         case pair_layout_separate: return end_position_2-begin_position_1; // SAM spec compliant
         case pair_layout_overlap:  return end_position_2-begin_position_1; // SAM spec compliant
         case pair_layout_contain:  return MAX(effective_length_match_end1,effective_length_match_end2); // ???
+        default: GEM_INVALID_CASE(); break;
       }
       break;
     case pair_orientation_RF:
@@ -343,6 +366,7 @@ uint64_t paired_matches_compute_template_length(
         case pair_layout_separate: return end_position_2-begin_position_1; // SAM spec compliant
         case pair_layout_overlap:  return end_position_1-begin_position_2; // BWA-MEM compliant (not SAM spec)
         case pair_layout_contain:  return MAX(effective_length_match_end1,effective_length_match_end2); // ???
+        default: GEM_INVALID_CASE(); break;
       }
       break;
     case pair_orientation_FF:
@@ -506,9 +530,6 @@ void paired_matches_find_pairs(
       paired_matches,search_parameters,mapper_stats,
       matches_sorted_end1,num_matches_end1,
       matches_sorted_end2,num_matches_end2);
-  // Update number of matches candidates
-  const uint64_t num_maps = paired_matches_get_num_maps(paired_matches);
-  matches_metrics_set_accepted_candidates(&paired_matches->metrics,num_maps);
   // Pop allocator state
   mm_allocator_pop_state(mm_allocator);
 }
@@ -549,7 +570,7 @@ void paired_matches_print(FILE* const stream,paired_matches_t* const paired_matc
   tab_fprintf(stream,"[GEM]>Paired.Matches\n");
   tab_global_inc();
   tab_fprintf(stream,"=> Counters\t");
-  matches_counters_print(stream,paired_matches->counters,paired_matches->max_complete_stratum);
+  matches_counters_print(stream,paired_matches->counters,paired_matches_get_max_complete_stratum(paired_matches));
   fprintf(stream,"\n");
   tab_fprintf(stream,"=> Paired.Maps %lu\n",paired_matches_get_num_maps(paired_matches));
   tab_fprintf(stream,"=> Discordant.Paired.Maps %lu\n",paired_matches_get_num_discordant_maps(paired_matches));

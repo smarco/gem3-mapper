@@ -64,7 +64,6 @@ void archive_search_se_new(
   // Prepare Search
   *archive_search = mm_alloc(archive_search_t); // Allocate handler
   archive_search_configure(*archive_search,search_parameters,buffered_search);
-  // Configure Select align
   archive_select_configure_se(*archive_search);
 }
 void archive_search_pe_new(

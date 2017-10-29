@@ -73,7 +73,7 @@ uint64_t filtering_candidates_compose_filtering_regions(
         const uint64_t position = candidate_positions[group_idx]->text_begin_position;
         const uint64_t delta = position - region_begin_position;
         if (sequence_id != candidate_positions[group_idx]->sequence_id) break; // Different sequence. Stop!
-        if (delta > max_delta_difference) break; // Doesn't belong to the group. Stop!
+        if (delta >= max_delta_difference) break; // Doesn't belong to the group. Stop!
         // Select the best already-known alignment distance
         if (candidate_positions[group_idx]->align_distance < min_align_distance) {
           min_align_distance = candidate_positions[group_idx]->align_distance;

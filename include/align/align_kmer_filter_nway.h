@@ -44,6 +44,8 @@ typedef struct {
   uint64_t end;                           // End position of the tile
 } kmer_counting_key_tile_t;
 typedef struct {
+  // State
+  bool enabled;                           // Enabled kmer-filtering
   // Filter parameters
   uint64_t kmer_length;                   // Kmer length
   uint64_t kmer_mask;                     // Kmer mask to extract kmer offset

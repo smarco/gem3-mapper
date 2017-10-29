@@ -55,11 +55,10 @@ void approximate_search_neighborhood_exact_search(
   // fm_index_reverse_bsearch_fb(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   // fm_index_reverse_bsearch_bf(search->archive->fm_index,pattern->key,pattern->key_length,&hi,&lo);
   // Add interval
-  bool limited;
   filtering_candidates_t* const filtering_candidates = search->filtering_candidates;
   filtering_candidates_add_positions_from_interval(
-      filtering_candidates,search->search_parameters,pattern,
-      lo,hi,0,pattern->key_length,0,&limited);
+      filtering_candidates,search->search_parameters,
+      pattern,lo,hi,0,pattern->key_length,0);
   // Process+Verify candidates
   PROF_START(GP_NS_VERIFICATION);
   filtering_candidates_process_candidates(search->filtering_candidates,&search->pattern,false);
@@ -70,7 +69,7 @@ void approximate_search_neighborhood_exact_search(
   filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_ALIGN);
   // Finish Search
-  approximate_search_update_mcs(search,1);
+  matches_update_mcs(matches,1);
   approximate_search_end(search,matches);
 }
 /*
@@ -100,7 +99,7 @@ void approximate_search_neighborhood_search_brute_force(
   filtering_candidates_align_candidates(filtering_candidates,pattern,matches);
   PROF_STOP(GP_NS_ALIGN);
   // Finish Search
-  approximate_search_update_mcs(search,search->current_max_complete_error+1);
+  matches_update_mcs(matches,search->max_search_error+1);
   approximate_search_end(search,matches);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
@@ -120,10 +119,6 @@ void approximate_search_neighborhood_search_partition(
   } else {
     nsearch_levenshtein(search,matches);
   }
-  // Finish Search
-  const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;
-  approximate_search_update_mcs(search,mcs_reached);
-  approximate_search_end(search,matches);
   PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }
 /*
@@ -132,20 +127,19 @@ void approximate_search_neighborhood_search_partition(
 void approximate_search_neighborhood_search_partition_preconditioned(
     approximate_search_t* const search,
     matches_t* const matches) {
+  PROFILE_START(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
   // Parameters
   search_parameters_t* const search_parameters = search->search_parameters;
   region_profile_t* const region_profile = &search->region_profile;
-  const uint64_t max_complete_error = search->current_max_complete_error;
-  const uint64_t mcs = search->current_max_complete_stratum;
+  const uint64_t max_search_error = search->max_search_error;
+  const uint64_t mcs = matches->max_complete_stratum;
   // Compute error limits
-  region_profile_compute_error_limits(region_profile,mcs,max_complete_error);
+  region_profile_compute_error_limits(region_profile,mcs,max_search_error);
   // Generate Candidates (Select Alignment Model)
   if (search_parameters->match_alignment_model == match_alignment_model_hamming) {
     nsearch_hamming_preconditioned(search,matches);
   } else {
     nsearch_levenshtein_preconditioned(search,matches);
   }
-  // Update MCS
-  const uint64_t mcs_reached = search->nsearch_schedule->current_mcs;
-  approximate_search_update_mcs(search,mcs_reached);
+  PROFILE_STOP(GP_AS_NEIGHBORHOOD_SEARCH,PROFILE_LEVEL);
 }

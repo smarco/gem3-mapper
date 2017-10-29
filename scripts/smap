@@ -1,3 +1,0 @@
-#!/bin/bash
-
-cat $1  | awk -F"\t" '{$2="READ("length($2)")";$3="QUALS";print}' | tr ' \t,' '\n\n\n'

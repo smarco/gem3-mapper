@@ -39,7 +39,6 @@
  */
 typedef enum {
   mapping_adaptive_filtering_fast,         // Adaptive filtering (exact region filtering)
-  mapping_adaptive_filtering_complete,     // Adaptive filtering guaranteeing complete search (forcing min regions)
   mapping_neighborhood_search_brute_force, // Neighborhood Search using brute-force
   mapping_neighborhood_search_partition,   // Neighborhood Search using partitions & bidirectional search
   mapping_hybrid_sensitive,                // Hybrid search stopping until high-quality mapping(s) reached
@@ -114,7 +113,6 @@ typedef struct {
   uint64_t clip_right;
   /* Qualities */
   sequence_qualities_format_t qualities_format;
-  uint64_t quality_threshold;
   /* Approximate Search */
   region_profile_model_t region_profile_model;          // Region-Profile Model (Lightweight)
   candidate_verification_t candidate_verification;      // Candidate verification strategy
@@ -128,6 +126,7 @@ typedef struct {
   double complete_search_error;
   double complete_strata_after_best;
   double alignment_max_error;
+  double alignment_max_extension_error;
   double alignment_max_bandwidth;
   bool   alignment_force_full_swg;                      // Force full SWG-Alignment
   double alignment_global_min_identity;                 // Alignment minimum identity to be global
@@ -149,13 +148,13 @@ typedef struct {
   /* MAPQ Score */
   mapq_model_t mapq_model_se;
   mapq_model_t mapq_model_pe;
-  uint8_t mapq_threshold;
   /* Paired-end Search */
   search_paired_parameters_t search_paired_parameters;  // Paired-end
   /* Nominal search parameters (Evaluated to read-length) */
   uint64_t complete_search_error_nominal;
   uint64_t complete_strata_after_best_nominal;
   uint64_t alignment_max_error_nominal;
+  uint64_t alignment_max_extension_error_nominal;
   uint64_t alignment_max_bandwidth_nominal;
   uint64_t alignment_global_min_identity_nominal;
   int32_t alignment_global_min_swg_threshold_nominal;

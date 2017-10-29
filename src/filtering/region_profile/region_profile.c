@@ -54,6 +54,7 @@ void region_profile_model_init(
   region_profile_model->region_length = 20;
   region_profile_model->region_step = 20;
   region_profile_model->region_error = 0;
+  region_profile_model->max_candidates = 100;
   // Adaptive parameters. LightWeight Scheme = (20,4,1)
   region_profile_model->region_th = 20;
   region_profile_model->max_steps = 4;
@@ -64,7 +65,6 @@ void region_profile_clear(
   region_profile->num_filtering_regions = 0;
   region_profile->num_filtered_regions = 0;
   region_profile->total_candidates = 0;
-  region_profile->candidates_limited = false;
   region_profile->max_region_length = 0;
   region_profile->avg_region_length = 0;
   region_profile->kmer_frequency = 0.0;
@@ -130,6 +130,7 @@ void region_profile_query_character(
       /*
        * [MANUAL INLINE] bwt_erank_interval(bwt,enc_char,*lo,*hi,lo,hi); // Apologizes for doing this
        */
+      BWT_ERANK_TICK();
       const uint64_t block_pos = *hi / 64;
       const uint64_t block_mod = *hi % 64;
       const uint64_t* const mayor_counters = bwt->mayor_counters + (*hi / ((1 << 10) * 64)) * 8;
@@ -145,6 +146,7 @@ void region_profile_query_character(
       /*
        * [MANUAL INLINE]  *lo = bwt_erank(bwt,enc_char,*lo); // Apologizes for doing this
        */
+      BWT_ERANK_TICK();
       const uint64_t block_pos_lo = *lo / 64;
       const uint64_t block_mod_lo = *lo % 64;
       const uint64_t* const mayor_counters_lo = bwt->mayor_counters + (*lo / ((1 << 10) * 64)) * 8;
@@ -159,6 +161,7 @@ void region_profile_query_character(
       /*
        * [MANUAL INLINE]  *hi = bwt_erank(bwt,enc_char,*hi); // Apologizes for doing this
        */
+      BWT_ERANK_TICK();
       const uint64_t block_pos_hi = *hi / 64;
       const uint64_t block_mod_hi = *hi % 64;
       const uint64_t* const mayor_counters_hi = bwt->mayor_counters + (*hi / ((1 << 10) * 64)) * 8;

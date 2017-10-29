@@ -119,12 +119,12 @@ if test "$enable_cuda" != "no" ; then
   AC_ARG_WITH([cuda], [  --with-cuda=PREFIX      Prefix of your CUDA installation path (default=/usr/local/cuda)], 
                       [cuda_sdk_prefix=$withval], 
                       [cuda_sdk_prefix="/usr/local/cuda"])
-
+                      
   # Checking for nvcc
-  VALID_CUDA=yes
+    VALID_CUDA=yes
   AC_MSG_CHECKING([nvcc in $cuda_sdk_prefix/bin])
   if test -x "$cuda_sdk_prefix/bin/nvcc"; then
-    AC_MSG_RESULT([found])
+    AC_MSG_RESULT([yes])
     cuda_bin_path="$cuda_sdk_prefix/bin"
     cuda_lib_path="$cuda_sdk_prefix/lib64"
     cuda_include_path="$cuda_sdk_prefix/include"
@@ -133,7 +133,7 @@ if test "$enable_cuda" != "no" ; then
     cuda_repo_prefix="/usr"
     AC_MSG_CHECKING([for alternative nvcc location in $cuda_repo_prefix/bin])
     if test -x "$cuda_repo_prefix/bin/nvcc"; then
-      AC_MSG_RESULT([found])
+      AC_MSG_RESULT([yes])
       cuda_bin_path="$cuda_repo_prefix/bin"
       cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
       cuda_include_path="$cuda_repo_prefix/include"

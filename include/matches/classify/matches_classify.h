@@ -25,13 +25,46 @@
 #define MATCHES_CLASSIFY_H_
 
 #include "utils/essentials.h"
+#include "archive/search/archive_search_se_parameters.h"
 #include "matches/matches.h"
-#include "matches/paired_matches.h"
 
 /*
- * Classify
+ * Matches Classify
  */
 void matches_classify(matches_t* const matches);
-void paired_matches_classify(paired_matches_t* const paired_matches);
+
+/*
+ * Matches Accuracy Tests
+ */
+bool matches_classify_pattern_viable(pattern_t* const pattern);
+bool matches_classify_max_matches_searched(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern);
+bool matches_classify_min_depth_searched(
+    matches_classification_t* const matches_classification);
+
+/*
+ * Alignment algorithm/paradigm fallback
+ */
+bool matches_classify_neighbourhood_fallback(
+    matches_t* const matches,
+    search_parameters_t* const search_parameters,
+    pattern_t* const pattern);
+bool matches_classify_local_alignment_fallback(
+    matches_t* const matches,
+    const local_alignment_t alignment_local);
+
+/*
+ * Adjusting search maximum error
+ */
+uint64_t matches_classify_adjust_max_error_by_strata_after_best(
+    matches_t* const matches,
+    const uint64_t max_search_error,
+    const uint64_t complete_strata_after_best);
+uint64_t matches_classify_compute_max_search_error(
+    matches_t* const matches,
+    pattern_t* const pattern,
+    const uint64_t proper_length);
 
 #endif /* MATCHES_CLASSIFY_H_ */

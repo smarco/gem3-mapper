@@ -3487,12 +3487,12 @@ fi
 
 
   # Checking for nvcc
-  VALID_CUDA=yes
+    VALID_CUDA=yes
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking nvcc in $cuda_sdk_prefix/bin" >&5
 $as_echo_n "checking nvcc in $cuda_sdk_prefix/bin... " >&6; }
   if test -x "$cuda_sdk_prefix/bin/nvcc"; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
     cuda_bin_path="$cuda_sdk_prefix/bin"
     cuda_lib_path="$cuda_sdk_prefix/lib64"
     cuda_include_path="$cuda_sdk_prefix/include"
@@ -3503,8 +3503,8 @@ $as_echo "not found" >&6; }
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for alternative nvcc location in $cuda_repo_prefix/bin" >&5
 $as_echo_n "checking for alternative nvcc location in $cuda_repo_prefix/bin... " >&6; }
     if test -x "$cuda_repo_prefix/bin/nvcc"; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
       cuda_bin_path="$cuda_repo_prefix/bin"
       cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
       cuda_include_path="$cuda_repo_prefix/include"

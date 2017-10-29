@@ -66,20 +66,17 @@ void archive_select_se_matches_discard(
     ++num_matches_accepted;
   }
   if (num_matches_accepted != num_matches) {
-    matches_metrics_set_limited_candidates(&matches->metrics,true);
     vector_set_used(matches->match_traces,num_matches_accepted); // Update used
   }
 }
 void archive_select_se_matches(
-    archive_search_t* const archive_search,
     select_parameters_t* const select_parameters,
     matches_t* const matches) {
   PROFILE_START(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
-  const uint64_t num_matches = matches_get_num_match_traces(matches);
-  matches_metrics_set_aligned_alignments(&matches->metrics,num_matches);
   // Parameters
   const uint64_t min_reported_strata_nominal = select_parameters->min_reported_strata_nominal;
-  const uint64_t max_reported_matches = select_parameters->max_searched_matches;
+  const uint64_t max_reported_matches = select_parameters->max_reported_matches;
+  const uint64_t num_matches = matches_get_num_match_traces(matches);
   // Check min-reported-strata constrain
   if (min_reported_strata_nominal > 0) {
     // Calculate the number of matches to decode wrt input parameters
@@ -94,7 +91,6 @@ void archive_select_se_matches(
   } else if (num_matches > max_reported_matches) {
     // Discard unwanted
     vector_set_used(matches->match_traces,max_reported_matches);
-    matches_metrics_set_limited_candidates(&matches->metrics,true);
   }
   PROFILE_STOP(GP_ARCHIVE_SELECT_SE_MATCHES,PROFILE_LEVEL);
 }
@@ -105,10 +101,13 @@ void archive_select_pe_matches(
     select_parameters_t* const select_parameters,
     mapper_stats_t* const mapper_stats,
     paired_matches_t* const paired_matches) {
-  // Update stats (Check number of paired-matches)
+  // Unmapped
   const uint64_t num_matches = paired_matches_get_num_maps(paired_matches);
-  matches_metrics_set_aligned_alignments(&paired_matches->metrics,num_matches);
-  if (num_matches==0) return;
+  if (num_matches==0) {
+    archive_select_se_matches(select_parameters,paired_matches->matches_end1);
+    archive_select_se_matches(select_parameters,paired_matches->matches_end2);
+    return;
+  }
   PROFILE_START(GP_ARCHIVE_SELECT_PE_MATCHES,PROFILE_LEVEL);
   // Sample unique
   if (num_matches==1) {

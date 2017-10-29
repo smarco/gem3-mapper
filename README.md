@@ -1,1 +1,1 @@
-# gem3
+# The GEM mapper (Version 3)

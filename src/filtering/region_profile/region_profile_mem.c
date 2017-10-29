@@ -29,6 +29,11 @@
 #include "fm_index/fm_index_query.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * MEMs region profile
  */
 void region_profile_compute_mem(
@@ -65,7 +70,9 @@ void region_profile_generate_mem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length) {
+    const uint64_t key_length,
+    const uint64_t max_candidates) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Init
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,key_length); // Allocate
@@ -90,7 +97,8 @@ void region_profile_generate_mem(
   }
   region_profile->num_filtering_regions = num_regions;
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,max_candidates);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 /*
  * SMEMs region profile
@@ -196,7 +204,9 @@ void region_profile_generate_smem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
-    const uint64_t key_length) {
+    const uint64_t key_length,
+    const uint64_t max_candidates) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
   // Init
@@ -221,9 +231,10 @@ void region_profile_generate_smem(
     }
   }
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_exact(region_profile,max_candidates);
   // Free
   mm_allocator_pop_state(mm_allocator);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 ///*
 // * PAPER IMPLEMENTATION (correcting a couple of errors)

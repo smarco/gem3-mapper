@@ -21,7 +21,6 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
-#include "matches/matches_accuracy.h"
 #include "neighborhood_search/nsearch_levenshtein_control.h"
 #include "neighborhood_search/nsearch_filtering.h"
 #include "fm_index/fm_index_query.h"
@@ -41,14 +40,12 @@ bool nsearch_levenshtein_candidates_cutoff(
   // Parameters
   search_parameters_t* const search_parameters = nsearch_schedule->search_parameters;
   nsearch_parameters_t* const nsearch_parameters = &search_parameters->nsearch_parameters;
-  /*
-   * Direct filtering step
-   */
+  // Enabled
+  if (!nsearch_parameters->filtering_cutoff) return false;
+  // Direct filtering step
   const uint64_t filtering_quick_th = nsearch_parameters->filtering_quick_th;
   if (num_candidates <= filtering_quick_th) return true; // Cut-off
-  /*
-   * Optimization steps (if number of candidates below threshold)
-   */
+  // Optimization steps (if number of candidates below threshold)
   const uint64_t filtering_region_opt_th = nsearch_parameters->filtering_region_opt_th;
   if (num_candidates <= filtering_region_opt_th) {
     if (nsearch_query->num_optimization_steps==0) {
@@ -106,10 +103,9 @@ uint64_t nsearch_levenshtein_terminate(
     nsearch_levenshtein_control_limit_interval(&search_parameters->select_parameters,&lo,&hi);
   }
   // Add candidates to filtering
-  bool limited;
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,
-      lo,hi,0,pattern->key_length,align_distance,&limited);
+      lo,hi,0,pattern->key_length,align_distance);
   return hi-lo;
 #endif
 }
@@ -125,7 +121,7 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
 #ifdef NSEARCH_ENUMERATE
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_CANDIDATES_GENERATED,1);
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,1);
   // Search Text
   nsearch_operation->text_position = text_length;
   nsearch_operation_state_print_global_text(stdout,nsearch_operation); // Print
@@ -157,24 +153,21 @@ uint64_t nsearch_levenshtein_scheduled_terminate(
         &fm_2interval->backward_lo,&fm_2interval->backward_hi);
   }
   // Add interval
-  bool limited;
   filtering_candidates_add_positions_from_interval(
       filtering_candidates,search_parameters,pattern,fm_2interval->backward_lo,
-      fm_2interval->backward_hi,region_begin,region_end,align_distance,&limited);
+      fm_2interval->backward_hi,region_begin,region_end,align_distance);
   // Filtering
   nsearch_parameters_t* const nsearch_parameters = &nsearch_schedule->search_parameters->nsearch_parameters;
   const uint64_t max_searched_matches = search_parameters->select_parameters.max_searched_matches;
   const uint64_t max_candidates_acc = nsearch_parameters->filtering_max_candidates_acc;
   const uint64_t num_candidates =
       filtering_candidates_get_num_positions(nsearch_schedule->filtering_candidates);
-  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidates);
   if (num_candidates >= max_searched_matches || num_candidates >= max_candidates_acc) {
     nsearch_filtering(nsearch_schedule);
   }
   // PROFILE
   PROF_ADD_COUNTER(GP_NS_SEARCH_DEPTH,text_length);
-  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,
-      (fm_2interval->backward_hi-fm_2interval->backward_lo));
+  PROF_ADD_COUNTER(GP_NS_BRANCH_CANDIDATES_GENERATED,num_candidates);
   // Return
   return fm_2interval->backward_hi-fm_2interval->backward_lo;
 #endif

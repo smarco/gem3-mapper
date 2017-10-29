@@ -34,10 +34,10 @@
  * Match Scaffold Type
  */
 typedef enum {
-  scaffold_none = 0,
-  scaffold_region_chain = 1,
-  scaffold_levenshtein = 2,
-  scaffold_swg = 3,
+  scaffold_none = 0,         // Scaffolding not performed
+  scaffold_region_chain = 1, // Scaffolding via chaining seeds
+  scaffold_levenshtein = 2,  // Scaffolding via levenshtein-alignment
+  scaffold_deferred = 3      // Scaffolding deferred
 } match_scaffold_type;
 
 /*

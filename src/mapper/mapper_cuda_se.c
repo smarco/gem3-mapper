@@ -256,7 +256,10 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   // Read from stage BPM-Align
   while (search_stage_bpm_align_retrieve_se_search(stage_bpm_align,&archive_search)) {
     // Finish Search
-    archive_search_se_stepwise_finish_search(archive_search,stage_bpm_align->matches); // Finish search
+    archive_search_se_stepwise_finish_search(archive_search,stage_bpm_align->matches);
+    // Stats (dirty trick)
+    COUNTER_ADD(&search_pipeline->search_pipeline_handlers->fc_bpm_distance_end1.candidates_aligned,
+        search_pipeline->search_pipeline_handlers->fc_bpm_align_end1.current_candidates_aligned);
     // Output Matches
     mapper_io_handler_output_matches(
         mapper_search->mapper_io_handler,archive_search,
@@ -266,10 +269,6 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
       ticker_update_mutex(mapper_search->ticker,mapper_search->reads_processed);
       mapper_search->reads_processed = 0;
     }
-
-//    // MM FIXME FIXME FIXME FIXME FIXME FIXME FIXME
-//    mm_allocator_print(stderr,search_pipeline->search_pipeline_handlers->mm_allocator,true);
-
     // Free
     search_pipeline_free(search_pipeline,archive_search);
   }

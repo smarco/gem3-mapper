@@ -30,6 +30,11 @@
 #include "fm_index/fm_index_search.h"
 
 /*
+ * Profile
+ */
+#define PROFILE_LEVEL PMED
+
+/*
  * Region Profile Partition
  */
 void region_profile_partition_fixed(
@@ -96,7 +101,9 @@ void region_profile_generate_fixed(
     const uint64_t key_length,
     const uint64_t region_length,
     const uint64_t region_step,
-    const uint64_t region_error) {
+    const uint64_t region_error,
+    const uint64_t max_candidates) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Init & allocate region profile
   const uint64_t max_regions = DIV_CEIL(key_length,region_step);
   region_profile_clear(region_profile);
@@ -118,7 +125,8 @@ void region_profile_generate_fixed(
   // Query region profile
   region_profile_query_regions(region_profile,fm_index,key);
   // Schedule to filter all
-  region_profile_schedule_all(region_profile,region_error);
+  region_profile_schedule_approximate(region_profile,region_error,max_candidates);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 /*
  * Cheap k-mer selection
@@ -129,7 +137,9 @@ void region_profile_generate_cks(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t region_length,
-    const uint64_t num_regions) {
+    const uint64_t num_regions,
+    const uint64_t max_candidates) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   /*
    * Select those fixed-length regions with fewer
    * candidates from the static first partition
@@ -155,7 +165,8 @@ void region_profile_generate_cks(
   // Query region profile
   region_profile_query_regions(region_profile,fm_index,key);
   // Schedule to filter all
-  region_profile_schedule_exact_best(region_profile,num_regions);
+  region_profile_schedule_exact_best(region_profile,num_regions,max_candidates);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 /*
  * Factors region profile (divide the read in equal parts)
@@ -165,7 +176,10 @@ void region_profile_generate_factors(
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const uint64_t num_regions) {
+    const uint64_t num_regions,
+    const uint64_t region_error,
+    const uint64_t max_candidates) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Init & allocate region profile
   region_profile_clear(region_profile);
   region_profile_allocate_regions(region_profile,num_regions);
@@ -188,7 +202,8 @@ void region_profile_generate_factors(
   // Query region profile
   region_profile_query_regions(region_profile,fm_index,key);
   // Schedule to filter all
-  region_profile_schedule_exact_all(region_profile);
+  region_profile_schedule_approximate(region_profile,region_error,max_candidates);
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
 }
 /*
  * Display/Benchmark

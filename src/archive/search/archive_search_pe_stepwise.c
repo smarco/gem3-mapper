@@ -73,6 +73,8 @@ void archive_search_pe_stepwise_init_search(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2) {
   PROFILE_START(GP_ARCHIVE_SEARCH_PE_INIT,PROFILE_LEVEL);
+  archive_search_end1->searched = false;
+  archive_search_end2->searched = false;
   // DEBUG
   gem_cond_debug_block(DEBUG_ARCHIVE_SEARCH_PE_STEPWISE) {
     tab_fprintf(stderr,"[GEM]>ArchiveSearch.STEPWISE.PE :: Region.Profile.Generate\n");
@@ -80,12 +82,6 @@ void archive_search_pe_stepwise_init_search(
     tab_fprintf(gem_log_get_stream(),"  => Sequence.End1 %s\n",archive_search_end1->sequence->read.buffer);
     tab_fprintf(gem_log_get_stream(),"  => Sequence.End2 %s\n",archive_search_end2->sequence->read.buffer);
   }
-  // Init
-  archive_search_end1->pair_searched = false;
-  archive_search_end1->pair_extended = false;
-  archive_search_end1->pair_extended_shortcut = false;
-  archive_search_end2->pair_searched = false;
-  archive_search_end2->pair_extended = false;
   PROFILE_STOP(GP_ARCHIVE_SEARCH_PE_INIT,PROFILE_LEVEL);
 }
 /*
@@ -338,8 +334,8 @@ void archive_search_pe_stepwise_finish_search(
   archive_search_se_stepwise_finish_search(archive_search_end1,paired_matches->matches_end1);
   archive_search_se_stepwise_finish_search(archive_search_end2,paired_matches->matches_end2);
   archive_search_end1->pe_search_state = archive_search_pe_state_find_pairs;
-  archive_search_end1->pair_searched = true;
-  archive_search_end2->pair_searched = true;
+  archive_search_end1->searched = true;
+  archive_search_end2->searched = true;
   archive_search_pe_continue(archive_search_end1,archive_search_end2,paired_matches);
   // PE Score (Select alignment-Model and process accordingly)
   archive_score_matches_pe(archive_search_end1,archive_search_end2,paired_matches);

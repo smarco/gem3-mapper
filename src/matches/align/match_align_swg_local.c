@@ -116,7 +116,11 @@ void match_align_swg_local_alignment_add_match(
   match_trace.edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
   match_trace.swg_score = align_swg_score_cigar_excluding_clipping(
       &search_parameters->swg_penalties,cigar_vector,cigar_offset,cigar_length);
-  match_alignment->effective_length = matches_cigar_effective_length(cigar_vector,cigar_offset,cigar_length);
+  match_trace.error_quality =
+      matches_cigar_compute_error_quality(
+          cigar_vector,cigar_offset,cigar_length,
+          pattern->quality_mask,pattern->key_length);
+  match_alignment->effective_length = matches_cigar_compute_effective_length(cigar_vector,cigar_offset,cigar_length);
   match_trace.text = text_trace->text + match_alignment->match_text_offset;
   match_trace.text_length = match_alignment->effective_length;
   // Add to local pending

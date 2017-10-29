@@ -82,7 +82,6 @@ typedef struct {
   search_parameters_t* search_parameters;       // Search Parameters
   nsearch_model_t nsearch_model;                // Search error model
   uint64_t max_error;                           // Max-error search allowed
-  uint64_t current_mcs;                         // Current mcs reached
   // Scheduler Operations
   nsearch_operation_t* pending_searches;        // Pending search operations
   uint64_t num_pending_searches;                // Total pending operations

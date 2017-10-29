@@ -53,7 +53,6 @@ void nsearch_schedule_init(
   nsearch_schedule->search_parameters = search_parameters;
   nsearch_schedule->nsearch_model = nsearch_model;
   nsearch_schedule->max_error = max_complete_error;
-  nsearch_schedule->current_mcs = 0;
   nsearch_schedule->quick_abandon = false;
   // Search Operations
   const uint64_t key_length = nsearch_schedule->pattern->key_length;
@@ -134,8 +133,11 @@ void nsearch_schedule_search_step(
         chunk_offset,chunk_length,chunk_offset,chunk_length,
         chunk_min_error,chunk_min_error,chunk_max_error);
     if (!feasible_search) return; // Impossible search
-    // Compute current mcs
-    nsearch_schedule->current_mcs = nsearch_schedule_compute_min_error(nsearch_schedule);
+    // Update current mcs
+#ifndef NSEARCH_ENUMERATE
+    const uint64_t current_mcs = nsearch_schedule_compute_min_error(nsearch_schedule);
+    matches_update_mcs(nsearch_schedule->matches,current_mcs);
+#endif
     // Select nsearch-alignment model & Perform the search (Solve pending extensions)
     switch (nsearch_schedule->nsearch_model) {
       case nsearch_model_hamming: {
@@ -192,9 +194,11 @@ void nsearch_schedule_search(nsearch_schedule_t* const nsearch_schedule) {
       nsearch_schedule,0,nsearch_schedule->pattern->key_length,
       0,nsearch_schedule->max_error);
   // Adjust MCS
+#ifndef NSEARCH_ENUMERATE
   if (!nsearch_schedule->quick_abandon) {
-    nsearch_schedule->current_mcs = nsearch_schedule->max_error+1;
+    matches_update_mcs(nsearch_schedule->matches,nsearch_schedule->max_error+1);
   }
+#endif
   // Profile
   PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);
@@ -284,9 +288,11 @@ void nsearch_schedule_search_preconditioned(nsearch_schedule_t* const nsearch_sc
         0,num_filtering_regions,0,nsearch_schedule->max_error);
   }
   // Adjust MCS
+#ifndef NSEARCH_ENUMERATE
   if (!nsearch_schedule->quick_abandon) {
-    nsearch_schedule->current_mcs = nsearch_schedule->max_error+1;
+    matches_update_mcs(nsearch_schedule->matches,nsearch_schedule->max_error+1);
   }
+#endif
   // Profile
   PROF_ADD_COUNTER(GP_NS_NODES,nsearch_schedule->profile.ns_nodes);
   PROF_ADD_COUNTER(GP_NS_NODES_SUCCESS,nsearch_schedule->profile.ns_nodes_success);

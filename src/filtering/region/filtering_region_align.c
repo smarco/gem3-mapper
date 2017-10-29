@@ -105,6 +105,7 @@ void filtering_region_align_clone(
   match_trace_dst->event_distance = match_trace_src->event_distance;
   match_trace_dst->edit_distance = match_trace_src->edit_distance;
   match_trace_dst->swg_score = match_trace_src->swg_score;
+  match_trace_dst->error_quality = match_trace_src->error_quality;
   // Clone match-alignment
   match_alignment_t* const match_alignment_dst = &match_trace_dst->match_alignment;
   match_alignment_t* const match_alignment_src = &match_trace_src->match_alignment;

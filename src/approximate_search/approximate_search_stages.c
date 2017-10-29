@@ -21,17 +21,10 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  * DESCRIPTION:
  *   Approximate-String-Matching (ASM) module encapsulating
- *   the basic search-stages that many ASM approaches use
- *   Eg. Adaptive-filtering (AF) Search :=
- *         approximate_search_begin() +
- *         approximate_search_exact_filtering_adaptive() +
- *         approximate_search_verify() +
- *         [ approximate_search_align_local() ] +
- *         approximate_search_end();
+ *   the basic search-stages that many ASM approaches use.
  */
 
 #include "approximate_search/approximate_search_stages.h"
-#include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_region_profile.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_verify_candidates.h"
@@ -100,6 +93,9 @@ void approximate_search_exact_filtering_adaptive(
   } else {
     search->processing_state = asearch_processing_state_candidates_processed;
   }
+  // Update MCS
+  matches_update_mcs(matches,search->region_profile.num_filtered_regions); // (+ pattern->num_wildcards)
+  matches_update_limited_exact_matches(matches,search->num_limited_exact_matches);
   // DEBUG
   gem_cond_debug_block(DEBUG_SEARCH_STATE) { tab_global_dec(); tab_global_dec(); }
   PROFILE_STOP(GP_AS_FILTERING_ADATIVE,PROFILE_LEVEL);
@@ -141,8 +137,7 @@ void approximate_search_exact_filtering_adaptive_cutoff(
     region_search_t* const last_region = region_profile->filtering_region + (region_profile->num_filtering_regions-1);
     filtering_candidates_add_positions_from_interval(
         filtering_candidates,search_parameters,pattern,
-        last_region->lo,last_region->hi,last_region->begin,
-        last_region->end,0,&region_profile->candidates_limited);
+        last_region->lo,last_region->hi,last_region->begin,last_region->end,0);
     PROFILE_STOP(GP_AS_GENERATE_CANDIDATES,PROFILE_LEVEL);
     // Verify candidates
     PROFILE_START(GP_AS_GENERATE_CANDIDATES_DYNAMIC_FILTERING,PROFILE_LEVEL);
@@ -239,11 +234,6 @@ void approximate_search_end(
       region_profile->avg_region_length,
       region_profile->max_region_length,
       region_profile->kmer_frequency);
-  if (region_profile->candidates_limited) {
-    matches_metrics_set_limited_candidates(&matches->metrics,true);
-  }
-  // Update MCS (maximum complete stratum)
-  approximate_search_update_mcs(search,search->region_profile.num_filtered_regions); // (+ pattern->num_wildcards)
-  matches_update_mcs(matches,search->current_max_complete_stratum);
-  PROF_ADD_COUNTER(GP_AS_MCS,search->current_max_complete_stratum);
+  // PROF
+  PROF_ADD_COUNTER(GP_AS_MCS,matches->max_complete_stratum);
 }

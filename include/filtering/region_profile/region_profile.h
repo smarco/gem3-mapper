@@ -64,6 +64,7 @@ typedef struct {
   uint64_t region_length;              // Region length (or seed length)
   uint64_t region_step;                // Separation between regions
   uint64_t region_error;               // Error in the region
+  uint64_t max_candidates;             // Max. candidates
   // Adaptive parameters
   uint64_t region_th;                  // Max. number of candidates allowed per region
   uint64_t max_steps;                  // Max. number of characters to explore to improve the region
@@ -99,7 +100,6 @@ typedef struct {
   /* Profile */
   uint64_t pattern_length;           // Length of the pattern
   uint64_t total_candidates;         // Total number of candidates (from exact matching-regions)
-  bool candidates_limited;           // Limited number of candidates (due to selection)
   uint64_t max_region_length;        // Largest region length
   uint64_t avg_region_length;        // Average region length
   double kmer_frequency;

@@ -129,10 +129,10 @@ uint64_t nsearch_levenshtein_scheduled_query(
   // Query character
   fm_2interval_t* const fm_2interval = &next_nsearch_query->fm_2interval;
 #ifdef NSEARCH_ENUMERATE
-  next_nsearch_query->fm_2interval_out.backward_lo = 0;
-  next_nsearch_query->fm_2interval_out.backward_hi = 1;
-  next_nsearch_query->fm_2interval_out.forward_lo = 0;
-  next_nsearch_query->fm_2interval_out.forward_hi = 1;
+  next_nsearch_query->fm_2interval.backward_lo = 0;
+  next_nsearch_query->fm_2interval.backward_hi = 1;
+  next_nsearch_query->fm_2interval.forward_lo = 0;
+  next_nsearch_query->fm_2interval.forward_hi = 1;
   return 1;
 #else
   if (forward_search) {

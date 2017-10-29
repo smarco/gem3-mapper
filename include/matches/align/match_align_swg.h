@@ -36,6 +36,7 @@
 void match_align_swg_compute_alignment_type(
     matches_t* const matches,
     match_trace_t* const match_trace,
+    pattern_t* const pattern,
     search_parameters_t* const search_parameters);
 
 /*

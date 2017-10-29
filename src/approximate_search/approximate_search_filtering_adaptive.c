@@ -25,15 +25,15 @@
 
 #include "approximate_search/approximate_search_stages.h"
 #include "approximate_search/approximate_search_filtering_adaptive.h"
-#include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_neighborhood.h"
+#include "matches/classify/matches_classify.h"
 
 /*
  * Control
  */
 asearch_stage_t as_filtering_control_begin(approximate_search_t* const search) {
   // Test pattern
-  if (asearch_control_test_pattern(search)) {
+  if (matches_classify_pattern_viable(&search->pattern)) {
     PROF_INC_COUNTER(GP_AS_FILTERING_ADATIVE_CALL);
     return asearch_stage_filtering_adaptive;
   } else {
@@ -49,7 +49,8 @@ asearch_stage_t as_filtering_control_filtering_adaptive_next_state(
     case asearch_processing_state_no_regions:
       return asearch_stage_end;
     case asearch_processing_state_candidates_verified:
-      if (asearch_control_test_local_alignment(search,matches)) {
+      if (matches_classify_local_alignment_fallback(
+          matches,search->search_parameters->alignment_local)) {
         PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
         return asearch_stage_local_alignment;
       } else {
@@ -79,6 +80,8 @@ void approximate_search_filtering_adaptive(
         search->search_stage = as_filtering_control_filtering_adaptive_next_state(search,matches);
         break;
       case asearch_stage_filtering_adaptive_finished:
+        matches_update_mcs(matches,search->region_profile.num_filtered_regions); // (+ pattern->num_wildcards)
+        matches_update_limited_exact_matches(matches,search->num_limited_exact_matches);
         search->search_stage = as_filtering_control_filtering_adaptive_next_state(search,matches);
         break;
       case asearch_stage_local_alignment: // Local alignments

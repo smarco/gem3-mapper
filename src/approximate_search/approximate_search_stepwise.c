@@ -33,7 +33,6 @@
 #include "approximate_search/approximate_search_verify_candidates.h"
 #include "approximate_search/approximate_search_generate_candidates.h"
 #include "approximate_search/approximate_search_filtering_adaptive.h"
-#include "approximate_search/approximate_search_control.h"
 #include "approximate_search/approximate_search_neighborhood.h"
 #include "filtering/region_profile/region_profile_schedule.h"
 #include "filtering/candidates/filtering_candidates_align.h"
@@ -56,23 +55,6 @@ void approximate_search_stepwise_region_profile_adaptive_compute(
   // Set State
   search->processing_state = asearch_processing_state_region_profiled;
   PROF_STOP(GP_ASSW_REGION_PROFILE_UNSUCCESSFUL);
-}
-void approximate_search_stepwise_region_profile_limit_exact_matches(
-    approximate_search_t* const search) {
-  // Check exact matches (limit the number of matches)
-  region_profile_t* const region_profile = &search->region_profile;
-  region_profile->candidates_limited = false;
-  if (region_profile_has_exact_matches(region_profile)) {
-    search_parameters_t* const search_parameters = search->search_parameters;
-    select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-    region_search_t* const filtering_region = region_profile->filtering_region;
-    const uint64_t total_candidates = filtering_region->hi - filtering_region->lo;
-    if (total_candidates > select_parameters->max_searched_matches) {
-      filtering_region->hi = filtering_region->lo + select_parameters->max_searched_matches;
-      region_profile->total_candidates = select_parameters->max_searched_matches;
-      region_profile->candidates_limited = true;
-    }
-  }
 }
 /*
  * AM Stepwise :: Region Profile
@@ -117,7 +99,9 @@ void approximate_search_stepwise_region_profile_static_retrieve(
     if (search->processing_state == asearch_processing_state_no_regions) return; // Corner cases
   }
   // Check exact matches & limit the number of matches
-  approximate_search_stepwise_region_profile_limit_exact_matches(search);
+  if (region_profile_has_exact_matches(&search->region_profile)) {
+    approximate_search_generate_candidates_limit_exact_matches(search);
+  }
 }
 void approximate_search_stepwise_region_profile_adaptive_generate(
     approximate_search_t* const search) {
@@ -155,7 +139,9 @@ void approximate_search_stepwise_region_profile_adaptive_retrieve(
       approximate_search_stepwise_region_profile_adaptive_compute(search);
     }
     // Check exact matches & limit the number of matches
-    approximate_search_stepwise_region_profile_limit_exact_matches(search);
+    if (region_profile_has_exact_matches(&search->region_profile)) {
+      approximate_search_generate_candidates_limit_exact_matches(search);
+    }
     // Set state profiled
     search->processing_state = asearch_processing_state_region_profiled;
   }
