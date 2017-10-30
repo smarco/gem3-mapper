@@ -1,4 +1,4 @@
 Makefile.mk
 .project
 .cproject
-resources/gem-cutter
+resources/gem-cutter/*
