@@ -220,14 +220,17 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 Main Developers:
 
   Santiago Marco-Sola \- santiagomsola@gmail.com    (Main developer)
+  
   Paolo Ribeca        \- paolo.ribeca@gmail.com
+  
   Alejandro Chacon    \- alejandro.chacond@gmail.com 
 
 Special Contributors: Simon Heath, Jordi Camps.
 
 ## 4. REPORTING BUGS
 
-Feedback and bug reporting it's highly appreciated. Please report any issue or suggestion on github, by email to the main developer (santiagomsola@gmail.com) 
+Feedback and bug reporting it's highly appreciated. 
+Please report any issue or suggestion on github, by email to the main developer (santiagomsola@gmail.com) 
 
 ## 5. LICENSE AND CITATION
 
