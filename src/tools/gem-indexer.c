@@ -280,12 +280,11 @@ option_t gem_indexer_options[] = {
   { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=4)" },
   { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(disabled)" },
 #endif
-  { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
+  { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=false)" },
   { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
 #ifdef HAVE_CUDA
   { 300, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
 #endif
-  // TODO { 300, "autotune-index-size", REQUIRED, TYPE_STRING, 5 , VISIBILITY_USER, "<index-size>" , "(Eg 2GB)" },
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
   { 401, "dump-indexed-text", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -301,7 +300,6 @@ option_t gem_indexer_options[] = {
   { 501, "tmp-folder", REQUIRED, TYPE_STRING, 5 , VISIBILITY_ADVANCED, "<temporal_dir_path>" , "(/tmp/)" },
   /* Miscellaneous */
   { 'v', "verbose", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },
-  { 'q', "quiet", NO_ARGUMENT, TYPE_NONE, 6 ,VISIBILITY_USER, "", "" },
   { 600, "info-file", REQUIRED, TYPE_STRING, 6 ,VISIBILITY_ADVANCED, "<info_file_path>", "" },
   { 'h', "help", OPTIONAL, TYPE_NONE, 6 , VISIBILITY_USER, "" , "(print usage)" },
   { 601, "version", NO_ARGUMENT, TYPE_STRING, 6, VISIBILITY_USER, "" , "" },
@@ -441,10 +439,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       break;
     /* Miscellaneous */
     case 'v':
-      parameters->verbose = true;
-      break;
-    case 'q':
-      parameters->verbose = false;
+      parameters->verbose = input_text_parse_extended_bool(optarg);
       break;
     case 600: // --info-file
       parameters->info_file_name_provided = true;

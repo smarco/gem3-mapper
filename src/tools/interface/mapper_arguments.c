@@ -39,7 +39,7 @@ option_t gem_mapper_options[] = {
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
-  { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=NULL)" },
+  { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "<file_name>", "(default=disabled)" },
   { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'none'|'uncalled'|'masked'|'fixed,<left_clip>,<right_clip>'", "(default=uncalled)" },
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   /* Single-end Alignment */
