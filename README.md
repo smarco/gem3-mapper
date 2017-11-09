@@ -1,5 +1,4 @@
 # GEM-Mapper (Version 3)
-=====
 
 ## 1. INTRODUCTION
 
@@ -36,7 +35,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 ## 2. COMMAND-LINE AND OPTIONS
 
 ### 2.1 [GEM-INDEXER]
-  I/O
+  #### I/O
 ```
     -i, --input=FILE (Multi-FASTA)
       Input Multi-FASTA file
@@ -44,19 +43,20 @@ Paired-end mapping (splitted FASTA/FASTQ files)
     -o, --output=FILE
       Output GEM-index file prefix (.gem will be added)
 ```
-  Index
+  #### Index
 ```
     -b, --bisulfite-index
       Produces bisulfite compliant index
       [default=disabled]
 ```
-  System
+  #### System
 ```
     -t, --threads=INTEGER 
       Number of threads to parallelize the mapping execution
       [default=<target-logical-cores>]
 ```
-  Miscellaneous
+  #### Miscellaneous
+```
     -v, --verbose={'true'|'false'}
       Enable verbose mode
       [default=true]
@@ -70,7 +70,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 
 ### 2.2 [GEM-MAPPER]
 
-  I/O options
+  #### I/O options
 ```
     -I, --index=FILE
       Input GEM index path (e.g. hsapiens_v37.gem)
@@ -104,7 +104,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
     --report-file=FILE 
       Generates statistical report file [default=disabled]
 ```
-  Single-end Alignment
+  #### Single-end Alignment
 ```
     --mapping-mode={'fast'|'sensitive'|'customed'}
       Specify the mapping alignment approach used by the tool which ultimately 
@@ -142,7 +142,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       global-matches with score below this threshold will be discarded 
       [default=20]
 ```
-  Paired-end Alignment
+  #### Paired-end Alignment
 ```
     -p, --paired-end-alignment
       Enable Paired-End mapping mode (in case a single FASTA/FASTQ input is given)
@@ -164,7 +164,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       only if no concordant paired matches are found, or never
       [default=if-no-concordant]
 ```
-  Alignment Score
+  #### Alignment Score
 ```
     --gap-affine-penalties=A,B,O,X 
       Gap-affine scores used by the mapping algorithm
@@ -175,7 +175,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       O Gap-Openning Penalty
       X Gap-Extension Penalty
 ```
-  Reporting
+  #### Reporting
 ```
     -M, --max-reported-matches={INTEGER|'all'} 
       Maximum number of matches reported from all the matches found by the 
@@ -183,7 +183,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       sorted list of matches found by the mapper)
       [default=5]
 ```
-  Output-format
+  #### Output-format
 ```
     -F, --output-format={'MAP'|'SAM'} 
       Select the ouput format
@@ -197,13 +197,13 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       Set read group header line (e.g. '@RG\tID:xx\tSM:yy')
       [default=none]
 ```
-  System
+  #### System
 ```
     -t, --threads=INTEGER 
       Number of threads to parallelize the mapping execution
       [default=<target-logical-cores>]
 ```
-  Miscellaneous
+  #### Miscellaneous
 ```
     -v, --verbose={'quiet'|'user'|'dev'}
       Enable verbose mode 
