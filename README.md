@@ -217,12 +217,10 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 ```
 ## 3. AUTHORS
 
-Main Developers
+Main Developers:
 
   Santiago Marco-Sola \- santiagomsola@gmail.com    (Main developer)
-  
   Paolo Ribeca        \- paolo.ribeca@gmail.com
-  
   Alejandro Chacon    \- alejandro.chacond@gmail.com 
 
 Special Contributors: Simon Heath, Jordi Camps.
