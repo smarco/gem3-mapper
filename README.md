@@ -217,15 +217,15 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 ```
 ## 3. AUTHORS
 
-Main Developers:
-  2010-2017 Santiago Marco-Sola \- santiagomsola@gmail.com   
-    
-  2008-2013 Paolo Ribeca        \- paolo.ribeca@gmail.com
-  
-  2014-2017 Alejandro Chacon    \- alejandro.chacond@gmail.com (GEM-GPU)
+Main Developers
 
-Special Contributors: 
-  Simon Heath, Jordi Camps.
+  Santiago Marco-Sola \- santiagomsola@gmail.com    (Main developer)
+  
+  Paolo Ribeca        \- paolo.ribeca@gmail.com
+  
+  Alejandro Chacon    \- alejandro.chacond@gmail.com 
+
+Special Contributors: Simon Heath, Jordi Camps.
 
 ## 4. REPORTING BUGS
 
