@@ -230,7 +230,7 @@ Special Contributors: Simon Heath, Jordi Camps.
 ## 4. REPORTING BUGS
 
 Feedback and bug reporting it's highly appreciated. 
-Please report any issue or suggestion on github, by email to the main developer (santiagomsola@gmail.com) 
+Please report any issue or suggestion on github, or by email to the main developer (santiagomsola@gmail.com) 
 
 ## 5. LICENSE AND CITATION
 
