@@ -64,7 +64,7 @@
 /*
  * CUDA Support
  */
-//#ifdef HAVE_CUDA
+#ifdef HAVE_CUDA
 /*
  * Stats accessors
  */
