@@ -58,8 +58,10 @@ void filtering_candidates_init(filtering_candidates_t* const filtering_candidate
   filtering_candidates->discarded_regions = vector_new(CANDIDATE_POSITIONS_INIT,filtering_region_t*);
   // Cache
   filtering_region_cache_init(&filtering_candidates->filtering_region_cache);
-  // Stats
-  COUNTER_RESET(&filtering_candidates->candidates_aligned);
+  // Stats Histogram
+  for(uint64_t id_cand_histo = 0; id_cand_histo < GEM_HIST_CAND_ALIGNED + 1; id_cand_histo++){
+    COUNTER_RESET(&filtering_candidates->candidates_aligned_histo[id_cand_histo]);
+  }
 }
 void filtering_candidates_init_alignment(
     filtering_candidates_t* const filtering_candidates,

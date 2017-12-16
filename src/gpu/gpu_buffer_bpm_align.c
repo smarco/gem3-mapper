@@ -1,7 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
- *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -20,7 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- *            Alejandro Chacon <alejandro.chacon@uab.es>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  */
 
 #include "gpu/gpu_buffer_bpm_align.h"
@@ -38,6 +38,8 @@
   "GPU.BPM.Align. Query pattern (%"PRIu64" bases) exceeds maximum buffer capacity (%"PRIu64" bases)"
 #define GEM_ERROR_GPU_BPM_ALIGN_MAX_CANDIDATES \
   "GPU.BPM.Align. Number of candidates (%"PRIu64" candidates) exceeds maximum buffer capacity (%"PRIu64" candidates)"
+#define GEM_ERROR_GPU_BPM_ALIGN_MAX_CIGAR_ENTRIES \
+  "GPU.BPM.Align. Cigar alignment (%"PRIu64" entries) exceeds maximum buffer capacity (%"PRIu64" entries)"
 #define GEM_ERROR_GPU_BPM_ALIGN_MAX_CANDIDATE_LENGTH \
   "GPU.BPM.Align. Candidate length (%"PRIu64" bases) exceeds maximum buffer capacity (%"PRIu64" bases)"
 
@@ -55,14 +57,14 @@
  */
 #define GPU_BPM_ALIGN_MIN_NUM_SAMPLES           1
 #define GPU_BPM_ALIGN_AVERAGE_QUERY_LENGTH      150
-#define GPU_BPM_ALIGN_CANDIDATES_PER_TILE       20
+#define GPU_BPM_ALIGN_CANDIDATES_PER_TILE       5
 #define GPU_BPM_ALIGN_QUERY_PADDING             8
 #define GPU_BPM_ALIGN_CANDIDATE_PADDING         8
 
 /*
  * CUDA Support
  */
-#ifdef HAVE_CUDA
+//#ifdef HAVE_CUDA
 /*
  * Stats accessors
  */
@@ -77,6 +79,12 @@ void gpu_buffer_bpm_align_record_candidates_per_tile(
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CANDIDATE_PER_TILE,candidates_per_tile);
   COUNTER_ADD(&gpu_buffer_bpm_align->candidates_per_tile,candidates_per_tile);
 }
+void gpu_buffer_bpm_align_record_canonical_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t canonical_candidates_per_tile) {
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_ALIGN_CANONICAL_CANDIDATE_PER_TILE,canonical_candidates_per_tile);
+  COUNTER_ADD(&gpu_buffer_bpm_align->canonical_candidates_per_tile,canonical_candidates_per_tile);
+}
 uint64_t gpu_buffer_bpm_align_get_mean_query_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->query_length) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
@@ -89,6 +97,14 @@ uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->candidates_per_tile) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
     return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->candidates_per_tile));
+  } else {
+    return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
+  }
+}
+uint64_t gpu_buffer_bpm_align_get_mean_canonical_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  if (COUNTER_GET_NUM_SAMPLES(&gpu_buffer_bpm_align->canonical_candidates_per_tile) >= GPU_BPM_ALIGN_MIN_NUM_SAMPLES) {
+    return (uint64_t)ceil(COUNTER_GET_MEAN(&gpu_buffer_bpm_align->canonical_candidates_per_tile));
   } else {
     return GPU_BPM_ALIGN_CANDIDATES_PER_TILE;
   }
@@ -116,10 +132,13 @@ gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
   // Buffer Candidates
   gpu_buffer_bpm_align->num_candidates = 0;
   gpu_buffer_bpm_align->candidate_buffer_offset = 0;
+  // Buffer Cigars
+  gpu_buffer_bpm_align->num_cigar_entries = 0;
   // Stats
   COUNTER_RESET(&gpu_buffer_bpm_align->query_length);
   COUNTER_RESET(&gpu_buffer_bpm_align->candidate_length);
   COUNTER_RESET(&gpu_buffer_bpm_align->candidates_per_tile);
+  COUNTER_RESET(&gpu_buffer_bpm_align->canonical_candidates_per_tile);
   gpu_buffer_bpm_align->query_same_length = 0;
   TIMER_RESET(&gpu_buffer_bpm_align->timer);
   // Init buffer
@@ -127,17 +146,17 @@ gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
   gpu_alloc_buffer_(gpu_buffer_bpm_align->buffer,thread_id);
   gpu_bpm_align_init_buffer_(gpu_buffer_bpm_align->buffer,
       gpu_buffer_bpm_align_get_mean_query_length(gpu_buffer_bpm_align),
-      gpu_buffer_bpm_align_get_mean_candidates_per_tile(gpu_buffer_bpm_align));
+      gpu_buffer_bpm_align_get_mean_canonical_candidates_per_tile(gpu_buffer_bpm_align));
   // Return
   PROF_STOP(GP_GPU_BUFFER_BPM_ALIGN_ALLOC);
   return gpu_buffer_bpm_align;
 }
 void gpu_buffer_bpm_align_clear(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
-  // Init buffer
+  // Initialize buffer
   gpu_bpm_align_init_buffer_(gpu_buffer_bpm_align->buffer,
       gpu_buffer_bpm_align_get_mean_query_length(gpu_buffer_bpm_align),
-      gpu_buffer_bpm_align_get_mean_candidates_per_tile(gpu_buffer_bpm_align));
+      gpu_buffer_bpm_align_get_mean_canonical_candidates_per_tile(gpu_buffer_bpm_align));
   // Clear buffer
   gpu_buffer_bpm_align->current_query_idx = 0;
   gpu_buffer_bpm_align->current_query_buffer_offset = 0;
@@ -146,6 +165,7 @@ void gpu_buffer_bpm_align_clear(
   gpu_buffer_bpm_align->num_query_entries = 0;
   gpu_buffer_bpm_align->query_buffer_offset = 0;
   gpu_buffer_bpm_align->num_candidates = 0;
+  gpu_buffer_bpm_align->num_cigar_entries = 0;
   gpu_buffer_bpm_align->candidate_buffer_offset = 0;
   gpu_buffer_bpm_align->query_same_length = 0;
 }
@@ -179,6 +199,10 @@ uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   return gpu_bpm_align_buffer_get_max_candidate_size_(gpu_buffer_bpm_align->buffer);
 }
+uint64_t gpu_buffer_bpm_align_get_max_cigar_entries(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
+  return gpu_buffer_bpm_align_get_max_cigar_entries_(gpu_buffer_bpm_align->buffer);
+}
 uint64_t gpu_buffer_bpm_align_get_num_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   return gpu_buffer_bpm_align->num_candidates;
@@ -196,12 +220,14 @@ void gpu_buffer_bpm_align_compute_dimensions(
     uint64_t* const total_query_length,
     uint64_t* const total_candidates) {
   // Calculate queries' dimensions
-  const uint64_t num_entries = DIV_CEIL(pattern->key_length,GPU_BPM_ALIGN_ENTRY_LENGTH);
-  *total_queries += pattern->pattern_tiled.num_tiles;
-  *total_query_entries += num_entries;
-  *total_query_length += pattern->key_length;
-  // Calculate candidates' dimensions
-  *total_candidates += pattern->pattern_tiled.num_tiles*num_candidates;
+  if(num_candidates != 0){
+	const uint64_t num_entries = DIV_CEIL(pattern->key_length,GPU_BPM_ALIGN_ENTRY_LENGTH);
+	*total_queries += pattern->pattern_tiled.num_tiles;
+	*total_query_entries += num_entries;
+	*total_query_length += pattern->key_length;
+	// Calculate candidates' dimensions
+	*total_candidates += pattern->pattern_tiled.num_tiles*num_candidates;
+  }
 }
 bool gpu_buffer_bpm_align_fits_in_buffer(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
@@ -214,13 +240,20 @@ bool gpu_buffer_bpm_align_fits_in_buffer(
   uint64_t max_query_entries =  gpu_buffer_bpm_align_get_max_query_entries(gpu_buffer_bpm_align);
   uint64_t max_query_buffer_size = gpu_buffer_bpm_align_get_max_query_buffer_size(gpu_buffer_bpm_align);
   uint64_t max_candidates = gpu_buffer_bpm_align_get_max_candidates(gpu_buffer_bpm_align);
+  uint64_t max_cigar_entries = gpu_buffer_bpm_align_get_max_cigar_entries(gpu_buffer_bpm_align);
+  // Cut-off, specific case without work assigned to a query
+  if((total_candidates == 0) | (total_queries == 0))
+    return true;
   // Account for padding
-  const uint64_t total_query_length_padded = total_query_length + 2*GPU_BPM_ALIGN_QUERY_PADDING;
+  const uint64_t total_query_length_padded = total_query_length+(2*GPU_BPM_ALIGN_QUERY_PADDING);
+  const uint64_t num_candidates_per_query = DIV_CEIL(total_candidates,total_queries);
+  const uint64_t total_cigar_entries = num_candidates_per_query*(total_query_length_padded+GPU_BPM_ALIGN_QUERY_PADDING);
   // Check available space in buffer for the pattern
   if (gpu_buffer_bpm_align->num_queries+total_queries > max_queries ||
       gpu_buffer_bpm_align->num_query_entries+total_query_entries > max_query_entries ||
       gpu_buffer_bpm_align->query_buffer_offset+total_query_length_padded > max_query_buffer_size ||
-      gpu_buffer_bpm_align->num_candidates+total_candidates > max_candidates) {
+      gpu_buffer_bpm_align->num_candidates+total_candidates > max_candidates ||
+      gpu_buffer_bpm_align->num_cigar_entries+total_cigar_entries > max_cigar_entries) {
     // Check buffer occupancy
     if (gpu_buffer_bpm_align->num_queries > 0) {
       return false; // Leave it to the next fresh buffer
@@ -242,6 +275,9 @@ bool gpu_buffer_bpm_align_fits_in_buffer(
     max_candidates = gpu_buffer_bpm_align_get_max_candidates(gpu_buffer_bpm_align);
     gem_cond_fatal_error(total_candidates > max_candidates,
         GPU_BPM_ALIGN_MAX_CANDIDATES,total_candidates,max_candidates);
+    max_cigar_entries = gpu_buffer_bpm_align_get_max_cigar_entries(gpu_buffer_bpm_align);
+    gem_cond_fatal_error(total_cigar_entries > max_cigar_entries,
+        GPU_BPM_ALIGN_MAX_CIGAR_ENTRIES,total_cigar_entries,max_cigar_entries);
     // Return OK (after reallocation)
     return true;
   }
@@ -498,6 +534,8 @@ uint64_t gpu_buffer_bpm_align_get_max_candidates(
 uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
 uint64_t gpu_buffer_bpm_align_get_num_candidates(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
+uint64_t gpu_buffer_bpm_align_get_max_cigar_entries(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
 /*
  * Dimensions

@@ -82,7 +82,6 @@ bool filtering_candidates_align_region(
         filtering_region_align(
             filtering_candidates,region,
             pattern,matches,&match_trace);
-    ++(filtering_candidates->current_candidates_aligned);
     if (!match_trace_aligned) return false; // Not aligned
   }
   // Add to matches
@@ -174,7 +173,8 @@ void filtering_candidates_align_candidates(
       filtering_candidates_reserve_discarded_regions(filtering_candidates,num_filtering_regions);
   // Clear cache
   filtering_region_cache_clear(&filtering_candidates->filtering_region_cache);
-  filtering_candidates->current_candidates_aligned = 0;
+  filtering_candidates->total_candidates_realigned_swg = 0;
+  filtering_candidates->total_candidates_analized      = num_filtering_regions;
   // Traverse all accepted candidates (text-space)
   uint64_t n;
   for (n=0;n<num_filtering_regions;++n) {

@@ -1,6 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -19,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  *   Filtering module provides a simple data structure to store
  *   filtering-regions & filtering-positions for batch processing
@@ -37,6 +39,7 @@ void filtering_candidates_buffered_inject_handlers(
   filtering_candidates_buffered->num_positions = 0;
   filtering_candidates_buffered->regions = NULL;
   filtering_candidates_buffered->num_regions = 0;
+  filtering_candidates_buffered->num_canonical_regions = 0;
   filtering_candidates_buffered->discarded_regions = NULL;
   filtering_candidates_buffered->num_discarded_regions = 0;
   // MM
@@ -84,6 +87,10 @@ void filtering_candidates_buffered_free_discarded_regions(
 uint64_t filtering_candidates_buffered_get_num_regions(
     const filtering_candidates_buffered_t* const filtering_candidates_buffered) {
   return filtering_candidates_buffered->num_regions;
+}
+uint64_t filtering_candidates_buffered_get_num_canonical_regions(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  return filtering_candidates_buffered->num_canonical_regions;
 }
 uint64_t filtering_candidates_buffered_get_region_tiles_length(
     const filtering_candidates_buffered_t* const filtering_candidates_buffered) {

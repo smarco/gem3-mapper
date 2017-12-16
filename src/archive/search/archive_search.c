@@ -151,6 +151,9 @@ uint64_t archive_search_get_num_bpm_distance_candidates(const archive_search_t* 
 uint64_t archive_search_get_num_bpm_align_candidates(const archive_search_t* const archive_search) {
   return approximate_search_get_num_filtering_candidates_buffered(&archive_search->approximate_search);
 }
+uint64_t archive_search_get_num_bpm_align_canonical_candidates(const archive_search_t* const archive_search) {
+  return approximate_search_get_num_filtering_canonical_candidates_buffered(&archive_search->approximate_search);
+}
 uint64_t archive_search_get_num_bpm_align_candidate_tiles_length(const archive_search_t* const archive_search) {
   return approximate_search_get_num_filtering_candidate_buffered_tiles_length(&archive_search->approximate_search);
 }

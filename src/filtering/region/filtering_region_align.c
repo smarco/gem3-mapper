@@ -177,6 +177,7 @@ bool filtering_region_align(
             &filtering_region->alignment,
             &filtering_region->match_scaffold,
             match_trace,mm_allocator);
+        filtering_candidates->total_candidates_realigned_swg++;
         break;
       }
       default:

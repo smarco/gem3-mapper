@@ -1,6 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -19,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  */
 
@@ -41,7 +43,7 @@
 /*
  * Constants
  */
-#define FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH 250
+#define FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH 250000
 
 /*
  * Kmer-Filter Buffered Add

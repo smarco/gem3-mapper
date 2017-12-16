@@ -28,6 +28,8 @@
 #include "archive/search/archive_search.h"
 #include "archive/search/archive_search_cache.h"
 #include "gpu/gpu_buffer_bpm_align.h"
+#include "archive/search/archive_search_se_stepwise.h"
+#include "archive/search/archive_search_pe_stepwise.h"
 
 /*
  * Search-Stage BPM-Align Buffer

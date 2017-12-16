@@ -115,6 +115,9 @@ void archive_search_pe_stepwise_bpm_distance_retrieve(
 /*
  * Stepwise: BPM-Align
  */
+void archive_search_pe_stepwise_bpm_align_update(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2);
 void archive_search_pe_stepwise_bpm_align_copy(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,

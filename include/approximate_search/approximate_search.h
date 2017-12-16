@@ -128,6 +128,8 @@ uint64_t approximate_search_get_num_filtering_candidates(const approximate_searc
 
 uint64_t approximate_search_get_num_filtering_candidates_buffered(
     const approximate_search_t* const search);
+uint64_t approximate_search_get_num_filtering_canonical_candidates_buffered(
+    const approximate_search_t* const search);
 uint64_t approximate_search_get_num_filtering_candidate_buffered_tiles_length(
     const approximate_search_t* const search);
 
