@@ -93,6 +93,8 @@ void approximate_search_stepwise_bpm_distance_retrieve(
 /*
  * AM Stepwise :: BPM-Align
  */
+void approximate_search_stepwise_bpm_align_update(
+    approximate_search_t* const search);
 void approximate_search_stepwise_bpm_align_copy(
     approximate_search_t* const search,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);

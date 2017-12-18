@@ -1,7 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
- *  Copyright (c) 2011-2017 by Alejandro Chacon <alejandro.chacon@uab.es>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -20,7 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
- *            Alejandro Chacon <alejandro.chacon@uab.es>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  */
 
 #ifndef GPU_BUFFER_BPM_ALIGN_H_
@@ -50,11 +50,14 @@ typedef struct {
   /* Buffer Candidates */
   uint32_t num_candidates;              // Total candidates
   uint32_t candidate_buffer_offset;     // Candidate-buffer offset (Plain text)
+  /* Buffer Cigars */
+  uint32_t num_cigar_entries;           // Total cigar-entries
   /* Stats */
-  gem_counter_t query_length;           // Tracks queries' length
-  gem_counter_t candidate_length;       // Tracks candidates' length
-  gem_counter_t candidates_per_tile;    // Tracks number of candidates per tile
-  uint32_t query_same_length;           // Tracks same-read-length buffers
+  gem_counter_t query_length;                  // Tracks queries' length
+  gem_counter_t candidate_length;              // Tracks candidates' length
+  gem_counter_t candidates_per_tile;           // Tracks number of candidates per tile
+  gem_counter_t canonical_candidates_per_tile; // Tracks number of canonical candidates per tile
+  uint32_t query_same_length;                  // Tracks same-read-length buffers
   gem_timer_t timer;
 } gpu_buffer_bpm_align_t;
 
@@ -83,6 +86,8 @@ uint64_t gpu_buffer_bpm_align_get_max_query_buffer_size(
 uint64_t gpu_buffer_bpm_align_get_max_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_max_candidate_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_max_cigar_entries(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 uint64_t gpu_buffer_bpm_align_get_num_candidates(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);

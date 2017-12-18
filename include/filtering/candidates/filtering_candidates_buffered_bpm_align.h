@@ -1,6 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -19,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  *   Filtering candidates module provides functions to verify filtering-regions
  *   against its corresponding region of text in the index and compute the
@@ -53,3 +55,10 @@ void filtering_candidates_buffered_bpm_align_retrieve(
     matches_t* const matches,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     const uint64_t gpu_buffer_align_offset);
+/*
+ * BPM-Align Setters (Candidates Scaffolding)
+ */
+void filtering_candidates_buffered_bpm_align_set_num_canonical_candidates(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    pattern_t* const pattern);

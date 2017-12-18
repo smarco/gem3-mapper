@@ -35,6 +35,8 @@
 #include "filtering/region/filtering_region_cache.h"
 #include "matches/align/match_alignment_region.h"
 
+#define GEM_HIST_CAND_ALIGNED	64
+
 /*
  * Candidate Position
  */
@@ -63,19 +65,21 @@ typedef struct {
  */
 typedef struct {
   /* Index Structures & Parameters */
-  archive_t* archive;                              // Archive
-  search_parameters_t* search_parameters;          // Search Parameters
+  archive_t* archive;                                              // Archive
+  search_parameters_t* search_parameters;                          // Search Parameters
   /* Candidates */
-  vector_t* filtering_positions;                   // Candidate positions (filtering_position_t*)
-  vector_t* filtering_regions;                     // Candidate regions (filtering_region_t*)
-  vector_t* discarded_regions;                     // Discarded regions (filtering_region_t*)
+  vector_t* filtering_positions;                                   // Candidate positions (filtering_position_t*)
+  vector_t* filtering_regions;                                     // Candidate regions (filtering_region_t*)
+  vector_t* discarded_regions;                                     // Discarded regions (filtering_region_t*)
   /* Cache */
-  filtering_region_cache_t filtering_region_cache; // Filtering-Region Cache
+  filtering_region_cache_t filtering_region_cache;                 // Filtering-Region Cache
   /* Stats */
-  uint64_t current_candidates_aligned;             // Current number of candidates aligned
-  gem_counter_t candidates_aligned;                // Tracks candidates aligned
+  uint64_t total_candidates_analized;                              // Total number of candidates analized
+  uint64_t total_candidates_canonical_gpu;                         // Minimum number of candidates to realign on GPU
+  uint64_t total_candidates_realigned_swg;                         // Total number of candidates realigned (gap-affine)
+  gem_counter_t candidates_aligned_histo[GEM_HIST_CAND_ALIGNED];   // Tracks candidates aligned
   /* MM */
-  mm_allocator_t* mm_allocator;                    // MM-Allocator
+  mm_allocator_t* mm_allocator;                    	               // MM-Allocator
 } filtering_candidates_t;
 
 /*

@@ -1,6 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -19,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  *   Mapper-CUDA module implements the high-level mapping workflow
  *   for SE-mapping using GPU(s)
@@ -257,9 +259,11 @@ void mapper_se_cuda_finish_search(mapper_cuda_search_t* const mapper_search) {
   while (search_stage_bpm_align_retrieve_se_search(stage_bpm_align,&archive_search)) {
     // Finish Search
     archive_search_se_stepwise_finish_search(archive_search,stage_bpm_align->matches);
-    // Stats (dirty trick)
-    COUNTER_ADD(&search_pipeline->search_pipeline_handlers->fc_bpm_distance_end1.candidates_aligned,
-        search_pipeline->search_pipeline_handlers->fc_bpm_align_end1.current_candidates_aligned);
+    // Update Stats
+    const uint64_t total_candidates_analized_gpu = search_pipeline->search_pipeline_handlers->fc_bpm_align_end1.total_candidates_canonical_gpu;
+    const uint64_t id_histogram = MIN(total_candidates_analized_gpu, GEM_HIST_CAND_ALIGNED-1);
+    COUNTER_ADD(&search_pipeline->search_pipeline_handlers->fc_bpm_distance_end1.candidates_aligned_histo[id_histogram],
+                 search_pipeline->search_pipeline_handlers->fc_bpm_align_end1.total_candidates_realigned_swg);
     // Output Matches
     mapper_io_handler_output_matches(
         mapper_search->mapper_io_handler,archive_search,

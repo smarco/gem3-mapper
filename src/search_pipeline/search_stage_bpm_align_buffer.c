@@ -68,10 +68,17 @@ bool search_stage_bpm_align_buffer_fits(
   // Compute dimensions
   uint64_t total_queries = 0, total_query_entries = 0, total_query_length = 0;
   uint64_t total_candidates = 0;
+  // Updating the canonical candidates
+  if (archive_search_end2!=NULL) {
+    archive_search_pe_stepwise_bpm_align_update(archive_search_end1,archive_search_end2);
+  }else{
+    archive_search_se_stepwise_bpm_align_update(archive_search_end1);
+  }
+  // Calculate the minimum data structures to process the query on the device
   pattern_t* const pattern_end1 = &archive_search_end1->approximate_search.pattern;
   gpu_buffer_bpm_align_compute_dimensions(
       gpu_buffer_bpm_align,pattern_end1,
-      archive_search_get_num_bpm_align_candidates(archive_search_end1),
+      archive_search_get_num_bpm_align_canonical_candidates(archive_search_end1),
       archive_search_get_num_bpm_align_candidate_tiles_length(archive_search_end1),
       &total_queries,&total_query_entries,&total_query_length,
       &total_candidates);
@@ -79,7 +86,7 @@ bool search_stage_bpm_align_buffer_fits(
     pattern_t* const pattern_end2 = &archive_search_end2->approximate_search.pattern;
     gpu_buffer_bpm_align_compute_dimensions(
         gpu_buffer_bpm_align,pattern_end2,
-        archive_search_get_num_bpm_align_candidates(archive_search_end2),
+        archive_search_get_num_bpm_align_canonical_candidates(archive_search_end2),
         archive_search_get_num_bpm_align_candidate_tiles_length(archive_search_end2),
         &total_queries,&total_query_entries,&total_query_length,
         &total_candidates);

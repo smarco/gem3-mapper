@@ -286,6 +286,15 @@ void archive_search_pe_stepwise_bpm_distance_retrieve(
 /*
  * Stepwise: BPM-Align
  */
+void archive_search_pe_stepwise_bpm_align_update(
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2) {
+  // Verify-Candidates Copy
+  approximate_search_stepwise_bpm_align_update(
+      &archive_search_end1->approximate_search);
+  approximate_search_stepwise_bpm_align_update(
+      &archive_search_end2->approximate_search);
+}
 void archive_search_pe_stepwise_bpm_align_copy(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,

@@ -125,6 +125,10 @@ uint64_t approximate_search_get_num_regions_profile(const approximate_search_t* 
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->num_filtering_regions;
 }
+uint64_t approximate_search_get_num_canonical_regions_profile(const approximate_search_t* const search) {
+  const region_profile_t* const region_profile = &search->region_profile;
+  return region_profile->num_filtering_regions;
+}
 uint64_t approximate_search_get_num_decode_candidates(const approximate_search_t* const search) {
   const region_profile_t* const region_profile = &search->region_profile;
   return region_profile->total_candidates;
@@ -135,6 +139,10 @@ uint64_t approximate_search_get_num_filtering_candidates(const approximate_searc
 uint64_t approximate_search_get_num_filtering_candidates_buffered(
     const approximate_search_t* const search) {
   return filtering_candidates_buffered_get_num_regions(&search->filtering_candidates_buffered);
+}
+uint64_t approximate_search_get_num_filtering_canonical_candidates_buffered(
+    const approximate_search_t* const search) {
+  return filtering_candidates_buffered_get_num_canonical_regions(&search->filtering_candidates_buffered);
 }
 uint64_t approximate_search_get_num_filtering_candidate_buffered_tiles_length(
     const approximate_search_t* const search) {

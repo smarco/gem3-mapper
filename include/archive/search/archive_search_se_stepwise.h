@@ -94,6 +94,8 @@ void archive_search_se_stepwise_bpm_distance_retrieve(
 /*
  * Stepwise: BPM-Align
  */
+void archive_search_se_stepwise_bpm_align_update(
+    archive_search_t* const archive_search);
 void archive_search_se_stepwise_bpm_align_copy(
     archive_search_t* const archive_search,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);

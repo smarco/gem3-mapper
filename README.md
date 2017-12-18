@@ -9,7 +9,7 @@ GEM3 is a high-performance mapping tool for aligning sequenced reads against lar
 ### 1.2. GETTING STARTED
 
 ```
-git clone https://github.com/smarco/gem3-mapper.git gem3-mapper
+git clone --recursive https://github.com/smarco/gem3-mapper.git gem3-mapper
 cd gem3-mapper
 ./configure
 make
@@ -49,7 +49,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       Produces bisulfite compliant index
       [default=disabled]
 ```
-  #### System
+  #### Performance
 ```
     -t, --threads=INTEGER 
       Number of threads to parallelize the mapping execution
@@ -95,7 +95,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
     -o, --output=FILE
       Output file [default=stdout]
 
-    --gzip-output  
+    --gzip-output
       Gzip compresses the output
 
     --bzip-output
@@ -117,7 +117,7 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       global-matches above this error rate will be discarded 
       [default=0.12, 12%]
 
-    --alignment-global-min-identity={FLOAT|INTEGER}  
+    --alignment-global-min-identity={FLOAT|INTEGER}
       Minimum global-alignment identity required (i.e. total  number of matching 
       bases). All global-matches below this identity will be discared 
       [default=80%]
@@ -197,11 +197,15 @@ Paired-end mapping (splitted FASTA/FASTQ files)
       Set read group header line (e.g. '@RG\tID:xx\tSM:yy')
       [default=none]
 ```
-  #### System
+  #### Performance
 ```
     -t, --threads=INTEGER 
       Number of threads to parallelize the mapping execution
       [default=<target-logical-cores>]
+
+    --gpu
+      Enable GPU acceleration
+      [default=disabled]
 ```
   #### Miscellaneous
 ```
@@ -217,11 +221,12 @@ Paired-end mapping (splitted FASTA/FASTQ files)
 ```
 ## 3. AUTHORS
 
-  Santiago Marco-Sola \- santiagomsola@gmail.com    (Main developer)
-  
+  Santiago Marco-Sola \- santiagomsola@gmail.com     (Main developer)
+
+  Alejandro Chacon    \- alejandro.chacond@gmail.com (GPU Main developer)
+
   Paolo Ribeca        \- paolo.ribeca@gmail.com
-  
-  Alejandro Chacon    \- alejandro.chacond@gmail.com 
+
 
 Special Contributors: Simon Heath, Jordi Camps.
 

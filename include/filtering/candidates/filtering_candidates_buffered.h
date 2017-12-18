@@ -1,6 +1,7 @@
 /*
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+ *  Copyright (c) 2013-2017 by Alejandro Chacon <alejandro.chacond@gmail.com>
  *
  *  This file is part of GEM-Mapper v3 (GEM3).
  *
@@ -19,6 +20,7 @@
  *
  * PROJECT: GEM-Mapper v3 (GEM3)
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
+ *            Alejandro Chacon <alejandro.chacond@gmail.com>
  * DESCRIPTION:
  *   Filtering module provides a simple data structure to store
  *   filtering-regions & filtering-positions for batch processing
@@ -41,6 +43,8 @@ typedef struct {
   /* Filtering Regions */
   filtering_region_t** regions;
   uint64_t num_regions;
+  /* Canonical: Number of regions processed by GPU */
+  uint64_t num_canonical_regions;
   /* Discarded Regions */
   filtering_region_t** discarded_regions;
   uint64_t num_discarded_regions;
@@ -80,6 +84,8 @@ void filtering_candidates_buffered_free_discarded_regions(
  * Accessors
  */
 uint64_t filtering_candidates_buffered_get_num_regions(
+    const filtering_candidates_buffered_t* const filtering_candidates_buffered);
+uint64_t filtering_candidates_buffered_get_num_canonical_regions(
     const filtering_candidates_buffered_t* const filtering_candidates_buffered);
 uint64_t filtering_candidates_buffered_get_region_tiles_length(
     const filtering_candidates_buffered_t* const filtering_candidates_buffered);
