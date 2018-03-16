@@ -121,7 +121,7 @@ if test "$enable_cuda" != "no" ; then
                       [cuda_sdk_prefix="/usr/local/cuda"])
                       
   # Checking for nvcc
-    VALID_CUDA=yes
+  VALID_CUDA=yes
   AC_MSG_CHECKING([nvcc in $cuda_sdk_prefix/bin])
   if test -x "$cuda_sdk_prefix/bin/nvcc"; then
     AC_MSG_RESULT([yes])

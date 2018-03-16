@@ -34,8 +34,11 @@
 /*
  * Utils
  */
-#define MFASTA_IS_ANY_TAG_SEPARATOR(character) \
-  ((character)==TAB || (character)==COLON || (character)==COMA || (character)==EOL || (character)==EOS)
+#define MFASTA_VALID_CHARACTER(character) \
+  ((character)>=BANG && (character)<=TILDE)
+
+#define MFASTA_VALID_INITIAL_CHARACTER(character) \
+  (MFASTA_VALID_CHARACTER(character) && (character)!=STAR && (character)!=EQUAL)
 
 /*
  * MultiFASTA Parsing State

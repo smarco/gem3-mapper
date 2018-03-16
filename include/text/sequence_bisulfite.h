@@ -39,7 +39,8 @@ void sequence_bisulfite_process_se(
     const bisulfite_read_t bisulfite_read_mode);
 void sequence_bisulfite_process_pe(
     sequence_t* const sequence_end1,
-    sequence_t* const sequence_end2);
+    sequence_t* const sequence_end2,
+    const bisulfite_read_t bisulfite_read_mode);
 
 /*
  * Restore Sequence

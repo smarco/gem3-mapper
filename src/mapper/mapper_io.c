@@ -316,7 +316,7 @@ error_code_t mapper_read_paired_sequence(
   }
   // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
   if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_process_pe(*sequence_end1,*sequence_end2);
+    sequence_bisulfite_process_pe(*sequence_end1,*sequence_end2,mapper_io_handler->bisulfite_read);
   }
   // Return
   PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);

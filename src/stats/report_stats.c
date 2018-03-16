@@ -141,13 +141,13 @@ void update_conversion_counts(
 			while(*p) mstats->base_counts[idx][end][btab[(int)*p++]]++;
 	 }
 }
-int get_read_type(match_trace_t* const match) {
-	 char *control_seqs[]={SEQUENCING_CONTROL, UNDERCONVERSION_CONTROL, OVERCONVERSION_CONTROL,0};
+int get_read_type(match_trace_t* const match, char **control_seqs) {
 	 char* seq = match->sequence_name;
-	 char* p;
 	 int i = 0;
-	 while((p = control_seqs[i++])) if(strstr(seq, p)) break;
-	 return i%4;
+	 for(i = 0; i < 3; i++) {
+		 if(strstr(seq, control_seqs[i])) break;
+	 }
+	 return (i + 1) %4;
 }
 void collect_se_mapping_stats(
     archive_search_t* const archive_search,
@@ -164,7 +164,7 @@ void collect_se_mapping_stats(
 			match_trace_t* match = matches_get_primary_match(matches);
 			update_distance_counts(matches, match, mstats, 0);
 			bs = match->bs_strand;
-			read_type = get_read_type(match);
+			read_type = get_read_type(match, archive_search->search_parameters.control_sequences);
 			if(match->mapq_score>0) {
 				 update_conversion_counts(archive_search->sequence, mstats, 0, bs, read_type);
 			}
@@ -196,20 +196,20 @@ void collect_pe_mapping_stats(
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
 				 bs2 = prim_match_end2 -> bs_strand;
-				 read_type1 = get_read_type(prim_match_end1);
-				 read_type2 = get_read_type(prim_match_end2);
+				 read_type1 = get_read_type(prim_match_end1, archive_search1->search_parameters.control_sequences);
+				 read_type2 = get_read_type(prim_match_end2, archive_search2->search_parameters.control_sequences);
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
 				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
-				 read_type1 = get_read_type(prim_match_end1);
+				 read_type1 = get_read_type(prim_match_end1, archive_search1->search_parameters.control_sequences);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
 				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
-				 read_type2 = get_read_type(prim_match_end2);
+				 read_type2 = get_read_type(prim_match_end2, archive_search2->search_parameters.control_sequences);
 			} else {
 				 mstats->unmapped[0]++;
 				 mstats->unmapped[1]++;
@@ -238,7 +238,7 @@ void collect_pe_mapping_stats(
 			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;
 			bs2 = match_end2 -> bs_strand;
-			read_type1 = read_type2 = get_read_type(match_end1);
+			read_type1 = read_type2 = get_read_type(match_end1, archive_search1->search_parameters.control_sequences);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>0) {
 				 update_conversion_counts(archive_search1->sequence, mstats, 0, bs1, read_type1);

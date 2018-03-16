@@ -22,6 +22,7 @@
  */
 
 #include "tools/interface/mapper_arguments.h"
+#include "stats/report_stats.h"
 
 /*
  * Mapper options Menu
@@ -39,7 +40,7 @@ option_t gem_mapper_options[] = {
   { 202, "gzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(gzip output)" },
   { 203, "bzip-output", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_USER, "", "(bzip output)" },
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
-  { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "<file_name>", "(default=disabled)" },
+  { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=disabled)" },
   { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'none'|'uncalled'|'masked'|'fixed,<left_clip>,<right_clip>'", "(default=uncalled)" },
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   /* Single-end Alignment */
@@ -72,7 +73,9 @@ option_t gem_mapper_options[] = {
   { 404, "discordant-pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
   { 406, "pe-template-length", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
   /* Bisulfite Alignment */
-  { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "'inferred','1','2','interleaved'",  "(default=inferred)" },
+  { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred','1','2','interleaved','non-stranded'",  "(default=inferred)" },
+  { 501, "underconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
+  { 502, "overconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -195,8 +198,8 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   /* Mapping strategy (Mapping mode + properties) */
   if (paired_search->paired_end_search) {
     parameters->mapper_type = mapper_pe;
-    gem_cond_warn_msg(search->bisulfite_read != bisulfite_read_inferred,
-        "Option '--bisulfite_read' ignored with paired end mode");
+    gem_cond_warn_msg((search->bisulfite_read != bisulfite_read_inferred) && (search->bisulfite_read != bisulfite_non_stranded),
+        "Option '--bisulfite_read' can only be set in paired end mode to {'inferred'|'non-stranded'}");
     search->mapq_model_pe = search->mapq_model_se;
     search->mapq_model_se = mapq_model_gem;
   } else {
@@ -741,14 +744,18 @@ bool gem_mapper_parse_arguments_bisulfite(
         search->bisulfite_read = bisulfite_read_interleaved;
         return true;
       }
-      gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'");
+      if (gem_strcaseeq(optarg,"non-stranded")) {
+        search->bisulfite_read = bisulfite_non_stranded;
+        return true;
+      }
+      gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'|'non-stranded'");
       return true;
-    case 602: { // --bisulfite_suffix
-      const int num_arguments = input_text_parse_csv_arguments(
-          optarg,2,parameters->bs_suffix1,parameters->bs_suffix2);
-      gem_cond_fatal_error_msg(num_arguments!=2,"Option '--bisulfite_suffix' wrong number of arguments");
+    case 501: // --underconversion_sequence
+      search->control_sequences[1] = strdup(optarg);
       return true;
-    }
+    case 502: // --overconversion_sequence
+      search->control_sequences[2] = strdup(optarg);
+      return true;
     default:
       return false; // Not found
   }

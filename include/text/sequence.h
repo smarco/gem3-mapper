@@ -48,7 +48,8 @@ typedef enum {
   bisulfite_read_inferred,
   bisulfite_read_1,
   bisulfite_read_2,
-  bisulfite_read_interleaved
+  bisulfite_read_interleaved,
+	bisulfite_non_stranded
 } bisulfite_read_t;
 
 /*

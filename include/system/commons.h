@@ -96,6 +96,8 @@
 #define COLON ':'
 #define HASH '#'
 #define UNDERSCORE '_'
+#define BANG '!'
+#define TILDE '~'
 
 // Buffer sizes
 #define BUFFER_SIZE_1K   (1ul<<10)

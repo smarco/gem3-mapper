@@ -81,14 +81,23 @@ void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* c
       MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Read tag
   char current_char = input_file_get_current_char(input_multifasta);
-  while (!IS_ANY_EOL(current_char) &&
-         !MFASTA_IS_ANY_TAG_SEPARATOR(current_char) &&
+  // Skip leading whitespace
+  while ((current_char==SPACE || current_char==TAB) &&
          input_file_next_char(input_multifasta)) {
-    string_append_char(tag,current_char); // Append to tag
-    current_char = input_file_get_current_char(input_multifasta); // Next Character
+    current_char = input_file_get_current_char(input_multifasta); // Next Character    
   }
-  if (!IS_ANY_EOL(current_char) && !MFASTA_IS_ANY_TAG_SEPARATOR(current_char)) {
-    string_append_char(tag,current_char);
+  if (MFASTA_VALID_INITIAL_CHARACTER(current_char) && input_file_next_char(input_multifasta)) {
+    string_append_char(tag,current_char); // Append to tag
+    current_char = input_file_get_current_char(input_multifasta); // Next Character    
+    while (!IS_ANY_EOL(current_char) &&
+           MFASTA_VALID_CHARACTER(current_char) &&
+           input_file_next_char(input_multifasta)) {
+      string_append_char(tag,current_char); // Append to tag
+      current_char = input_file_get_current_char(input_multifasta); // Next Character
+    }
+    if (!IS_ANY_EOL(current_char) && MFASTA_VALID_CHARACTER(current_char)) {
+      string_append_char(tag,current_char);
+    }
   }
   // Check empty and append EOS
   gem_cond_error(string_get_length(tag)==0,
@@ -106,10 +115,18 @@ void input_multifasta_skip_tag(input_file_t* const input_multifasta) {
       MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
   // Read tag
   char current_char = input_file_get_current_char(input_multifasta);
-  while (!IS_ANY_EOL(current_char) &&
-         !MFASTA_IS_ANY_TAG_SEPARATOR(current_char) &&
+  // Skip leading whitespace
+  while ((current_char==SPACE || current_char==TAB) &&
          input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta); // Next Character
+    current_char = input_file_get_current_char(input_multifasta); // Next Character    
+  }
+  if(MFASTA_VALID_INITIAL_CHARACTER(current_char) && input_file_next_char(input_multifasta)) {
+    current_char = input_file_get_current_char(input_multifasta); // Next Character    
+    while (!IS_ANY_EOL(current_char) &&
+	   MFASTA_VALID_CHARACTER(current_char) &&
+	   input_file_next_char(input_multifasta)) {
+      current_char = input_file_get_current_char(input_multifasta); // Next Character
+    }
   }
   // Skip the rest of the line
   while (!IS_ANY_EOL(current_char) && input_file_next_char(input_multifasta)) {
