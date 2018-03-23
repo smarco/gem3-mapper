@@ -107,7 +107,7 @@ typedef struct {
   /* Mapping strategy (Mapping mode + properties) */
   mapping_mode_t mapping_mode;                         // Mapping mode
   bisulfite_read_t bisulfite_read;                     // Bisulfite mode
-	char *control_sequences[3];
+	char* control_sequences[3];
   /* Clipping */
   clipping_type clipping;
   uint64_t clip_left;

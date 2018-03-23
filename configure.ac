@@ -122,12 +122,14 @@ if test "$enable_cuda" != "no" ; then
                       
   # Checking for nvcc
   VALID_CUDA=yes
+  FOUND_NVCC=no
   AC_MSG_CHECKING([nvcc in $cuda_sdk_prefix/bin])
   if test -x "$cuda_sdk_prefix/bin/nvcc"; then
     AC_MSG_RESULT([yes])
     cuda_bin_path="$cuda_sdk_prefix/bin"
     cuda_lib_path="$cuda_sdk_prefix/lib64"
     cuda_include_path="$cuda_sdk_prefix/include"
+    FOUND_NVCC=yes
   else 
     AC_MSG_RESULT([not found])
     cuda_repo_prefix="/usr"
@@ -137,12 +139,35 @@ if test "$enable_cuda" != "no" ; then
       cuda_bin_path="$cuda_repo_prefix/bin"
       cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
       cuda_include_path="$cuda_repo_prefix/include"
+      FOUND_NVCC=yes
     else 
       AC_MSG_WARN([Couldn't find cuda nvcc compiler])
       VALID_CUDA=no
     fi
   fi
-   
+  
+  # Test nvcc
+  if test "$FOUND_NVCC" == "yes" ; then
+    touch conftest.cu
+    nvcc_test_flags="-m64 -Xptxas=\"-dlcm=ca\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_20,code=\"sm_20,compute_20\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_20,code=sm_21" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_30,code=sm_30"
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_35,code=\"sm_35,compute_35\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_37,code=sm_37"
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_50,code=\"sm_50,compute_50\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_52,code=\"sm_52,compute_52\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_60,code=\"sm_60,compute_60\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_61,code=\"sm_61,compute_61\"" 
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_62,code=\"sm_62,compute_62\""
+    $cuda_bin_path/nvcc --dryrun -c conftest.cu -o conftest.o $nvcc_test_flags >/dev/null 2>&1
+    if test $? -eq 1; then
+      AC_MSG_WARN([Error testing nvcc compiler])
+      VALID_CUDA=no
+    fi
+    rm conftest.cu conftest.o 2> /dev/null
+  fi
+
   # Saving the current flags
   ax_save_CFLAGS="${CPPFLAGS}"
   ax_save_LDFLAGS="${LDFLAGS}"

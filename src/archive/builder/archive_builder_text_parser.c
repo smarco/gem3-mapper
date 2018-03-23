@@ -175,9 +175,9 @@ void archive_builder_generate_text_add_sequence(
   // Parse TAG (Skip separators)
   const uint64_t tag_buffer_length = vector_get_used(tag);
   char* tag_buffer = vector_get_mem(tag,char)+1;
-  while(*tag_buffer==SPACE || *tag_buffer==TAB) tag_buffer++;
+  while (*tag_buffer==SPACE || *tag_buffer==TAB) tag_buffer++;
   uint64_t tag_length = 0;
-  if(tag_buffer_length > 0 && MFASTA_VALID_INITIAL_CHARACTER(*tag_buffer)) {
+  if (tag_buffer_length > 0 && MFASTA_VALID_INITIAL_CHARACTER(*tag_buffer)) {
     for (tag_length=1;tag_length<tag_buffer_length;++tag_length) {
       if (!MFASTA_VALID_CHARACTER(tag_buffer[tag_length])) break;
     }

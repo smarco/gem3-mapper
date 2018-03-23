@@ -196,20 +196,20 @@ void collect_pe_mapping_stats(
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
 				 bs2 = prim_match_end2 -> bs_strand;
-				 read_type1 = get_read_type(prim_match_end1, archive_search1->search_parameters.control_sequences);
-				 read_type2 = get_read_type(prim_match_end2, archive_search2->search_parameters.control_sequences);
+				 read_type1 = get_read_type(prim_match_end1,archive_search1->search_parameters.control_sequences);
+				 read_type2 = get_read_type(prim_match_end2,archive_search2->search_parameters.control_sequences);
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
 				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
-				 read_type1 = get_read_type(prim_match_end1, archive_search1->search_parameters.control_sequences);
+				 read_type1 = get_read_type(prim_match_end1,archive_search1->search_parameters.control_sequences);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
 				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
-				 read_type2 = get_read_type(prim_match_end2, archive_search2->search_parameters.control_sequences);
+				 read_type2 = get_read_type(prim_match_end2,archive_search2->search_parameters.control_sequences);
 			} else {
 				 mstats->unmapped[0]++;
 				 mstats->unmapped[1]++;
@@ -238,7 +238,7 @@ void collect_pe_mapping_stats(
 			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;
 			bs2 = match_end2 -> bs_strand;
-			read_type1 = read_type2 = get_read_type(match_end1, archive_search1->search_parameters.control_sequences);
+			read_type1 = read_type2 = get_read_type(match_end1,archive_search1->search_parameters.control_sequences);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>0) {
 				 update_conversion_counts(archive_search1->sequence, mstats, 0, bs1, read_type1);

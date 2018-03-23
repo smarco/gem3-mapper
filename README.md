@@ -226,9 +226,10 @@ Paired-end mapping (splitted FASTA/FASTQ files)
   Alejandro Chacon    \- alejandro.chacond@gmail.com (GPU Main developer)
 
   Paolo Ribeca        \- paolo.ribeca@gmail.com
+  
+  Simon Heath         \- simon.heath@gmail.com       (Bisulfite features)
 
-
-Special Contributors: Simon Heath, Jordi Camps.
+Special contributors: Jordi Camps   
 
 ## 4. REPORTING BUGS
 

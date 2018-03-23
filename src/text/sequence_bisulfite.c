@@ -43,7 +43,7 @@ void sequence_bisulfite_convert(
     buffer[pos] = BS_table[(int)buffer[pos]];
   }
 }
-static bool sequence_bisulfite_check_cg_depletion_se(
+bool sequence_bisulfite_check_cg_depletion_se(
     string_t* const read_sequence) {
   uint64_t counts[7] = {0, 0, 0, 0, 0, 0, 0};
   const uint64_t length = string_get_length(read_sequence);
@@ -54,7 +54,7 @@ static bool sequence_bisulfite_check_cg_depletion_se(
   }
   return counts[1] > counts[2];
 }
-static bool sequence_bisulfite_check_cg_depletion_pe(
+bool sequence_bisulfite_check_cg_depletion_pe(
     string_t* const read_sequence1,
     string_t* const read_sequence2) {
   uint64_t counts1[7] = {0, 0, 0, 0, 0, 0, 0};
@@ -78,7 +78,7 @@ void sequence_bisulfite_process_se(
   // Fully convert reads before searching into archive, making a copy of the original
   if (bisulfite_read_mode==bisulfite_read_inferred) {
     sequence->bs_sequence_end = sequence->end_info;
-  } else if(bisulfite_read_mode==bisulfite_non_stranded) {
+  } else if (bisulfite_read_mode==bisulfite_non_stranded) {
     sequence->bs_sequence_end = sequence_bisulfite_check_cg_depletion_se(&sequence->read) ? paired_end2 : paired_end1;
   }
   string_clear(&sequence->bs_original_sequence);
