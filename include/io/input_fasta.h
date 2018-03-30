@@ -23,8 +23,8 @@
  *   Input module allows fast parsing of FASTA/FASTQ buffered-input files
  */
 
-#ifndef INPUT_FASTA_PARSER_H_
-#define INPUT_FASTA_PARSER_H_
+#ifndef INPUT_FASTA_H_
+#define INPUT_FASTA_H_
 
 #include "system/commons.h"
 #include "io/buffered_input_file.h"
@@ -52,4 +52,4 @@ void input_fasta_parser_prompt_error(
     buffered_input_file_t* const buffered_input,
     const error_code_t error_code);
 
-#endif /* INPUT_FASTA_PARSER_H_ */
+#endif /* INPUT_FASTA_H_ */

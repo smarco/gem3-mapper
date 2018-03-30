@@ -23,8 +23,8 @@
  *   Input module provides simple parsing functions (i.e. fields, numbers, ...)
  */
 
-#ifndef INPUT_PARSER_H_
-#define INPUT_PARSER_H_
+#ifndef INPUT_TEXT_H_
+#define INPUT_TEXT_H_
 
 #include "utils/essentials.h"
 #include "text/sequence.h"
@@ -67,4 +67,4 @@ bool input_text_parse_extended_bool(
 uint64_t input_text_parse_count_colons_in_field(
     const char* const text_line);
 
-#endif /* INPUT_PARSER_H_ */
+#endif /* INPUT_TEXT_H_ */

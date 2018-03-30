@@ -30,7 +30,7 @@
 #include "utils/essentials.h"
 #include "io/output_sam.h"
 #include "io/output_map.h"
-#include "io/input_parser.h"
+#include "io/input_text.h"
 #include "io/buffered_input_file.h"
 #include "io/buffered_output_file.h"
 #include "archive/search/archive_search_handlers.h"

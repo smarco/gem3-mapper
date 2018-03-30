@@ -23,9 +23,9 @@
  *   Input module allows fast parsing of FASTA/FASTQ buffered-input files
  */
 
+#include "io/input_fasta.h"
 #include "text/dna_text.h"
-#include "io/input_fasta_parser.h"
-#include "io/input_parser.h"
+#include "io/input_text.h"
 
 /*
  * Error codes
@@ -292,11 +292,23 @@ void input_fasta_parser_prompt_error(
   const char* const file_name = buffered_input_file_get_file_name(buffered_input);
   const uint64_t line_no = buffered_input_file_get_current_line_num(buffered_input)-1;
   switch (error_code) {
-    case 0: /* No error */ break;
-    case FASTA_ERROR_TAG_BEGINNING: gem_fatal_error(PARSE_FASTQ_TAG_BEGINNING,file_name,line_no); break;
-    case FASTA_ERROR_SEPARATOR_BAD_CHARACTER: gem_fatal_error(PARSE_FASTQ_SEPARATOR_BAD_CHARACTER,file_name,line_no); break;
-    case FASTA_ERROR_QUALITIES_BAD_CHARACTER: gem_fatal_error(PARSE_FASTQ_QUALITIES_BAD_CHARACTER,file_name,line_no); break;
-    case FASTA_ERROR_LENGTHS: gem_fatal_error(PARSE_FASTQ_LENGTHS,file_name,line_no); break;
-    default: gem_fatal_error(PARSE_FASTQ,file_name,line_no); break;
+    case 0:
+      /* No error */
+      break;
+    case FASTA_ERROR_TAG_BEGINNING:
+      gem_fatal_error(PARSE_FASTQ_TAG_BEGINNING,file_name,line_no);
+      break;
+    case FASTA_ERROR_SEPARATOR_BAD_CHARACTER:
+      gem_fatal_error(PARSE_FASTQ_SEPARATOR_BAD_CHARACTER,file_name,line_no);
+      break;
+    case FASTA_ERROR_QUALITIES_BAD_CHARACTER:
+      gem_fatal_error(PARSE_FASTQ_QUALITIES_BAD_CHARACTER,file_name,line_no);
+      break;
+    case FASTA_ERROR_LENGTHS:
+      gem_fatal_error(PARSE_FASTQ_LENGTHS,file_name,line_no);
+      break;
+    default:
+      gem_fatal_error(PARSE_FASTQ,file_name,line_no);
+      break;
   }
 }

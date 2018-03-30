@@ -27,7 +27,7 @@
 #define ARCHIVE_BUILDER_H_
 
 #include "utils/essentials.h"
-#include "io/input_multifasta_parser.h"
+#include "io/input_multifasta.h"
 #include "archive/archive.h"
 #include "archive/locator_builder.h"
 #include "fm_index/sa_builder/sa_builder.h"
@@ -49,7 +49,6 @@ typedef struct {
   bool gpu_index;                                // Index generated used GPU compiled GEM
   /* Input Multi-FASTA */
   input_multifasta_file_t input_multifasta_file; // Input multi-FASTA file
-  input_multifasta_state_t parsing_state;        // Text-Building state (MFASTA Input parsing)
   /* Archive */
   sa_builder_t* sa_builder;                      // SA-Builder
   locator_builder_t* locator;                    // Sequence locator (from MultiFASTA)

@@ -60,8 +60,6 @@ archive_builder_t* archive_builder_new(
   /*
    * Archive Components
    */
-  // MFASTA Input parsing
-  input_multifasta_state_clear(&(archive_builder->parsing_state));
   // Locator
   archive_builder->mm_slab_8MB = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM);
   archive_builder->mm_slab_32MB = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM);

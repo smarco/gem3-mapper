@@ -23,10 +23,10 @@
 
 #include "utils/essentials.h"
 #include "utils/options_menu.h"
-#include "io/input_parser.h"
 #include "archive/builder/archive_builder.h"
 #include "archive/builder/archive_builder_text.h"
 #include "archive/builder/archive_builder_index.h"
+#include "io/input_text.h"
 #include "profiler/profiler_timer.h"
 
 /*
@@ -214,7 +214,7 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
   archive_builder_text_process(archive_builder,parameters->verbose);
   // RL-Index
   if (parameters->run_length_index) {
-    archive_builder_text_apply_run_length(archive_builder,parameters->verbose);
+    archive_builder_text_generate_run_length(archive_builder,parameters->verbose);
     // TODO if (parameters->dump_run_length_text) archive_builder_text_dump(archive_builder,".text.rl");
   }
   // DEBUG

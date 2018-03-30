@@ -23,12 +23,12 @@
  *   Input module allows parsing of MultiFASTA files
  */
 
-#ifndef INPUT_MULTIFASTA_PARSER_H_
-#define INPUT_MULTIFASTA_PARSER_H_
+#ifndef INPUT_MULTIFASTA_H_
+#define INPUT_MULTIFASTA_H_
 
 #include "utils/essentials.h"
 #include "archive/locator.h"
-#include "io/input_fasta_parser.h"
+#include "io/input_fasta.h"
 
 /*
  * Utils
@@ -42,7 +42,12 @@
 /*
  * MultiFASTA Parsing State
  */
-typedef enum { Expecting_sequence, Expecting_tag, Reading_sequence } multifasta_read_state_t;
+typedef enum {
+  Expecting_sequence,
+  Expecting_tag,
+  Reading_sequence
+} multifasta_read_state_t;
+
 typedef struct {
   /* Parsing State */
   multifasta_read_state_t multifasta_read_state;
@@ -63,10 +68,16 @@ typedef struct {
   bs_strand_t bs_strand;               // Current BS-Strand
 } input_multifasta_state_t;
 
+/*
+ * Multi-FASTA File
+ */
 typedef struct {
-  char* multifasta_file_name;   // Input Multi-FASTA file name
-  FILE* multifasta_file;        // Input Multi-FASTA reference
-  uint64_t line_no;             // Current line number
+  /* Multi-FASTA File */
+  char* file_name;                        // File name
+  FILE* file;                             // File stream
+  uint64_t line_no;                       // Current line number
+  /* Parsing State */
+  input_multifasta_state_t parsing_state; // Parsing state
 } input_multifasta_file_t;
 
 /*
@@ -81,10 +92,14 @@ void input_multifasta_file_close(
 /*
  * MultiFASTA parsing state
  */
-void input_multifasta_state_clear(input_multifasta_state_t* const parsing_state);
-void input_multifasta_state_reset_interval(input_multifasta_state_t* const parsing_state);
-void input_multifasta_state_begin_sequence(input_multifasta_state_t* const parsing_state);
-uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* const parsing_state);
+void input_multifasta_state_clear(
+    input_multifasta_state_t* const parsing_state);
+void input_multifasta_state_reset_interval(
+    input_multifasta_state_t* const parsing_state);
+void input_multifasta_state_begin_sequence(
+    input_multifasta_state_t* const parsing_state);
+uint64_t input_multifasta_get_text_sequence_length(
+    input_multifasta_state_t* const parsing_state);
 
 /*
  * Errors
@@ -96,4 +111,4 @@ uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* con
 #define GEM_ERROR_MULTIFASTA_SEQ_EMPTY "MultiFASTA parsing (%s:%"PRIu64"). Expecting sequence (Empty sequence)"
 #define GEM_ERROR_MULTIFASTA_INVALID_CHAR "MultiFASTA parsing (%s:%"PRIu64"). Invalid character found ('%c')"
 
-#endif /* INPUT_MULTIFASTA_PARSER_H_ */
+#endif /* INPUT_MULTIFASTA_H_ */

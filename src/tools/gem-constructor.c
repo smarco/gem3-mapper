@@ -37,7 +37,7 @@
 #include "archive/archive_text.h"
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/region_profile/region_profile.h"
-#include "io/input_parser.h"
+#include "io/input_text.h"
 #include "matches/align/match_alignment.h"
 #include "neighborhood_search/nsearch_hamming.h"
 #include "neighborhood_search/nsearch_levenshtein.h"

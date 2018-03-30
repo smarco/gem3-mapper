@@ -23,10 +23,10 @@
  *   Mapper module provides high-level functions for I/O
  */
 
+#include "io/input_fasta.h"
 #include "mapper/mapper_io.h"
 #include "text/sequence_bisulfite.h"
 #include "stats/report_stats.h"
-#include "io/input_fasta_parser.h"
 
 /*
  * Profile Level

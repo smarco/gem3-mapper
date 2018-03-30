@@ -44,7 +44,7 @@ void archive_builder_text_process(
     archive_builder_t* const archive_builder,
     const bool verbose);
 // Apply RL to the text
-void archive_builder_text_apply_run_length(
+void archive_builder_text_generate_run_length(
     archive_builder_t* const archive_builder,
     const bool verbose);
 

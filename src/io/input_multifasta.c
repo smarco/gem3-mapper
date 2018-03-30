@@ -23,8 +23,8 @@
  *   Input module allows parsing of MultiFASTA files
  */
 
+#include "io/input_multifasta.h"
 #include "text/dna_text.h"
-#include "io/input_multifasta_parser.h"
 
 /*
  * MultiFASTA Setup
@@ -32,18 +32,20 @@
 void input_multifasta_file_open(
     input_multifasta_file_t* const input_multifasta_file,
     char* const input_multifasta_file_name) {
-  input_multifasta_file->multifasta_file_name = input_multifasta_file_name;
-  input_multifasta_file->multifasta_file = fopen(input_multifasta_file_name,"rb");
+  input_multifasta_file->file_name = input_multifasta_file_name;
+  input_multifasta_file->file = fopen(input_multifasta_file_name,"rb");
   input_multifasta_file->line_no = 0;
-
+  input_multifasta_state_clear(&input_multifasta_file->parsing_state);
 }
-void input_multifasta_file_close(input_multifasta_file_t* const input_multifasta_file) {
-  fclose(input_multifasta_file->multifasta_file);
+void input_multifasta_file_close(
+    input_multifasta_file_t* const input_multifasta_file) {
+  fclose(input_multifasta_file->file);
 }
 /*
  * MultiFASTA parsing state
  */
-void input_multifasta_state_clear(input_multifasta_state_t* const parsing_state) {
+void input_multifasta_state_clear(
+    input_multifasta_state_t* const parsing_state) {
   /* Parsing State */
   parsing_state->multifasta_read_state = Expecting_tag;
   /* Sequence components */
@@ -62,7 +64,8 @@ void input_multifasta_state_clear(input_multifasta_state_t* const parsing_state)
   parsing_state->strand = Forward;           // Current strand
   parsing_state->bs_strand = bs_strand_none; // Current BS-Strand
 }
-void input_multifasta_state_reset_interval(input_multifasta_state_t* const parsing_state) {
+void input_multifasta_state_reset_interval(
+    input_multifasta_state_t* const parsing_state) {
   /* Text */
   parsing_state->text_sequence_length += parsing_state->text_interval_length;
   parsing_state->text_interval_length = 0;
@@ -70,7 +73,8 @@ void input_multifasta_state_reset_interval(input_multifasta_state_t* const parsi
   parsing_state->index_sequence_length += parsing_state->index_interval_length;
   parsing_state->index_interval_length = 0;
 }
-void input_multifasta_state_begin_sequence(input_multifasta_state_t* const parsing_state) {
+void input_multifasta_state_begin_sequence(
+    input_multifasta_state_t* const parsing_state) {
   parsing_state->multifasta_read_state = Expecting_sequence;
   /* Text */
   parsing_state->text_position = 0;

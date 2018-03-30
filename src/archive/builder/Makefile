@@ -17,8 +17,7 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 MODULES=archive_builder \
         archive_builder_index \
-        archive_builder_text \
-        archive_builder_text_parser
+        archive_builder_text 
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

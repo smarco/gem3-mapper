@@ -26,10 +26,10 @@
 #include "utils/essentials.h"
 #include "utils/options_menu.h"
 #include "utils/string_buffer.h"
-#include "io/input_parser.h"
 #include "archive/archive.h"
 #include "archive/archive_text.h"
 #include "archive/locator.h"
+#include "io/input_text.h"
 
 /*
  * Version

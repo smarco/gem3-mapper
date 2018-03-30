@@ -33,10 +33,10 @@ include $(ROOT_PATH)/Makefile.mk
 MODULES=buffered_input_file \
         buffered_output_file \
         input_buffer \
-        input_fasta_parser \
+        input_fasta \
         input_file_sliced \
-        input_multifasta_parser \
-        input_parser \
+        input_multifasta \
+        input_text \
         output_buffer \
         output_file \
         output_map \

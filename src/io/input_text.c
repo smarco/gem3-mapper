@@ -23,7 +23,7 @@
  *   Input module provides simple parsing functions (i.e. fields, numbers, ...)
  */
 
-#include "io/input_parser.h"
+#include "io/input_text.h"
 
 /*
  * Building Blocks for parsing
