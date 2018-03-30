@@ -210,10 +210,8 @@ void indexer_debug_check_bwt(char* const file_name,dna_text_t* const index_text)
  * GEM-Indexer Build Archive
  */
 void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
-  // Process input MultiFASTA
-  input_file_t* const input_multifasta = input_file_open(parameters->input_multifasta_file_name,BUFFER_SIZE_32M,false);
   // Process MFASTA
-  archive_builder_text_process(archive_builder,input_multifasta,parameters->verbose);
+  archive_builder_text_process(archive_builder,parameters->verbose);
   // RL-Index
   if (parameters->run_length_index) {
     archive_builder_text_apply_run_length(archive_builder,parameters->verbose);
@@ -228,8 +226,6 @@ void indexer_process_multifasta(archive_builder_t* const archive_builder,indexer
   archive_builder_write_header(archive_builder);
   archive_builder_write_locator(archive_builder);
   locator_builder_delete(archive_builder->locator); // Free Locator
-  // Close MultiFASTA
-  input_file_close(input_multifasta);
 }
 void indexer_generate_bwt(archive_builder_t* const archive_builder,indexer_parameters_t* const parameters) {
   // VERBOSE
@@ -516,12 +512,14 @@ int main(int argc,char** argv) {
   // GEM Archive Builder
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
   const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
-  archive_builder_t* const archive_builder = archive_builder_new(index_file,
-      parameters.output_index_file_name_prefix,type,
-      parameters.gpu_index,parameters.ns_threshold,
-      parameters.sa_sampling_rate,parameters.text_sampling_rate,
-      parameters.num_threads,parameters.max_memory,
-      parameters.info_file);
+  archive_builder_t* const archive_builder =
+      archive_builder_new(
+          parameters.input_multifasta_file_name,index_file,
+          parameters.output_index_file_name_prefix,type,
+          parameters.gpu_index,parameters.ns_threshold,
+          parameters.sa_sampling_rate,parameters.text_sampling_rate,
+          parameters.num_threads,parameters.max_memory,
+          parameters.info_file);
 
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);

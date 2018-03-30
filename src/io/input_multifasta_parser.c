@@ -27,6 +27,20 @@
 #include "io/input_multifasta_parser.h"
 
 /*
+ * MultiFASTA Setup
+ */
+void input_multifasta_file_open(
+    input_multifasta_file_t* const input_multifasta_file,
+    char* const input_multifasta_file_name) {
+  input_multifasta_file->multifasta_file_name = input_multifasta_file_name;
+  input_multifasta_file->multifasta_file = fopen(input_multifasta_file_name,"rb");
+  input_multifasta_file->line_no = 0;
+
+}
+void input_multifasta_file_close(input_multifasta_file_t* const input_multifasta_file) {
+  fclose(input_multifasta_file->multifasta_file);
+}
+/*
  * MultiFASTA parsing state
  */
 void input_multifasta_state_clear(input_multifasta_state_t* const parsing_state) {
@@ -67,71 +81,8 @@ void input_multifasta_state_begin_sequence(input_multifasta_state_t* const parsi
   parsing_state->index_interval_length = 0;
   parsing_state->index_sequence_length = 0;
 }
-uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* const parsing_state) {
+uint64_t input_multifasta_get_text_sequence_length(
+    input_multifasta_state_t* const parsing_state) {
   return (parsing_state->text_sequence_length+parsing_state->text_interval_length+parsing_state->ns_pending);
-}
-/*
- * MultiFASTA file parsing
- */
-void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* const tag) {
-  // Prepare to add a new TAG
-  string_clear(tag);
-  // Check empty tag
-  gem_cond_error(!input_file_next_char(input_multifasta),
-      MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
-  // Read tag
-  char current_char = input_file_get_current_char(input_multifasta);
-  // Skip leading whitespace
-  while ((current_char==SPACE || current_char==TAB) &&
-         input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta); // Next Character    
-  }
-  if (MFASTA_VALID_INITIAL_CHARACTER(current_char) && input_file_next_char(input_multifasta)) {
-    string_append_char(tag,current_char); // Append to tag
-    current_char = input_file_get_current_char(input_multifasta); // Next Character    
-    while (!IS_ANY_EOL(current_char) &&
-           MFASTA_VALID_CHARACTER(current_char) &&
-           input_file_next_char(input_multifasta)) {
-      string_append_char(tag,current_char); // Append to tag
-      current_char = input_file_get_current_char(input_multifasta); // Next Character
-    }
-    if (!IS_ANY_EOL(current_char) && MFASTA_VALID_CHARACTER(current_char)) {
-      string_append_char(tag,current_char);
-    }
-  }
-  // Check empty and append EOS
-  gem_cond_error(string_get_length(tag)==0,
-      MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta)); // Empty TAG
-  string_append_eos(tag);
-  // Skip the rest of the line
-  while (!IS_ANY_EOL(current_char) && input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta);
-  }
-  input_file_skip_eol(input_multifasta);
-}
-void input_multifasta_skip_tag(input_file_t* const input_multifasta) {
-  // Check empty tag
-  gem_cond_error(!input_file_next_char(input_multifasta),
-      MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
-  // Read tag
-  char current_char = input_file_get_current_char(input_multifasta);
-  // Skip leading whitespace
-  while ((current_char==SPACE || current_char==TAB) &&
-         input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta); // Next Character    
-  }
-  if(MFASTA_VALID_INITIAL_CHARACTER(current_char) && input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta); // Next Character    
-    while (!IS_ANY_EOL(current_char) &&
-	   MFASTA_VALID_CHARACTER(current_char) &&
-	   input_file_next_char(input_multifasta)) {
-      current_char = input_file_get_current_char(input_multifasta); // Next Character
-    }
-  }
-  // Skip the rest of the line
-  while (!IS_ANY_EOL(current_char) && input_file_next_char(input_multifasta)) {
-    current_char = input_file_get_current_char(input_multifasta);
-  }
-  input_file_skip_eol(input_multifasta);
 }
 

@@ -42,7 +42,6 @@
 // Generate standard DNA-Text
 void archive_builder_text_process(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose);
 // Apply RL to the text
 void archive_builder_text_apply_run_length(

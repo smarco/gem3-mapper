@@ -32,6 +32,14 @@
 #include "utils/essentials.h"
 #include "io/output_buffer.h"
 
+/*
+ * Output format
+ */
+typedef enum { FASTA, MAP, SAM, FILE_FORMAT_UNKNOWN } file_format_t;
+
+/*
+ * Output file
+ */
 typedef struct {
   /* Output file */
   fm_t* file_manager;

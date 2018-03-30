@@ -32,6 +32,7 @@
 uint64_t sa_sort_length_cmp_values[] = {0,1,5,10,100,1000,10000};
 #define sa_sort_length_cmp_num_ranges 6
 archive_builder_t* archive_builder_new(
+    char* const input_multifasta_file_name,
     fm_t* const output_file,
     char* const output_file_name_prefix,
     const archive_type type,
@@ -52,6 +53,10 @@ archive_builder_t* archive_builder_new(
   archive_builder->gpu_index = gpu_index;
   archive_builder->sa_sampling_rate = sa_sampling_rate;
   archive_builder->text_sampling_rate = text_sampling_rate;
+  /*
+   * Input Multi-FASTA
+   */
+  input_multifasta_file_open(&archive_builder->input_multifasta_file,input_multifasta_file_name);
   /*
    * Archive Components
    */
@@ -78,7 +83,10 @@ archive_builder_t* archive_builder_new(
   // Return
   return archive_builder;
 }
-void archive_builder_delete(archive_builder_t* const archive_builder) {
+void archive_builder_delete(
+    archive_builder_t* const archive_builder) {
+  // Close MultiFASTA
+  input_multifasta_file_close(&archive_builder->input_multifasta_file);
   // Close FM
   fm_close(archive_builder->output_file_manager);
   // Free Text(s)
@@ -102,14 +110,16 @@ void archive_builder_delete(archive_builder_t* const archive_builder) {
 /*
  * Writers
  */
-void archive_builder_write_header(archive_builder_t* const archive_builder) {
+void archive_builder_write_header(
+    archive_builder_t* const archive_builder) {
   // Write Header
   fm_write_uint64(archive_builder->output_file_manager,ARCHIVE_MODEL_NO);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->type);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->gpu_index);
   fm_write_uint64(archive_builder->output_file_manager,archive_builder->ns_threshold);
 }
-void archive_builder_write_locator(archive_builder_t* const archive_builder) {
+void archive_builder_write_locator(
+    archive_builder_t* const archive_builder) {
   // Write Locator
   locator_builder_write(archive_builder->output_file_manager,archive_builder->locator);
 }

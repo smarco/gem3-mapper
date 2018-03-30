@@ -27,7 +27,6 @@
 #define INPUT_FASTA_PARSER_H_
 
 #include "system/commons.h"
-#include "io/input_file.h"
 #include "io/buffered_input_file.h"
 #include "text/sequence.h"
 

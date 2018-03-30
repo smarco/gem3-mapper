@@ -38,18 +38,21 @@
 void archive_builder_generate_text_add_character(
     archive_builder_t* const archive_builder,
     const uint8_t char_enc);
-void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder);
-void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder);
+void archive_builder_generate_text_add_separator(
+    archive_builder_t* const archive_builder);
+void archive_builder_generate_text_add_Ns(
+    archive_builder_t* const archive_builder);
 
-void archive_builder_generate_text_close_sequence(archive_builder_t* const archive_builder);
-void archive_builder_generate_text_process_unknowns(archive_builder_t* const archive_builder);
+void archive_builder_generate_text_close_sequence(
+    archive_builder_t* const archive_builder);
+void archive_builder_generate_text_process_unknowns(
+    archive_builder_t* const archive_builder);
 
 /*
  * Inspect Text
  */
 void archive_builder_inspect_text(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose);
 
 /*
@@ -57,7 +60,6 @@ void archive_builder_inspect_text(
  */
 void archive_builder_generate_forward_text(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose);
 
 /*

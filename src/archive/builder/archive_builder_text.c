@@ -40,12 +40,11 @@
  */
 void archive_builder_text_process(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose) {
   // Inspect Text
-  archive_builder_inspect_text(archive_builder,input_multifasta,verbose);
+  archive_builder_inspect_text(archive_builder,verbose);
   // Generate Text (Forward)
-  archive_builder_generate_forward_text(archive_builder,input_multifasta,verbose);
+  archive_builder_generate_forward_text(archive_builder,verbose);
   // Generate C2T & G2A Texts
   if (archive_builder->type==archive_dna_bisulfite) {
     archive_builder_generate_bisulfite_text(archive_builder,verbose);

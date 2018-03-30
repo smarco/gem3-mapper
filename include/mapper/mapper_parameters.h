@@ -30,7 +30,6 @@
 #include "utils/essentials.h"
 #include "io/output_sam.h"
 #include "io/output_map.h"
-#include "io/input_file.h"
 #include "io/input_parser.h"
 #include "io/buffered_input_file.h"
 #include "io/buffered_output_file.h"

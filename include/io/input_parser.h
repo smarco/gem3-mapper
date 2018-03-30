@@ -27,7 +27,6 @@
 #define INPUT_PARSER_H_
 
 #include "utils/essentials.h"
-#include "io/input_file.h"
 #include "text/sequence.h"
 
 /*

@@ -30,7 +30,6 @@
 #include "mapper/mapper.h"
 #include "mapper/mapper_io.h"
 #include "archive/search/archive_search_se.h"
-#include "io/input_file.h"
 #include "io/input_fasta_parser.h"
 #include "text/sequence_bisulfite.h"
 

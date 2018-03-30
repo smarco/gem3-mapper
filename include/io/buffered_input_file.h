@@ -34,6 +34,16 @@
 #include "io/input_file_sliced.h"
 #include "io/buffered_output_file.h"
 
+/*
+ * Codes status
+ */
+#define INPUT_STATUS_OK 1
+#define INPUT_STATUS_EOF 0
+#define INPUT_STATUS_FAIL -1
+
+/*
+ * Buffered input file
+ */
 typedef struct {
   /* Input file */
   input_file_sliced_t* input_file_sliced;   // Source input file

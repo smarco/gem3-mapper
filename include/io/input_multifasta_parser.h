@@ -28,7 +28,6 @@
 
 #include "utils/essentials.h"
 #include "archive/locator.h"
-#include "io/input_file.h"
 #include "io/input_fasta_parser.h"
 
 /*
@@ -64,6 +63,21 @@ typedef struct {
   bs_strand_t bs_strand;               // Current BS-Strand
 } input_multifasta_state_t;
 
+typedef struct {
+  char* multifasta_file_name;   // Input Multi-FASTA file name
+  FILE* multifasta_file;        // Input Multi-FASTA reference
+  uint64_t line_no;             // Current line number
+} input_multifasta_file_t;
+
+/*
+ * MultiFASTA Setup
+ */
+void input_multifasta_file_open(
+    input_multifasta_file_t* const input_multifasta_file,
+    char* const input_multifasta_file_name);
+void input_multifasta_file_close(
+    input_multifasta_file_t* const input_multifasta_file);
+
 /*
  * MultiFASTA parsing state
  */
@@ -73,18 +87,13 @@ void input_multifasta_state_begin_sequence(input_multifasta_state_t* const parsi
 uint64_t input_multifasta_get_text_sequence_length(input_multifasta_state_t* const parsing_state);
 
 /*
- * MultiFASTA file parsing
- */
-void input_multifasta_parse_tag(input_file_t* const input_multifasta,string_t* const tag);
-void input_multifasta_skip_tag(input_file_t* const input_multifasta);
-
-/*
  * Errors
  */
 #define GEM_ERROR_MULTIFASTA_EMPTY "MultiFASTA '%s' is empty"
-#define GEM_ERROR_MULTIFASTA_BEGINNING_TAG "MultiFASTA parsing (%"PRI_input_file"). must start with a tag '>'"
-#define GEM_ERROR_MULTIFASTA_TAG_EMPTY "MultiFASTA parsing (%"PRI_input_file"). Tag is empty"
-#define GEM_ERROR_MULTIFASTA_SEQ_EMPTY "MultiFASTA parsing (%"PRI_input_file"). Expecting sequence (Empty sequence)"
-#define GEM_ERROR_MULTIFASTA_INVALID_CHAR "MultiFASTA parsing (%"PRI_input_file"). Invalid character found ('%c')"
+#define GEM_ERROR_MULTIFASTA_READING "MultiFASTA parsing (%s:%"PRIu64"). Error reading stream"
+#define GEM_ERROR_MULTIFASTA_BEGINNING_TAG "MultiFASTA parsing (%s:%"PRIu64"). must start with a tag '>'"
+#define GEM_ERROR_MULTIFASTA_TAG_EMPTY "MultiFASTA parsing (%s:%"PRIu64"). Tag is empty"
+#define GEM_ERROR_MULTIFASTA_SEQ_EMPTY "MultiFASTA parsing (%s:%"PRIu64"). Expecting sequence (Empty sequence)"
+#define GEM_ERROR_MULTIFASTA_INVALID_CHAR "MultiFASTA parsing (%s:%"PRIu64"). Invalid character found ('%c')"
 
 #endif /* INPUT_MULTIFASTA_PARSER_H_ */

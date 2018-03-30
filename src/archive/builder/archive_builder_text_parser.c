@@ -35,27 +35,30 @@
  */
 void archive_builder_inspect_text(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose) {
-  // Prepare ticket
+  // Parameters
+  input_multifasta_file_t* const input_multifasta_file = &archive_builder->input_multifasta_file;
+  char *line_buffer = NULL;
+  int line_length = 0;
+  size_t line_allocated = 0;
   ticker_t ticker;
-  ticker_percentage_reset(&ticker,verbose,"Inspecting MultiFASTA",0,0,true);
   // MultiFASTA Read cycle
-  vector_t* const line_buffer = vector_new(200,char);
-  uint64_t enc_text_length = 0; // input_file_get_size(input_multifasta);
-  while (!input_file_eof(input_multifasta)) {
+  ticker_percentage_reset(&ticker,verbose,"Inspecting MultiFASTA",0,0,true); // Prepare ticket
+  uint64_t enc_text_length = 0;
+  while (true) {
     // Get line
-    input_file_get_lines(input_multifasta,line_buffer,1);
-    const char line_begin = *vector_get_mem(line_buffer,char);
-    if (gem_expect_true(line_begin!=FASTA_TAG_BEGIN)) {
-      enc_text_length += vector_get_used(line_buffer)-1;
+    line_length = getline(&line_buffer,&line_allocated,input_multifasta_file->multifasta_file);
+    if (line_length == -1) break;
+    // Account the line length
+    if (line_buffer[0] != FASTA_TAG_BEGIN) {
+      enc_text_length += line_length-1;
     } else {
       ++enc_text_length; // Separator
     }
   }
   ++enc_text_length; // Separator
-  vector_delete(line_buffer);
   ticker_finish(&ticker);
+  if (line_buffer != NULL) free(line_buffer); // Free
   // Configure Bisulfite generation
   if (archive_builder->type==archive_dna_bisulfite) {
     enc_text_length = 2*enc_text_length;
@@ -64,7 +67,8 @@ void archive_builder_inspect_text(
   enc_text_length = 2*enc_text_length; // Add complement length
   ++enc_text_length; // Add extra separator (Close text)
   // Rewind input MULTIFASTA
-  input_file_rewind(input_multifasta);
+  fseek(input_multifasta_file->multifasta_file,0,SEEK_SET);
+  input_multifasta_file->line_no = 0;
   // Log
   tfprintf(gem_log_get_stream(),
       "Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
@@ -88,11 +92,6 @@ void archive_builder_generate_text_filter__add_character(
     archive_builder_t* const archive_builder,
     const uint8_t char_enc) {
   uint8_t filtered_char_enc = char_enc;
-//  // Check colorspace
-//  if (gem_expect_false(archive_builder->filter_type == Iupac_colorspace_dna)) {
-//    filtered_char_enc = dna_encoded_colorspace(archive_builder->parsing_state.last_char,char_enc);
-//    archive_builder->parsing_state.last_char = char_enc;
-//  }
   archive_builder_generate_text_add_character(archive_builder,filtered_char_enc);
 }
 void archive_builder_generate_text_add_separator(archive_builder_t* const archive_builder) {
@@ -101,9 +100,10 @@ void archive_builder_generate_text_add_separator(archive_builder_t* const archiv
   dna_text_set_char(archive_builder->enc_text,(archive_builder->parsing_state.index_position)++,ENC_DNA_CHAR_SEP);
   locator_builder_skip_index(archive_builder->locator,1); // Skip Separator
 }
-void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_add_Ns(
+    archive_builder_t* const archive_builder) {
   // Below threshold, restore all Ns
-  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
+  input_multifasta_state_t* const parsing_state = &archive_builder->parsing_state;
   uint64_t i;
   for (i=0;i<parsing_state->ns_pending;++i) {
     archive_builder_generate_text_filter__add_character(archive_builder,ENC_DNA_CHAR_N);
@@ -113,9 +113,11 @@ void archive_builder_generate_text_add_Ns(archive_builder_t* const archive_build
 /*
  * Text Generation. High-Level Building-Blocks
  */
-void archive_builder_generate_text_close_sequence(archive_builder_t* const archive_builder) {
+void archive_builder_generate_text_close_sequence(
+    archive_builder_t* const archive_builder) {
+  // Parameters
   locator_builder_t* const locator = archive_builder->locator;
-  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
+  input_multifasta_state_t* const parsing_state = &archive_builder->parsing_state;
   if (parsing_state->index_interval_length > 0) {
     // Close interval
     locator_builder_close_interval(locator,parsing_state->text_interval_length,
@@ -129,8 +131,10 @@ void archive_builder_generate_text_close_sequence(archive_builder_t* const archi
   // Reset length
   input_multifasta_state_reset_interval(parsing_state);
 }
-void archive_builder_generate_text_process_unknowns(archive_builder_t* const archive_builder) {
-  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
+void archive_builder_generate_text_process_unknowns(
+    archive_builder_t* const archive_builder) {
+  // Parameters
+  input_multifasta_state_t* const parsing_state = &archive_builder->parsing_state;
   // Check Ns
   const uint64_t ns_pending = parsing_state->ns_pending;
   if (ns_pending > 0) {
@@ -162,30 +166,34 @@ void archive_builder_generate_text_process_unknowns(archive_builder_t* const arc
 }
 void archive_builder_generate_text_add_sequence(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
-    vector_t* const tag) {
-  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
+    char* line_buffer,
+    int line_length) {
+  // Parameters
+  input_multifasta_file_t* const input_multifasta_file = &archive_builder->input_multifasta_file;
+  input_multifasta_state_t* const parsing_state = &archive_builder->parsing_state;
   // Close sequence
   if (parsing_state->multifasta_read_state==Reading_sequence) {
-    gem_cond_error(input_multifasta_get_text_sequence_length(parsing_state)==0,
-        MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta));
+    gem_cond_error(
+        input_multifasta_get_text_sequence_length(parsing_state)==0,MULTIFASTA_SEQ_EMPTY,
+        input_multifasta_file->multifasta_file_name,input_multifasta_file->line_no);
     archive_builder_generate_text_process_unknowns(archive_builder); // Check Ns
     archive_builder_generate_text_close_sequence(archive_builder);   // Close last sequence
   }
-  // Parse TAG (Skip separators)
-  const uint64_t tag_buffer_length = vector_get_used(tag);
-  char* tag_buffer = vector_get_mem(tag,char)+1;
-  while (*tag_buffer==SPACE || *tag_buffer==TAB) tag_buffer++;
-  uint64_t tag_length = 0;
-  if (tag_buffer_length > 0 && MFASTA_VALID_INITIAL_CHARACTER(*tag_buffer)) {
-    for (tag_length=1;tag_length<tag_buffer_length;++tag_length) {
-      if (!MFASTA_VALID_CHARACTER(tag_buffer[tag_length])) break;
-    }
+  // Parse TAG (Skip separators & check characters)
+  while ((line_length > 0) && (line_buffer[0]==SPACE || line_buffer[0]==TAB)) {
+    ++line_buffer; --line_length;
   }
-  tag_buffer[tag_length] = EOS;
-  gem_cond_error(tag_length==0,MULTIFASTA_TAG_EMPTY,PRI_input_file_content(input_multifasta));
+  uint64_t tag_length = 0;
+  while ((line_length > 0) && MFASTA_VALID_CHARACTER(line_buffer[tag_length])) {
+    ++tag_length; --line_length;
+  }
+  line_buffer[tag_length] = EOS;
+  gem_cond_error(
+      tag_length==0,MULTIFASTA_TAG_EMPTY,
+      input_multifasta_file->multifasta_file_name,
+      input_multifasta_file->line_no);
   // Add to locator
-  parsing_state->tag_id = locator_builder_add_sequence(archive_builder->locator,tag_buffer,tag_length);
+  parsing_state->tag_id = locator_builder_add_sequence(archive_builder->locator,line_buffer,tag_length);
   // Open interval
   locator_builder_open_interval(archive_builder->locator,parsing_state->tag_id);
   // Begin new text-sequence (Expect sequence after TAG)
@@ -193,12 +201,14 @@ void archive_builder_generate_text_add_sequence(
 }
 void archive_builder_generate_text_process_character(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const char current_char) {
+  // Parameters
+  input_multifasta_file_t* const input_multifasta_file = &archive_builder->input_multifasta_file;
   // Check Character
   if (current_char==DNA_CHAR_N || !is_extended_dna(current_char)) { // Handle Ns
-    gem_cond_error(!is_iupac_code(current_char),
-        MULTIFASTA_INVALID_CHAR,PRI_input_file_content(input_multifasta),current_char);
+    gem_cond_error(!is_iupac_code(current_char),MULTIFASTA_INVALID_CHAR,
+        input_multifasta_file->multifasta_file_name,
+        input_multifasta_file->line_no,current_char);
     ++(archive_builder->parsing_state.ns_pending);
   } else { // Other character
     // Handle pending Ns
@@ -212,35 +222,48 @@ void archive_builder_generate_text_process_character(
  */
 void archive_builder_generate_forward_text(
     archive_builder_t* const archive_builder,
-    input_file_t* const input_multifasta,
     const bool verbose) {
+  // Parameters
+  input_multifasta_file_t* const input_multifasta_file = &archive_builder->input_multifasta_file;
+  char *line_buffer = NULL;
+  int line_length = 0;
+  size_t line_allocated = 0;
   // Check MultiFASTA
-  input_file_check_buffer(input_multifasta);
-  gem_cond_error((char)input_file_get_current_char(input_multifasta)!=FASTA_TAG_BEGIN,
-      MULTIFASTA_BEGINNING_TAG,PRI_input_file_content(input_multifasta));
+  gem_cond_error(feof(input_multifasta_file->multifasta_file),
+      MULTIFASTA_EMPTY,input_multifasta_file->multifasta_file_name);
   // Prepare ticket
   ticker_t ticker;
   ticker_count_reset(&ticker,verbose,"Reading MultiFASTA",0,100000000,true);
   ticker_add_process_label(&ticker,"","bases parsed");
   ticker_add_finish_label(&ticker,"Total","bases parsed");
   // MultiFASTA Read cycle
-  vector_t* const line_buffer = vector_new(200,char);
-  input_multifasta_state_t* const parsing_state = &(archive_builder->parsing_state);
+  input_multifasta_state_t* const parsing_state = &archive_builder->parsing_state;
   input_multifasta_state_clear(parsing_state); // Init parsing state
-  while (!input_file_eof(input_multifasta)) {
+  while (true) {
     // Get line
-    input_file_get_lines(input_multifasta,line_buffer,1);
-    const uint64_t line_length = vector_get_used(line_buffer)-1;
-    const char* const line = vector_get_mem(line_buffer,char);
+    line_length = getline(&line_buffer,&line_allocated,input_multifasta_file->multifasta_file);
+    ++(input_multifasta_file->line_no);
+    if (line_length==-1) {
+      gem_cond_error(
+          !feof(input_multifasta_file->multifasta_file),MULTIFASTA_READING,
+          input_multifasta_file->multifasta_file_name,input_multifasta_file->line_no);
+      break;
+    }
+    // Check error
+    gem_cond_error(
+        (input_multifasta_file->line_no==1 && line_buffer[0]!=FASTA_TAG_BEGIN),
+        MULTIFASTA_BEGINNING_TAG,input_multifasta_file->multifasta_file_name,
+        input_multifasta_file->line_no);
     // Parse line
-    if (line[0]==FASTA_TAG_BEGIN) { // Archive builder parse Tag
-      archive_builder_generate_text_add_sequence(archive_builder,input_multifasta,line_buffer);
-    } else { // Archive builder parse content
-      parsing_state->multifasta_read_state = Reading_sequence;
+    if (line_buffer[0]==FASTA_TAG_BEGIN) {
+      // Parse Tag
+      archive_builder_generate_text_add_sequence(archive_builder,line_buffer+1,line_length-2);
+    } else {
       // Process characters
+      parsing_state->multifasta_read_state = Reading_sequence;
       uint64_t i;
-      for (i=0;i<line_length;++i) {
-        archive_builder_generate_text_process_character(archive_builder,input_multifasta,line[i]);
+      for (i=0;i<line_length-1;++i) {
+        archive_builder_generate_text_process_character(archive_builder,line_buffer[i]);
         ++(parsing_state->text_position); // Inc Text Position
       }
       ticker_update(&ticker,line_length);
@@ -249,11 +272,12 @@ void archive_builder_generate_forward_text(
   // Close sequence
   archive_builder_generate_text_process_unknowns(archive_builder); // Check Ns
   archive_builder_generate_text_close_sequence(archive_builder);
-  gem_cond_error(input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
-      MULTIFASTA_SEQ_EMPTY,PRI_input_file_content(input_multifasta)); // Check sequence not null
+  gem_cond_error(
+      input_multifasta_get_text_sequence_length(&archive_builder->parsing_state)==0,
+      MULTIFASTA_SEQ_EMPTY,input_multifasta_file->multifasta_file_name,
+      input_multifasta_file->line_no); // Check sequence not null
   // Free
-  vector_delete(line_buffer);
-  // Ticker banner
+  if (line_buffer != NULL) free(line_buffer);
   ticker_finish(&ticker);
 }
 /*
