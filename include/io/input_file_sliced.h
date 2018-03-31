@@ -87,8 +87,10 @@ void input_file_sliced_close(
 /*
  * Accessors
  */
-char* input_file_sliced_get_file_name(input_file_sliced_t* const input_file_sliced);
-uint64_t input_file_sliced_get_next_id(input_file_sliced_t* const input_file_sliced);
+char* input_file_sliced_get_file_name(
+    input_file_sliced_t* const input_file_sliced);
+uint64_t input_file_sliced_get_next_id(
+    input_file_sliced_t* const input_file_sliced);
 
 /*
  * Process Input-buffers
@@ -96,7 +98,8 @@ uint64_t input_file_sliced_get_next_id(input_file_sliced_t* const input_file_sli
 void input_file_sliced_return(
     input_file_sliced_t* const input_file_sliced,
     vector_t* const input_buffers);
-void input_file_sliced_process(input_file_sliced_t* const input_file_sliced);
+void input_file_sliced_process(
+    input_file_sliced_t* const input_file_sliced);
 void input_file_sliced_discard_exhausted_buffers(
     input_file_sliced_t* const input_file_sliced,
     vector_t* const input_buffers);
@@ -116,7 +119,7 @@ bool input_file_sliced_read_lines(
 /*
  * Current Input-Buffer
  */
-input_buffer_t* input_file_sliced_input_buffer_get_current(input_file_sliced_t* const input_file_sliced);
-void input_file_sliced_input_buffer_next(input_file_sliced_t* const input_file_sliced);
+input_buffer_t* input_file_sliced_input_buffer_get_current(
+    input_file_sliced_t* const input_file_sliced);
 
 #endif /* INPUT_FILE_SLICED_H_ */

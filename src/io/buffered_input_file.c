@@ -143,14 +143,14 @@ int buffered_input_file_load_next_chunk(buffered_input_file_t* const buffered_in
     input_buffer_t* const input_buffer = *(vector_get_elm(input_buffers,input_buffer_next,input_buffer_t*));
     buffered_input->current_buffer = input_buffer;
     // Compute Offsets
-    if (input_buffer_next==0) {
+    if (input_buffer_next == 0) {
       buffered_input->current_buffer_sentinel = input_buffer->buffer + buffered_input->input_first_buffer_offset;
       buffered_input->current_buffer_line_no = buffered_input->input_first_buffer_line_begin;
     } else {
       buffered_input->current_buffer_sentinel = input_buffer->buffer;
       buffered_input->current_buffer_line_no = 0;
     }
-    if (input_buffer_next==num_input_buffers-1) {
+    if (input_buffer_next == num_input_buffers-1) {
       buffered_input->current_buffer_line_max = buffered_input->input_last_buffer_line_end;
     } else {
       buffered_input->current_buffer_line_max = input_buffer_get_num_lines(input_buffer);
@@ -168,41 +168,37 @@ int buffered_input_file_get_line(
   // Clear string
   string_clear(input_line);
   // Copy the remaining in the buffer (looking for the end-of-line)
-  while (buffered_input->current_buffer_line_no >= buffered_input->current_buffer_line_max) {
+  while (true) {
     // Delimit line
     char* const line = buffered_input->current_buffer_sentinel;
-    const uint32_t* const lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
+    const uint64_t* const lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint64_t);
     const uint64_t line_length = lengths[buffered_input->current_buffer_line_no];
     // Append to line
-    string_right_append_buffer(input_line,line,line_length);
-    // Load next chunk
-    if (!buffered_input_file_load_next_chunk(buffered_input)) {
-      string_append_char(input_line,EOL);
-      string_append_eos(input_line);
+    if (line_length > 0) string_right_append_buffer(input_line,line,line_length);
+    // Update input buffer
+    if (buffered_input->current_buffer_line_no >= buffered_input->current_buffer_line_max) {
+      if (!buffered_input_file_load_next_chunk(buffered_input)) {
+        string_append_char(input_line,EOL);
+        string_append_eos(input_line);
+        return string_get_length(input_line);
+      }
+    } else {
+      buffered_input->current_buffer_sentinel += line_length;
+      ++(buffered_input->current_buffer_line_no);
+      ++(buffered_input->current_line_no);
+      // Handle EOL
+      const uint64_t input_line_length = string_get_length(input_line);
+      if (input_line_length >= 2) {
+        char* const input_line_buffer = string_get_buffer(input_line);
+        if (input_line_buffer[input_line_length-2] == DOS_EOL) {
+          input_line_buffer[input_line_length-2] = EOL;
+          string_set_length(input_line,input_line_length-1);
+        }
+      }
+      // Return
       return string_get_length(input_line);
     }
   }
-  // Copy until the end-of-line
-  char* const line = buffered_input->current_buffer_sentinel;
-  const uint32_t* const lengths = vector_get_mem(buffered_input->current_buffer->line_lengths,uint32_t);
-  const uint64_t line_length = lengths[buffered_input->current_buffer_line_no];
-  // Set line
-  string_right_append_buffer(input_line,line,line_length);
-  // Next
-  buffered_input->current_buffer_sentinel += line_length;
-  ++(buffered_input->current_buffer_line_no);
-  ++(buffered_input->current_line_no);
-  // Handle EOL
-  const uint64_t input_line_length = string_get_length(input_line);
-  if (input_line_length >= 2) {
-    char* const input_line_buffer = string_get_buffer(input_line);
-    if (input_line_buffer[input_line_length-2] == DOS_EOL) {
-      input_line_buffer[input_line_length-2] = EOL;
-      string_set_length(input_line,input_line_length-1);
-    }
-  }
-  // Return
-  return string_get_length(input_line);
 }
 /*
  * Utils

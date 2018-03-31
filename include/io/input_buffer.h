@@ -46,7 +46,7 @@ typedef struct {
   uint64_t buffer_size;              // Total bytes in buffer
   uint64_t buffer_allocated;         // Total bytes allocated
   /* Line Index */
-  vector_t* line_lengths;            // Length of every line in the buffer (uint32_t)
+  vector_t* line_lengths;            // Length of every line in the buffer (uint64_t)
 } input_buffer_t;
 
 /*

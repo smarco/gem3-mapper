@@ -120,11 +120,13 @@ void input_file_sliced_close(input_file_sliced_t* const input_file_sliced) {
 /*
  * Accessors
  */
-char* input_file_sliced_get_file_name(input_file_sliced_t* const input_file_sliced) {
+char* input_file_sliced_get_file_name(
+    input_file_sliced_t* const input_file_sliced) {
   char* const file_name = fm_get_file_name(input_file_sliced->file_manager);
   return (file_name!=NULL) ? file_name : STREAM_FILE_NAME;
 }
-uint64_t input_file_sliced_get_next_id(input_file_sliced_t* const input_file_sliced) {
+uint64_t input_file_sliced_get_next_id(
+    input_file_sliced_t* const input_file_sliced) {
   const uint64_t assign_id = input_file_sliced->input_buffer_id;
   input_file_sliced->input_buffer_id = (input_file_sliced->input_buffer_id+1) % UINT32_MAX;
   return assign_id;
@@ -193,7 +195,8 @@ void input_file_sliced_input_buffer_process(
     CV_BROADCAST(input_file_sliced->input_buffers_ready_cond);
   }
 }
-void input_file_sliced_process(input_file_sliced_t* const input_file_sliced) {
+void input_file_sliced_process(
+    input_file_sliced_t* const input_file_sliced) {
   // Check input buffers
   MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
   while (true) {
@@ -240,8 +243,8 @@ bool input_file_sliced_read_lines(
     uint64_t* const total_read_size,
     uint64_t* const input_last_buffer_line_end) {
   // Parameters
-  const uint64_t total_lines = vector_get_used(current_file_buffer->line_lengths) - 1;
-  uint32_t* const line_lengths = vector_get_mem(current_file_buffer->line_lengths,uint32_t);
+  const uint64_t total_lines = input_buffer_get_num_lines(current_file_buffer);
+  uint64_t* const line_lengths = vector_get_mem(current_file_buffer->line_lengths,uint64_t);
   // Get current buffer line
   uint64_t current_buffer_offset = input_file_sliced->current_buffer_offset;
   uint64_t current_buffer_line = input_file_sliced->current_buffer_line;
@@ -267,9 +270,7 @@ bool input_file_sliced_read_lines(
   const uint64_t line_length = line_lengths[current_buffer_line]; // Last characters of the buffer
   read_size += line_length;
   current_buffer_offset += line_length;
-  input_file_sliced->current_buffer_offset = current_buffer_offset;
-  input_file_sliced->current_buffer_line = current_buffer_line;
-  *input_last_buffer_line_end = input_file_sliced->current_buffer_line; // Set buffer limit
+  *input_last_buffer_line_end = current_buffer_line; // Set buffer limit
   *total_read_lines = read_lines;
   *total_read_size = read_size;
   // Next input-buffer
@@ -283,64 +284,61 @@ bool input_file_sliced_read_lines(
 /*
  * Current Input-Buffer
  */
-input_buffer_t* input_file_sliced_input_buffer_get_current(input_file_sliced_t* const input_file_sliced) {
-  // Find next buffer ready
+input_buffer_t* input_file_sliced_input_buffer_get_current(
+    input_file_sliced_t* const input_file_sliced) {
+  // Check current buffer
   input_buffer_t* input_buffer = NULL;
   if (input_file_sliced->current_buffer != NULL) {
     input_buffer = input_file_sliced->current_buffer;
-  } else {
-    MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
-    while (input_buffer==NULL) {
-      // Find next buffer
-      const uint64_t current_buffer_id = input_file_sliced->current_buffer_id;
-      input_buffer = input_file_sliced_find_buffer(input_file_sliced,current_buffer_id);
-      if (input_buffer!=NULL) {
-        // Buffer found
-        switch (input_buffer->buffer_state) {
-          case input_buffer_ready:
-            input_file_sliced->current_buffer = input_buffer;
-            break;
-          case input_buffer_processing:
-            // Another thread is annotating the buffer (just wait for it)
-            CV_WAIT(input_file_sliced->input_buffers_ready_cond,input_file_sliced->input_buffers_mutex);
-            input_file_sliced->current_buffer = input_buffer;
-            break;
-          default:
-            GEM_INVALID_CASE();
-            break;
-        }
-      } else {
-        // EOF
-        if (fm_eof(input_file_sliced->file_manager)) {
-          MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
-          return NULL;
-        }
-        // Buffer not processed yet
-        if (input_file_sliced->num_buffers_empty > 0) {
-          // Read into the next empty buffer
-          input_buffer = input_file_sliced_request_buffer_empty(input_file_sliced);
-          input_file_sliced_input_buffer_process(input_file_sliced,input_buffer);
+    // Increase the number of readers
+    ++(input_buffer->num_readers);
+    // Return the buffer
+    return input_buffer;
+  }
+  // Find next buffer ready
+  MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
+  while (input_buffer == NULL) {
+    // Find next buffer
+    const uint64_t current_buffer_id = input_file_sliced->current_buffer_id;
+    input_buffer = input_file_sliced_find_buffer(input_file_sliced,current_buffer_id);
+    if (input_buffer != NULL) {
+      // Buffer found
+      switch (input_buffer->buffer_state) {
+        case input_buffer_ready:
           input_file_sliced->current_buffer = input_buffer;
           break;
-        } else {
-          // No empty buffers (go sleep & wait)
-          CV_WAIT(input_file_sliced->input_buffers_empty_cond,input_file_sliced->input_buffers_mutex);
-        }
+        case input_buffer_processing:
+          // Another thread is annotating the buffer (just wait for it)
+          CV_WAIT(input_file_sliced->input_buffers_ready_cond,input_file_sliced->input_buffers_mutex);
+          input_file_sliced->current_buffer = input_buffer;
+          break;
+        default:
+          GEM_INVALID_CASE();
+          break;
+      }
+    } else {
+      // EOF
+      if (fm_eof(input_file_sliced->file_manager)) {
+        MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
+        return NULL;
+      }
+      // Buffer not processed yet
+      if (input_file_sliced->num_buffers_empty > 0) {
+        // Read into the next empty buffer
+        input_buffer = input_file_sliced_request_buffer_empty(input_file_sliced);
+        input_file_sliced_input_buffer_process(input_file_sliced,input_buffer);
+        input_file_sliced->current_buffer = input_buffer;
+        break;
+      } else {
+        // No empty buffers (go sleep & wait)
+        CV_WAIT(input_file_sliced->input_buffers_empty_cond,input_file_sliced->input_buffers_mutex);
       }
     }
-    MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
   }
+  MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
   // Increase the number of readers
   ++(input_buffer->num_readers);
   // Return the buffer
   return input_buffer;
-}
-void input_file_sliced_input_buffer_next(input_file_sliced_t* const input_file_sliced) {
-  // Next
-  input_file_sliced->current_buffer = NULL;
-  ++(input_file_sliced->current_buffer_id);
-  // Init
-  input_file_sliced->current_buffer_offset = 0;
-  input_file_sliced->current_buffer_line = 0;
 }
 
