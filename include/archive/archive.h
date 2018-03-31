@@ -41,8 +41,9 @@
  * Archive
  */
 typedef enum {
-  archive_dna=0,
-  archive_dna_bisulfite=UINT64_MAX,
+  archive_dna_full         = 0,          // Standard DNA Text (forward & RC)
+  archive_dna_forward      = 1,          // DNA Forward Text (Only forward DNA Strand)
+  archive_dna_bisulfite    = UINT64_MAX, // Bisulfite Text
 } archive_type;
 typedef struct {
   // Meta-information

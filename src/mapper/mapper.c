@@ -314,7 +314,10 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   mapper_load_index(mapper_parameters);
   gem_cond_fatal_error_msg(
       paired_end && mapper_parameters->archive->text->run_length,
-      "Archive.RL-Text not supported for Paired-End Mode (yet...)");
+      "Archive RL-text not supported for paired-end mode (use standard index)");
+  gem_cond_fatal_error_msg(
+      paired_end && (mapper_parameters->archive->type == archive_dna_forward),
+      "Archive no-complement not supported for paired-end mode (use standard index)");
   if (mapper_parameters->archive->gpu_index) {
     gem_warn_msg(
         "Running CPU-mode using GPU-index; "

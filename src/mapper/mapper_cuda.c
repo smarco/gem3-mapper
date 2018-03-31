@@ -126,7 +126,10 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
   mapper_load_index(mapper_parameters);
   gem_cond_fatal_error_msg(
       mapper_parameters->archive->text->run_length,
-      "Archive RL-Text not supported for CUDA (yet...)");
+      "Archive RL-Text not supported for CUDA (use standard index)");
+  gem_cond_fatal_error_msg(
+      mapper_parameters->archive->type == archive_dna_forward,
+      "Archive no-complement not supported for paired-end mode (use standard index)");
   gem_cond_fatal_error_msg(
       !mapper_parameters->archive->gpu_index,
       "Archive was not built with CUDA support (please re-run gem-indexer for GPU)");

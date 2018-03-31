@@ -342,7 +342,7 @@ void gem_strncpy(char* const buffer_dst,const char* const buffer_src,const uint6
   buffer_dst[length] = EOS;
 }
 char* gem_strndup(const char* const buffer,const uint64_t length) {
-  char* const buffer_cpy = mm_malloc(length+1);
+  char* const buffer_cpy = mm_calloc(length+1,char,true);
   strncpy(buffer_cpy,buffer,length);
   return buffer_cpy;
 }
@@ -404,13 +404,13 @@ char* gem_strrmext(char* const buffer) {
 }
 char* gem_strbasename(char* const buffer) {
   const int64_t total_length = strlen(buffer);
-  int64_t i = total_length-1;
-  while (i>=0) {
+  int64_t i, base_length = 0;
+  for (i=total_length-1;i>=0;--i) {
     if (buffer[i]==SLASH) {
-      return gem_strdup(buffer+i+1);
+      if (base_length > 0) return gem_strndup(buffer+i+1,base_length);
     }
-    --i;
+    ++base_length;
   }
-  return gem_strdup(buffer);
+  return (base_length>0) ? gem_strndup(buffer,base_length) : gem_strndup("",1);
 }
 

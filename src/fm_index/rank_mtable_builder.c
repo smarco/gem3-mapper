@@ -171,8 +171,8 @@ rank_mtable_t* rank_mtable_builder_generate(
   // Alloc
   rank_mtable_t* const rank_mtable = mm_alloc(rank_mtable_t);
   // Set Meta-Inf
-  rank_mtable->num_levels=RANK_MTABLE_LEVELS;
-  rank_mtable->table_size=RANK_MTABLE_SIZE(RANK_MTABLE_SEARCH_DEPTH);
+  rank_mtable->num_levels = RANK_MTABLE_LEVELS;
+  rank_mtable->table_size = RANK_MTABLE_SIZE(RANK_MTABLE_SEARCH_DEPTH);
   // Allocate table
   rank_mtable->mm_sa_ranks = NULL;
   rank_mtable->sa_ranks_levels = mm_calloc(RANK_MTABLE_LEVELS,uint64_t*,true);

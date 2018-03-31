@@ -37,8 +37,10 @@ ifeq ($(HAVE_CUDA),1)
 endif
 
 clean: setup
-ifeq ($(and $(HAVE_CUDA),$(GEM_CUTTER)),)
+ifeq ($(HAVE_CUDA),1)
+ifeq ($(GEM_CUTTER),1)
 	$(MAKE) --directory=gem-cutter clean
+endif
 endif
 	@rm -rf build
 

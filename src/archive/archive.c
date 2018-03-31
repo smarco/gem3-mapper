@@ -98,9 +98,23 @@ void archive_print(FILE* const stream,const archive_t* const archive) {
   const uint64_t archive_text_size = archive_text_get_size(archive->text);
   const uint64_t archive_size = locator_size + fm_index_size + archive_text_size;
   // Archive type
-  tab_fprintf(stream,"  => Index.Type GEM.FM-Index.DNA.%s%s\n",
-      (archive->text->run_length) ? "RunLength" : "Classic",
-      (archive->type==archive_dna_bisulfite) ? ".bisulfite" : "");
+  tab_fprintf(stream,"  => Index.Type GEM.FM-Index.DNA");
+  if (archive->text->run_length) {
+    fprintf(stream,".RunLength");
+  } else {
+    fprintf(stream,".Classic");
+  }
+  switch (archive->type) {
+    case archive_dna_full:
+      fprintf(stream,".full\n");
+      break;
+    case archive_dna_forward:
+      fprintf(stream,".forwardOnly\n");
+      break;
+    case archive_dna_bisulfite:
+      fprintf(stream,".bisulfite\n");
+      break;
+  }
   // Ns-Threshold
   tab_fprintf(stream,"  => Ns.Threshold %"PRIu64"\n",archive->ns_threshold);
   // Index-Reverse-Text

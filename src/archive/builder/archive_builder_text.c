@@ -354,20 +354,24 @@ void archive_builder_text_inspect(
   ++enc_text_length; // Separator
   ticker_finish(&ticker);
   if (line_buffer != NULL) free(line_buffer); // Free
+  // Configure RC generation
+  if (archive_builder->type==archive_dna_full) {
+    enc_text_length = 2*enc_text_length; // Add complement length
+  }
   // Configure Bisulfite generation
   if (archive_builder->type==archive_dna_bisulfite) {
     enc_text_length = 2*enc_text_length;
   }
-  // Configure RC generation
-  enc_text_length = 2*enc_text_length; // Add complement length
   ++enc_text_length; // Add extra separator (Close text)
   // Rewind input MULTIFASTA
   fseek(input_multifasta_file->file,0,SEEK_SET);
   input_multifasta_file->line_no = 0;
   // Log
   tfprintf(gem_log_get_stream(),
-      "Inspected text %"PRIu64" characters (%s). Requesting %"PRIu64" MB (enc_text)\n",
-      enc_text_length,"index_complement=yes",CONVERT_B_TO_MB(enc_text_length));
+      "Inspected text %"PRIu64" characters (index_complement=%s). Requesting %"PRIu64" MB (encoded text)\n",
+      enc_text_length,
+      (archive_builder->type==archive_dna_forward) ? "no" : "yes",
+      CONVERT_B_TO_MB(enc_text_length));
   // Allocate Text (Circular BWT extra)
   archive_builder->enc_text = dna_text_padded_new(enc_text_length,2,SA_BWT_PADDED_LENGTH);
 }
@@ -389,7 +393,9 @@ void archive_builder_text_process(
   input_multifasta_state_t* const parsing_state = &archive_builder->input_multifasta_file.parsing_state;
   archive_builder->forward_text_length = parsing_state->index_position;
   // Generate RC-Text
-  archive_builder_text_reverse_complement(archive_builder,verbose);
+  if (archive_builder->type==archive_dna_full) {
+    archive_builder_text_reverse_complement(archive_builder,verbose);
+  }
   archive_builder_text_add_separator(archive_builder); // Add extra separator (Close full-text)
   // Set full-text length
   dna_text_set_length(archive_builder->enc_text,parsing_state->index_position);

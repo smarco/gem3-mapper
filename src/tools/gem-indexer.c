@@ -45,7 +45,7 @@ char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
  * GEM-mapper Error Handling
  */
 #define gem_indexer_error_msg(error_msg,args...) \
-  fprintf(stderr,"GEM-Mapper error:\n> "error_msg"\n",##args); \
+  fprintf(stderr,"GEM-Indexer error:\n> "error_msg"\n",##args); \
   exit(1)
 #define gem_indexer_cond_error_msg(condition,error_msg,args...) \
   do { \
@@ -62,9 +62,11 @@ typedef struct {
   char* input_multifasta_file_name;
   char* input_graph_file_name;
   char* output_index_file_name;
+  bool output_index_file_name_prefix_alloc;
   char* output_index_file_name_prefix;
   uint64_t ns_threshold;
   /* Index */
+  bool dna_complement;
   bool sampling_rate_set;
   sampling_rate_t sa_sampling_rate;
   sampling_rate_t text_sampling_rate;
@@ -96,10 +98,12 @@ void indexer_parameters_set_defaults(indexer_parameters_t* const parameters) {
   parameters->input_multifasta_file_name=NULL;
   parameters->input_graph_file_name=NULL;
   parameters->output_index_file_name=NULL;
+  parameters->output_index_file_name_prefix_alloc=false;
   parameters->output_index_file_name_prefix=NULL;
   /* MultiFasta Processing */
   parameters->ns_threshold=50;
   /* Index */
+  parameters->dna_complement = true;
   parameters->run_length_index = false;
   parameters->bisulfite_index = false;
   parameters->sampling_rate_set = false;
@@ -254,6 +258,9 @@ void indexer_cleanup(archive_builder_t* const archive_builder,indexer_parameters
   // Archive Builder
   archive_builder_delete(archive_builder);
   // Output file name
+  if (parameters->output_index_file_name_prefix_alloc) {
+    mm_free(parameters->output_index_file_name_prefix);
+  }
   mm_free(parameters->output_index_file_name);
   // Info File Name
   if (!parameters->info_file_name_provided)  {
@@ -269,6 +276,7 @@ option_t gem_indexer_options[] = {
   { 'o', "output", REQUIRED, TYPE_STRING, 2 , VISIBILITY_USER, "<output_prefix>" , "" },
   { 'N', "strip-unknown-bases-threshold", REQUIRED, TYPE_INT, 2 , VISIBILITY_ADVANCED, "'disable'|<integer>" , "(default=50)" },
   /* Index */
+  { 300, "complement", OPTIONAL, TYPE_STRING, 3 , VISIBILITY_ADVANCED, "" , "(default=yes)" },
 #ifdef HAVE_CUDA
   { 's', "text-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=32)" },
   { 'S', "SA-sampling-rate", REQUIRED, TYPE_INT, 3 , VISIBILITY_ADVANCED, "<sampling_rate>" , "(default=8)" },
@@ -279,7 +287,7 @@ option_t gem_indexer_options[] = {
   { 'r', "run-length-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=false)" },
   { 'b', "bisulfite-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_USER, "" , "(default=false)" },
 #ifdef HAVE_CUDA
-  { 300, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
+  { 301, "gpu-index", OPTIONAL, TYPE_NONE, 3 , VISIBILITY_ADVANCED, "" , "(default=true)" },
 #endif
   /* Debug */
   { 400, "dump-locator-intervals", OPTIONAL, TYPE_NONE, 4 , VISIBILITY_ADVANCED, "" , "" },
@@ -338,6 +346,13 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       }
       break;
     /* Index */
+    case 300: // --complement
+      if (optarg == NULL) {
+        parameters->dna_complement = true;
+      } else {
+        parameters->dna_complement = input_text_parse_extended_bool(optarg);
+      }
+      break;
     case 's': { // --text_sampling-rate
       const uint64_t sampling = atol(optarg);
       switch (sampling) {
@@ -379,31 +394,31 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
     }
     break;
     case 'r': // --run-length-index
-      parameters->run_length_index = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->run_length_index = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 'b': // --bisulfite-index
-      parameters->bisulfite_index = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->bisulfite_index = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
 #ifdef HAVE_CUDA
-    case 300: // --gpu-index
-      parameters->gpu_index = (optarg) ? options_parse_bool(optarg) : true;
+    case 301: // --gpu-index
+      parameters->gpu_index = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
 #endif
     /* Debug/Temporal */
     case 400: // --dump-locator-intervals
-      parameters->dump_locator_intervals = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_locator_intervals = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 401: // --dump-indexed-text
-      parameters->dump_indexed_text = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_indexed_text = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 402: // --dump-explicit-sa
-      parameters->dump_explicit_sa = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_explicit_sa = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 403: // --dump-bwt
-      parameters->dump_bwt = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_bwt = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 404:
-      parameters->dump_run_length_text = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->dump_run_length_text = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 405: // --debug
       parameters->dump_locator_intervals = true;
@@ -415,7 +430,7 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
       parameters->verbose = true;
       break;
     case 406: // --check-index
-      parameters->check_index = (optarg) ? options_parse_bool(optarg) : true;
+      parameters->check_index = (optarg) ? input_text_parse_extended_bool(optarg) : true;
       break;
     case 407: // --bwt
       parameters->dev_generate_only_bwt = true;
@@ -464,15 +479,26 @@ void parse_arguments(int argc,char** argv,indexer_parameters_t* const parameters
    * Parameters Check
    */
   // Input file name
-  gem_indexer_cond_error_msg(parameters->input_multifasta_file_name==NULL,
+  gem_indexer_cond_error_msg(
+      parameters->input_multifasta_file_name==NULL,
       "Parsing arguments. Please specify an input filename (--input)");
   // Output file name
   if (parameters->output_index_file_name==NULL) {
-    parameters->output_index_file_name_prefix = gem_strrmext(gem_strbasename(parameters->input_multifasta_file_name));
+    parameters->output_index_file_name_prefix_alloc = true;
+    char* const base_name = gem_strbasename(parameters->input_multifasta_file_name);
+    parameters->output_index_file_name_prefix = gem_strrmext(base_name);
     parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
   } else {
     parameters->output_index_file_name_prefix = parameters->output_index_file_name;
     parameters->output_index_file_name = gem_strcat(parameters->output_index_file_name_prefix,".gem");
+  }
+  // Index type
+  gem_indexer_cond_error_msg(
+      !parameters->dna_complement && parameters->bisulfite_index,
+      "Cannot build single-stranded index in bisulfite mode");
+  if (!parameters->dna_complement && parameters->gpu_index) {
+    parameters->gpu_index = false;
+    fprintf(stderr,"GEM-Indexer warning:\n> GPU-Index disabled (not compatible with no-complement index)\n");
   }
   // Sampling rate
   if (!parameters->gpu_index && !parameters->sampling_rate_set) {
@@ -503,15 +529,15 @@ int main(int argc,char** argv) {
   indexer_parameters_t parameters;
   indexer_parameters_set_defaults(&parameters);
   parse_arguments(argc,argv,&parameters);
-
   // GEM Runtime setup
   gruntime_init(parameters.num_threads,parameters.tmp_folder);
   parameters.info_file = fopen(parameters.info_file_name,"wb"); // Set INFO file
   TIMER_RESTART(&gem_indexer_timer); // Start global timer
-
   // GEM Archive Builder
+  archive_type type = archive_dna_full;
+  if (!parameters.dna_complement) type = archive_dna_forward;
+  if (parameters.bisulfite_index) type = archive_dna_bisulfite;
   fm_t* const index_file = fm_open_file(parameters.output_index_file_name,FM_WRITE);
-  const archive_type type = (parameters.bisulfite_index) ? archive_dna_bisulfite : archive_dna;
   archive_builder_t* const archive_builder =
       archive_builder_new(
           parameters.input_multifasta_file_name,index_file,
@@ -520,14 +546,11 @@ int main(int argc,char** argv) {
           parameters.sa_sampling_rate,parameters.text_sampling_rate,
           parameters.num_threads,parameters.max_memory,
           parameters.info_file);
-
   // Process MultiFASTA
   indexer_process_multifasta(archive_builder,&parameters);
-
   // Generate BWT
   indexer_generate_bwt(archive_builder,&parameters);
   indexer_write_index(archive_builder,&parameters); // Write Index
-
   /*
    * Display end banner
    */
@@ -542,12 +565,10 @@ int main(int argc,char** argv) {
       fprintf(stderr,"\n");
     }
   }
-
   // Free
   indexer_cleanup(archive_builder,&parameters);
   if (parameters.info_file) fclose(parameters.info_file);
   gruntime_destroy();
-
   return 0;
 }
 

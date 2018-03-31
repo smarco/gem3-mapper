@@ -121,7 +121,7 @@ FLAGS_GCC_WARNINGS3=-pedantic \
                     -Wtraditional-conversion 
                    
 ## Base flags (Generic Compiler)
-FLAGS_GENERAL=-std=c99 -Wall # $(FLAGS_GCC_WARNINGS0)
+FLAGS_GENERAL=-std=c99 -Wall
 FLAGS_SUPPRESS_CHECKS=-DNDEBUG
 FLAGS_OPT=-O4
 FLAGS_DEVEL=-g
@@ -156,7 +156,7 @@ PATH_INCLUDE=-I$(FOLDER_INCLUDE)
 PATH_LIB=-L$(FOLDER_LIB)
 
 # Link Libs
-LIBS=-lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB) # -lgemcore_c
+LIBS=-lpthread -lm
 ifeq ($(PLATFORM),Linux)
   LIBS+=-lrt
 endif

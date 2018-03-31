@@ -66,10 +66,5 @@ void options_fprint_menu(
 #define GEM_OPTIONS_ITERATE_END \
     string_delete(__short_getopt)
 
-/*
- * Useful option parsing tools
- */
-#define options_parse_bool(str_argument) (gem_streq(str_argument,"true") || gem_streq(str_argument,"yes"))
-
 #endif /* OPTIONS_MENU_H_ */
 
