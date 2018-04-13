@@ -37,11 +37,6 @@
 #include "system/fm.h"
 #include <sys/resource.h>
 
-#define MM_USE_SYSINFO
-#ifdef MM_USE_SYSINFO
-#include <sys/sysinfo.h>
-#endif
-
 /*
  * Config
  */
@@ -640,18 +635,8 @@ int64_t mm_get_mem_available_free(void) {
 int64_t mm_get_mem_available_total(void) {
   return mm_get_mem_available_free()+mm_get_mem_available_cached(); // Bytes
 }
-#ifdef MM_USE_SYSINFO
-int64_t mm_get_mem_total(void) {
-  struct sysinfo info;
-  int error = sysinfo(&info);
-  gem_cond_fatal_error(error!=0,MEM_SYSINFO);
-  return (int64_t)(info.totalram * info.mem_unit);// Bytes
-}
-#else
 int64_t mm_get_mem_total(void) {
   const int64_t size = mm_get_stat_meminfo("MemTotal:",9);
   gem_cond_fatal_error(size==-1,MEM_STAT_MEMINFO,"MemTotal");
   return size; // Bytes
 }
-#endif
-
