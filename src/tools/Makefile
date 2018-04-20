@@ -35,7 +35,7 @@ VERSION=$(shell if [ -d $(ROOT_PATH)/.git ]; then git describe --abbrev=4 --dirt
 ###############################################################################
 # Tools
 ###############################################################################
-GEM_TOOLS=gem-mapper gem-indexer gem-mappability gem-retriever
+GEM_TOOLS=gem-mapper gem-indexer gem-retriever
 GEM_TOOLS_SRC=$(addsuffix .c, $(GEM_TOOLS))
 GEM_TOOLS_BIN=$(addprefix $(FOLDER_BIN)/, $(GEM_TOOLS))
 
