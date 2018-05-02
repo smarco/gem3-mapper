@@ -584,6 +584,30 @@ void mm_write_mem(mm_t* const mem_manager,void* const src,const uint64_t num_byt
 /*
  * Status
  */
+#ifdef __MACH__
+#include <sys/sysctl.h>
+int64_t mm_get_page_size(void) {
+  return BUFFER_SIZE_4K;
+}
+int64_t mm_get_mem_available_virtual(void) {
+  return mm_get_mem_total();
+}
+int64_t mm_get_mem_available_cached(void) {
+  return mm_get_mem_total();
+}
+int64_t mm_get_mem_available_free(void) {
+  return mm_get_mem_total();
+}
+int64_t mm_get_mem_available_total(void) {
+  return mm_get_mem_total();
+}
+int64_t mm_get_mem_total(void) {
+  int64_t x;
+  size_t l = sizeof(x);
+  sysctlbyname("hw.memsize", &x, &l, NULL, 0);
+  return x;
+}
+#else
 int64_t mm_get_page_size(void) {
   int64_t page_size = sysconf(_SC_PAGESIZE);
   gem_cond_fatal_error(page_size==-1,SYS_SYSCONF);
@@ -640,3 +664,5 @@ int64_t mm_get_mem_total(void) {
   gem_cond_fatal_error(size==-1,MEM_STAT_MEMINFO,"MemTotal");
   return size; // Bytes
 }
+#endif
+
