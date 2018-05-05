@@ -52,7 +52,11 @@ debug: $(OBJS)
 ###############################################################################
 # Rules
 ###############################################################################
+
+$(FOLDER_BUILD)/pattern.o : pattern.c
+	$(CC) $(GEM_FLAGS) $(DEF_CUDA) $(PATH_INCLUDE) -c $< -o $@
 	
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
+		

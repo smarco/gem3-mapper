@@ -51,8 +51,13 @@ complexity:
 	pmccabe -vt include/*/*.h src/*/*.c
 	
 setup: 
-	@mkdir -p $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
-	@ln -s $(FOLDER_RESOURCES) $(FOLDER_INCLUDE)/resources 2> /dev/null ||:
+	@-mkdir -p $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
+	@-ln -s $(FOLDER_RESOURCES) $(FOLDER_INCLUDE)/resources 2> /dev/null
+ifeq ($(HAVE_CUDA),1)
+ifeq ($(HAVE_CUTTER),0)
+	@-git submodule update --init --recursive 2> /dev/null
+endif
+endif
 
 clean:
 	$(MAKE) --directory=resources clean
