@@ -189,7 +189,7 @@ endif
 ###############################################################################
 HAVE_CUTTER=1
 ifeq ($(HAVE_CUDA),1)
-  HAVE_CUTTER=$(if $(shell ls -A $(FOLDER_RESOURCES)/gem-cutter),1,0)
+  HAVE_CUTTER=$(if $(shell ls -A $(FOLDER_RESOURCES)/gem-cutter 2> /dev/null),1,0)
 endif
 ifeq ($(notdir $(CURDIR)), gem-cutter)
   HAVE_CUTTER=1
