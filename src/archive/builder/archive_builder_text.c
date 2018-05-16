@@ -355,7 +355,7 @@ void archive_builder_text_inspect(
   ticker_finish(&ticker);
   if (line_buffer != NULL) free(line_buffer); // Free
   // Configure RC generation
-  if (archive_builder->type==archive_dna_full) {
+  if (archive_builder->type!=archive_dna_forward) {
     enc_text_length = 2*enc_text_length; // Add complement length
   }
   // Configure Bisulfite generation
@@ -393,7 +393,7 @@ void archive_builder_text_process(
   input_multifasta_state_t* const parsing_state = &archive_builder->input_multifasta_file.parsing_state;
   archive_builder->forward_text_length = parsing_state->index_position;
   // Generate RC-Text
-  if (archive_builder->type==archive_dna_full) {
+  if (archive_builder->type!=archive_dna_forward) {
     archive_builder_text_reverse_complement(archive_builder,verbose);
   }
   archive_builder_text_add_separator(archive_builder); // Add extra separator (Close full-text)
