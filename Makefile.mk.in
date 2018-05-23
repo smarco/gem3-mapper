@@ -123,7 +123,7 @@ FLAGS_GCC_WARNINGS3=-pedantic \
 ## Base flags (Generic Compiler)
 FLAGS_GENERAL=-std=c99 -Wall
 FLAGS_SUPPRESS_CHECKS=-DNDEBUG
-FLAGS_OPT=-O4
+FLAGS_OPT=-O3
 FLAGS_DEVEL=-g
 FLAGS_DEBUG=-O0
 FLAGS_PROFILE=-rdynamic
@@ -137,7 +137,8 @@ ifeq ($(CC),gcc)
     AR=gcc-ar
     OPT_AR=-fuse-linker-plugin
   endif
-  FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
+#  FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
+  FLAGS_OPT=-O3 $(OPT_LTO)
   FLAGS_LINK=$(OPT_AR)
 endif
 

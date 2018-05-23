@@ -63,3 +63,6 @@ clean:
 	$(MAKE) --directory=resources clean
 	@rm -rf $(FOLDER_BIN) $(FOLDER_BUILD) $(FOLDER_LIB)
 	@rm -rf $(FOLDER_INCLUDE)/resources
+
+distclean: clean
+	@rm -f config.status config.log Makefile.mk
