@@ -789,3 +789,77 @@ int fmprintf(fm_t* const file_manager,const char *template,...) {
   va_end(v_args);
   return num_bytes;
 }
+
+int bzgetc(void *stream) {
+	int err;
+	char c;
+	int n = BZ2_bzRead(&err,stream,&c,1);
+	if(n < 1) return EOF;
+	return (int)c;
+}
+
+ssize_t fm_getline(char **buf, size_t *bufsiz, fm_t* const file_manager) {
+	
+	char *ptr, *eptr;
+	
+	if (*buf == NULL || *bufsiz == 0) {
+		*bufsiz = 64;
+		if ((*buf = malloc(*bufsiz)) == NULL) return -1;
+	}
+
+	void *stream;
+	int(*fm_getc)(void *stream);
+	switch (file_manager->file_type) {
+	 case FM_STREAM:
+	 case FM_REGULAR_FILE:
+		stream = file_manager->file;
+		fm_getc = (int (*)(void *))fgetc;
+		break;
+#ifdef HAVE_ZLIB
+	 case FM_GZIPPED_FILE:
+		stream = file_manager->gz_file;
+		fm_getc = (int (*)(void *))gzgetc;
+		break;
+#endif
+#ifdef HAVE_BZLIB
+	 case FM_BZIPPED_FILE:
+		stream = file_manager->bz_file;
+		fm_getc = bzgetc;
+		break;
+#endif
+	 default:
+		GEM_INVALID_CASE();
+		break;
+	}
+	
+	for (ptr = *buf, eptr = *buf + *bufsiz;;) {
+		int c = fm_getc(stream);
+		if (c == EOF) {
+#if HAVE_BZLIB
+			if(file_manager->file_type == FM_BZIPPED_FILE) file_manager->eof = true;
+#endif
+			if (fm_eof(file_manager)) {
+				*ptr = '\0';
+				return ptr == *buf ? -1 : ptr - *buf;
+			} else {
+				return -1;
+			}
+		}
+		file_manager->byte_position++;
+		*ptr++ = c;
+		if (c == '\n') {
+			*ptr = '\0';
+			return ptr - *buf;
+		}
+		if (ptr + 2 >= eptr) {
+			char *nbuf;
+			size_t nbufsiz = *bufsiz * 2;
+			ssize_t d = ptr - *buf;
+			if ((nbuf = realloc(*buf, nbufsiz)) == NULL) return -1;
+			*buf = nbuf;
+			*bufsiz = nbufsiz;
+			eptr = nbuf + nbufsiz;
+			ptr = nbuf + d;
+		}
+	}
+}

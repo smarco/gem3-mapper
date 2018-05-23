@@ -86,10 +86,12 @@ uint64_t fm_read_uint64(fm_t* const file_manager);
 uint32_t fm_read_uint32(fm_t* const file_manager);
 uint16_t fm_read_uint16(fm_t* const file_manager);
 uint8_t fm_read_uint8(fm_t* const file_manager);
+ssize_t fm_getline(char **buf, size_t *bufsiz, fm_t* const file_manager);
 uint64_t fm_read_mem(
     fm_t* const file_manager,
     void* const dst,
     const uint64_t num_bytes);
+
 // TODO uint64_t fm_read_mem_parallel(
 //    fm_t* const file_manager,
 //    void* const dst,

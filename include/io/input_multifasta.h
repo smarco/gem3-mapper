@@ -74,7 +74,7 @@ typedef struct {
 typedef struct {
   /* Multi-FASTA File */
   char* file_name;                        // File name
-  FILE* file;                             // File stream
+  fm_t* file_manager;
   uint64_t line_no;                       // Current line number
   /* Parsing State */
   input_multifasta_state_t parsing_state; // Parsing state
