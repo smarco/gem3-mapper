@@ -103,6 +103,18 @@ input_file_sliced_t* input_file_sliced_open(
   // Return
   return input_file_sliced;
 }
+input_file_sliced_t* input_file_sliced_popen(
+    char* const file_name,
+    const uint64_t input_num_blocks,
+    const uint64_t block_size){
+  // Allocate handler
+  input_file_sliced_t* const input_file_sliced = mm_alloc(input_file_sliced_t);
+  // Initialize
+  input_file_sliced->file_manager = fm_open_popen(file_name,FM_READ);
+  input_file_sliced_initialize(input_file_sliced,input_num_blocks,block_size);
+  // Return
+  return input_file_sliced;
+}
 void input_file_sliced_close(input_file_sliced_t* const input_file_sliced) {
   fm_close(input_file_sliced->file_manager);
   MUTEX_DESTROY(input_file_sliced->input_buffers_mutex);

@@ -129,6 +129,7 @@ void fm_initialize(fm_t* const file_manager) {
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE:
+	 case FM_POPEN:
       break;
 #ifdef HAVE_ZLIB
     case FM_GZIPPED_FILE: {
@@ -214,6 +215,31 @@ fm_t* fm_open_file(char* const file_name,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
+fm_t* fm_open_popen(char* const file_name,const fm_mode mode) {
+  char *pmode[] = {"r","w","r+"};
+  // Allocate handler
+  fm_t* file_manager = mm_alloc(fm_t);
+  // File
+  file_manager->fd = 0;
+  file_manager->file = popen(file_name,pmode[mode]);
+  gem_cond_fatal_error(file_manager->file==NULL,FM_FDOPEN,file_name);
+#ifdef HAVE_BZLIB
+  file_manager->bz_file = NULL;
+#endif
+#ifdef HAVE_ZLIB
+  file_manager->gz_file = NULL;
+#endif
+  // Attributes
+  file_manager->mode = mode;
+  file_manager->file_name = strdup(file_name);
+  gem_cond_fatal_error(file_manager->file_name==NULL,STRDUP);
+  file_manager->file_size = UINT64_MAX;
+  file_manager->file_type = FM_POPEN;
+  // Initialize file manager
+  fm_initialize(file_manager);
+  // Return fm
+  return file_manager;
+}
 fm_t* fm_open_temp_file(void) {
   // Allocate handler
   fm_t* const file_manager = mm_alloc(fm_t);
@@ -264,6 +290,7 @@ fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
+
 fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
 #ifndef HAVE_ZLIB
   gem_fatal_error(FM_NO_ZLIB_SUPPORT);
@@ -319,6 +346,9 @@ void fm_close(fm_t* const file_manager) {
     case FM_STREAM:
       gem_cond_fatal_error(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
       break;
+	case FM_POPEN:
+      gem_cond_fatal_error(pclose(file_manager->file),FM_CLOSE,file_manager->file_name);
+      break;	  
     case FM_REGULAR_FILE:
       gem_cond_fatal_error(fclose(file_manager->file),FM_CLOSE,file_manager->file_name);
       break;
@@ -362,6 +392,7 @@ bool fm_eof(fm_t* const file_manager) {
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE:
+	case FM_POPEN:
       file_manager->eof = feof(file_manager->file);
       return file_manager->eof;
       break;
@@ -573,6 +604,7 @@ uint64_t fm_read_mem(
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE:
+	 case FM_POPEN:
       num_bytes_read = fread(dst,1,num_bytes,file_manager->file);
       // gem_cond_fatal_error(num_bytes_read==0,FM_READ_ZERO,num_bytes,file_manager->file_name);
       file_manager->eof = (num_bytes_read<num_bytes);
@@ -650,6 +682,7 @@ void fm_write_mem(fm_t* const file_manager,const void* const src,const uint64_t 
   gem_fatal_check(!FM_IS_WRITING(file_manager->mode),FM_INVALID_MODE_WRITE,file_manager->file_name);
   switch (file_manager->file_type) {
     case FM_STREAM:
+	 case FM_POPEN:
     case FM_REGULAR_FILE: {
       gem_cond_fatal_error(fwrite(src,1,num_bytes,file_manager->file)!=num_bytes,FM_WRITE,file_manager->file_name);
       break;
@@ -766,6 +799,7 @@ int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args) {
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE:
+	 case FM_POPEN:
       num_bytes = vfprintf(file_manager->file,template,v_args);
       break;
     case FM_GZIPPED_FILE:
@@ -812,6 +846,7 @@ ssize_t fm_getline(char **buf, size_t *bufsiz, fm_t* const file_manager) {
 	switch (file_manager->file_type) {
 	 case FM_STREAM:
 	 case FM_REGULAR_FILE:
+	 case FM_POPEN:
 		stream = file_manager->file;
 		fm_getc = (int (*)(void *))fgetc;
 		break;

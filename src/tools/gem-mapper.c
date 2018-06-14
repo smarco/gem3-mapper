@@ -45,22 +45,35 @@ char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
 input_file_sliced_t* gem_mapper_open_input_file(
     char* const input_file_name,const fm_type input_compression,
     const uint64_t input_block_size,const uint64_t input_num_blocks,
-    const bool verbose_user) {
+	const bool verbose_user) {
   // Open input file
-  if (input_file_name==NULL) {
-    gem_cond_log(verbose_user,"[Reading input file from stdin]");
-    switch (input_compression) {
-      case FM_GZIPPED_FILE:
-        return input_gzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
-      case FM_BZIPPED_FILE:
-        return input_bzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
-      default:
-        return input_stream_sliced_open(stdin,input_num_blocks,input_block_size);
-    }
-  } else {
-    gem_cond_log(verbose_user,"[Opening input file '%s']",input_file_name);
-    return input_file_sliced_open(input_file_name,input_num_blocks,input_block_size);
+  if(input_file_name != NULL) {
+	  size_t l = strlen(input_file_name);
+	  if(l > 1) {
+		  if(input_file_name[l - 1] == '|') {
+			  char *tmp = mm_malloc(l);
+			  memcpy(tmp, input_file_name, l - 1);
+			  tmp[l - 1] = 0;
+			  gem_cond_log(verbose_user,"[Opening pipe from '%s']",tmp);
+			  input_file_sliced_t *fp = input_file_sliced_popen(tmp,input_num_blocks,input_block_size);
+			  mm_free(tmp);
+			  return fp;
+		  } else {
+			  gem_cond_log(verbose_user,"[Opening input file '%s']",input_file_name);
+			  return input_file_sliced_open(input_file_name,input_num_blocks,input_block_size);
+		  }
+	  }
   }
+  gem_cond_log(verbose_user,"[Reading input file from stdin]");
+	switch (input_compression) {
+	 case FM_GZIPPED_FILE:
+		return input_gzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
+	 case FM_BZIPPED_FILE:
+		return input_bzip_stream_sliced_open(stdin,input_num_blocks,input_block_size);
+	 default:
+		return input_stream_sliced_open(stdin,input_num_blocks,input_block_size);
+  }
+
 }
 void gem_mapper_open_input(mapper_parameters_t* const parameters) {
   if (parameters->io.separated_input_files) {
