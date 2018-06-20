@@ -76,6 +76,7 @@ option_t gem_mapper_options[] = {
   { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred','1','2','interleaved','non-stranded'",  "(default=inferred)" },
   { 501, "underconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
   { 502, "overconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
+  { 503, "control_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -755,6 +756,9 @@ bool gem_mapper_parse_arguments_bisulfite(
       return true;
     case 502: // --overconversion_sequence
       search->control_sequences[2] = strdup(optarg);
+      return true;
+    case 503: // --control_sequence
+      search->control_sequences[0] = strdup(optarg);
       return true;
     default:
       return false; // Not found
