@@ -350,7 +350,7 @@ void filtering_candidates_buffered_bpm_distance_check_tile_distance(
   if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
     if (uncalled_bases_text == 0) {
       gem_fatal_error_msg("Filtering.Candidates.BPM.Distance.Buffered. Check verify candidate "
-          "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
+          "(Distance:%d!=%"PRIu64") (MatchPos:%d!=%"PRIu64") (Text.Uncalled.bases=%"PRIu64")",
           tile_distance,check_tile_distance,tile_match_column,
           check_tile_match_end_column,uncalled_bases_text);
     }

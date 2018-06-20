@@ -388,7 +388,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_check(
   if (match_alignment_buffered->match_position != match_alignment_check.match_position || cmp_cigars != 0) {
     fprintf(stderr,
         "Filtering.Candidates.BPM.Align.Buffered.\n"
-        "\tCheck Alignment Tile-CIGAR Failed (PosBuffered=%lu) != (PosChecked=%lu)\n",
+        "\tCheck Alignment Tile-CIGAR Failed (PosBuffered=%"PRIu64") != (PosChecked=%"PRIu64")\n",
         match_alignment_buffered->match_position,match_alignment_check.match_position);
     fprintf(stderr,"\tCIGAR.GPU: ");
     match_cigar_print(stderr,matches->cigar_vector,

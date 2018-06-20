@@ -136,7 +136,7 @@ bool nsearch_operation_state_text_eq(
 void nsearch_operation_print(
     FILE* const stream,
     nsearch_operation_t* const nsearch_operation) {
-  fprintf(stream,">>LKey[%lu,%lu)/GKey[%lu,%lu) Error{%lu/%lu,%lu}\n",
+  fprintf(stream,">>LKey[%"PRIu64",%"PRIu64")/GKey[%"PRIu64",%"PRIu64") Error{%"PRIu64"/%"PRIu64",%"PRIu64"}\n",
       nsearch_operation->local_key_begin,nsearch_operation->local_key_end,
       nsearch_operation->global_key_begin,nsearch_operation->global_key_end,
       nsearch_operation->min_local_error,nsearch_operation->min_global_error,
@@ -149,8 +149,8 @@ void nsearch_operation_state_print(
   const bool forward_search = (nsearch_operation->search_direction == direction_forward);
   fprintf(stream,"[GEM]> Levenshtein.State\n");
   fprintf(stream,"  => Search %s\n",forward_search ? "forward" : "reverse");
-  fprintf(stream,"  => Local-Key [%lu,%lu)\n",nsearch_operation->local_key_begin,nsearch_operation->local_key_end);
-  fprintf(stream,"  => Global-Key [%lu,%lu)\n",nsearch_operation->global_key_begin,nsearch_operation->global_key_end);
+  fprintf(stream,"  => Local-Key [%"PRIu64",%"PRIu64")\n",nsearch_operation->local_key_begin,nsearch_operation->local_key_end);
+  fprintf(stream,"  => Global-Key [%"PRIu64",%"PRIu64")\n",nsearch_operation->global_key_begin,nsearch_operation->global_key_end);
   fprintf(stream,"  => Global-Text ");
   nsearch_operation_state_print_global_text(stream,nsearch_operation);
   fprintf(stream,"  => Local-Text  ");

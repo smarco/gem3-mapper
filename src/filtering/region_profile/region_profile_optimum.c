@@ -83,7 +83,7 @@ void region_profile_generate_optimum_fixed(
     const uint64_t max_candidates) {
   // Base check
   if (num_regions==0 || key_length/num_regions < region_length) {
-    gem_warn_msg("OPS. Not enough bases to extract %lu regions of %lu bases",num_regions,region_length);
+    gem_warn_msg("OPS. Not enough bases to extract %"PRIu64" regions of %"PRIu64" bases",num_regions,region_length);
     region_profile->total_candidates = 0;
     region_profile->num_filtering_regions = 0;
     return;
@@ -213,7 +213,7 @@ void region_profile_generate_optimum_variable(
     const uint64_t num_regions) {
   // Base check
   if (num_regions==0 || num_regions > key_length) {
-    gem_warn_msg("Not enough bases to extract %lu regions",num_regions);
+    gem_warn_msg("Not enough bases to extract %"PRIu64" regions",num_regions);
     region_profile->total_candidates = 0;
     region_profile->num_filtering_regions = 0;
     return;
