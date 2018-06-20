@@ -135,7 +135,7 @@ ifeq ($(CC),gcc)
   endif
   ifeq ($(HAVE_GOLD),1)
     AR=gcc-ar
-    OPT_AR=-fuse-linker-plugin
+    OPT_AR=-fuse-linker-plugin -Wno-ignored-optimization-argument
   endif
 #  FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
   FLAGS_OPT=-O3 $(OPT_LTO)
