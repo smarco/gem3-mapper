@@ -239,12 +239,12 @@ void archive_builder_text_generate_forward(
     }
   }
   // Close sequence
-  archive_builder_text_process_unknowns(archive_builder); // Check Ns
-  archive_builder_text_close_sequence(archive_builder);
   gem_cond_error(
       input_multifasta_get_text_sequence_length(&input_multifasta_file->parsing_state)==0,
       MULTIFASTA_SEQ_EMPTY,input_multifasta_file->file_name,
-      input_multifasta_file->line_no); // Check sequence not null
+			input_multifasta_file->line_no); // Check sequence not null
+  archive_builder_text_process_unknowns(archive_builder); // Check Ns
+  archive_builder_text_close_sequence(archive_builder);
   // Free
   if (line_buffer != NULL) free(line_buffer);
   ticker_finish(&ticker);
