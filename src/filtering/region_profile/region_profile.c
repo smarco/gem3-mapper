@@ -495,10 +495,10 @@ void region_profile_print_region_pretty(
     const uint64_t ciphers = integer_num_ciphers(region_candidates);
     int64_t offset = region_begin + (region_length)/2 - ciphers/2;
     for (i=0;i<offset;++i) fprintf(stream," ");
-    fprintf(stream,"%lu\n",region_candidates);
+    fprintf(stream,"%"PRIu64"\n",region_candidates);
   }
   // Print region
-  tab_fprintf(stream,"    [#%03lu]%s ",region_idx,filter_degree==0 ? "(Selected)" : "          ");
+  tab_fprintf(stream,"    [#%03"PRIu64"]%s ",region_idx,filter_degree==0 ? "(Selected)" : "          ");
   for (i=0;i<region_begin;++i) fprintf(stream," ");
   if (region_length <= 1) {
     fprintf(stream,"|\n");

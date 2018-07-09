@@ -359,7 +359,7 @@ void nsearch_schedule_print_region_error(
     const uint64_t left = (length-8)/2;
     const uint64_t right = (length-8)-left;
     for (j=0;j<left;++j) fprintf(stream," ");
-    fprintf(stream,"{%lu}{%lu,%lu}",min_local,min_global,max_global);
+    fprintf(stream,"{%"PRIu64"}{%"PRIu64",%"PRIu64"}",min_local,min_global,max_global);
     for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
@@ -375,7 +375,7 @@ void nsearch_schedule_print_region_limits(
     const uint64_t left = (length-5)/2;
     const uint64_t right = (length-5)-left;
     for (j=0;j<left;++j) fprintf(stream," ");
-    fprintf(stream,"{%lu,%lu}",min,max);
+    fprintf(stream,"{%"PRIu64",%"PRIu64"}",min,max);
     for (j=0;j<right;++j) fprintf(stream," ");
   }
 }
@@ -415,7 +415,7 @@ void nsearch_schedule_print_pretty(
     }
   }
   // Print Header
-  fprintf(stream,"[GEM]>NSearch[%lu]\n",nsearch_schedule->search_id++);
+  fprintf(stream,"[GEM]>NSearch[%"PRIu64"]\n",nsearch_schedule->search_id++);
   //  // Print Scheduled Operations
   //  fprintf(stream,"  => Scheduled.Operations\n");
   //  for (i=0;i<nsearch_schedule->num_pending_searches;++i) {
@@ -470,7 +470,7 @@ void nsearch_schedule_print_pretty(
 void nsearch_schedule_print_profile(
     FILE* const stream,
     nsearch_schedule_t* const nsearch_schedule) {
-  fprintf(stream,"%lu\t%lu\n",
+  fprintf(stream,"%"PRIu64"\t%"PRIu64"\n",
       nsearch_schedule->profile.ns_nodes_success,
       nsearch_schedule->profile.ns_nodes);
 }

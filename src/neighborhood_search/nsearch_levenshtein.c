@@ -250,7 +250,7 @@ void nsearch_levenshtein_print_status(
   // Print searched string
   for (i=last_idx_op;i>=first_idx_op;--i) {
     nsearch_operation = nsearch_schedule->pending_searches + i;
-    fprintf(stream,"[%lu] key[%lu,%lu) Local-text=",last_idx_op-i,
+    fprintf(stream,"[%"PRIu64"] key[%"PRIu64",%"PRIu64") Local-text=",last_idx_op-i,
         nsearch_operation->global_key_begin,nsearch_operation->global_key_end);
     nsearch_operation_state_print_local_text(stream,nsearch_operation);
     nsearch_operation_state_print(stream,nsearch_operation,nsearch_schedule->pattern->key);

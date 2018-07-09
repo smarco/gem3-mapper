@@ -227,7 +227,7 @@ void retriever_query_location(
       locator_inverse_map(retriever_data->archive->locator,retriever_query->tag,
           Forward,retriever_query->bs_strand,retriever_query->text_position);
   if (locator_interval==NULL) {
-    gem_retriever_error_msg("[#%lu]Sequence location (%s:%c%s:%lu) not found in the archive\n",
+    gem_retriever_error_msg("[#%"PRIu64"]Sequence location (%s:%c%s:%"PRIu64") not found in the archive\n",
         retriever_query->id,retriever_query->tag,
         (retriever_query->strand==Forward) ? '+' : '-',
         (retriever_query->bs_strand==bs_strand_C2T) ? "C2T" :
@@ -289,7 +289,7 @@ int main(int argc,char** argv) {
   // Read all retriever queries
   retriever_query_t retriever_query;
   char* input_buffer = NULL;
-  uint64_t input_buffer_size = 0;
+  size_t input_buffer_size = 0;
   retriever_query.id = 0;
   while (getline(&input_buffer,&input_buffer_size,retriever_data.input_stream)>=0) {
     // Next query

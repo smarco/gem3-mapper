@@ -178,7 +178,7 @@ void filtering_region_print_alignment(
       alignment->num_tiles,
       alignment->distance_min_bound);
   for (i=0;i<alignment->num_tiles;++i) {
-    fprintf(stream," (%lu,%lu][%lu]",
+    fprintf(stream," (%"PRIu64",%"PRIu64"][%"PRIu64"]",
         alignment_tiles[i].text_begin_offset,
         alignment_tiles[i].text_end_offset,
         alignment_tiles[i].distance);

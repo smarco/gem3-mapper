@@ -161,7 +161,7 @@ void region_profile_splitters(
   accumulated = 0.0;
   // Split accumulated
   position = 0;
-  fprintf(stderr,"Splitter.acc=%2.3f\n[%02lu] ",split_fdec,region_profile->num_filtering_regions);
+  fprintf(stderr,"Splitter.acc=%2.3f\n[%02"PRIu64"] ",split_fdec,region_profile->num_filtering_regions);
   while (position < fdec_length) {
     fprintf(stderr,"%2.3f ",fdec[position]);
     accumulated += fdec[position];
@@ -177,7 +177,7 @@ void region_profile_splitters(
       ++filtering_region;
       filtering_region->begin = end;
       accumulated -= split_fdec;
-      fprintf(stderr,"[%02lu] ",region_profile->num_filtering_regions);
+      fprintf(stderr,"[%02"PRIu64"] ",region_profile->num_filtering_regions);
     }
     ++position;
   }
@@ -204,7 +204,7 @@ void region_profile_split_print_fdec(
     const uint64_t offset) {
   // Show fdec
   uint64_t i;
-  fprintf(stream,"[#%04lu](g=%05.2f) ",index,global_fdec);
+  fprintf(stream,"[#%04"PRIu64"](g=%05.2f) ",index,global_fdec);
   for (i=0;i<offset;++i) fprintf(stream,"      ");
   for (i=0;i<vector_length;++i) {
     fprintf(stream,"%05.2f ",fdec[i] >= 100.0 ? 99.0 : fdec[i]);
@@ -221,7 +221,7 @@ void region_profile_split_print_occ(
   fprintf(stream,"[Occ] ");
   for (i=0;i<offset;++i) fprintf(stream,"      ");
   for (i=0;i<vector_length;++i) {
-    fprintf(stream,"%06lu ",occ[i]);
+    fprintf(stream,"%06"PRIu64" ",occ[i]);
   }
   fprintf(stream,"\n");
 }

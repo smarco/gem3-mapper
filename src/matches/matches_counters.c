@@ -211,7 +211,7 @@ void matches_counters_print(
   while (i < num_counters) {
     // Print Counter
     if (i>0) fprintf(stream,(mcs==i?"+":":"));
-    fprintf(stream,"%lu",*counters);
+    fprintf(stream,"%"PRIu64,*counters);
     i++; // Next (+1)
     ++counters;
   }

@@ -120,7 +120,7 @@ void mapper_error_report(FILE* stream) {
       fprintf(stream,"GEM::Unexpected error occurred. Sorry for the inconvenience\n"
                      "     Feedback and bug reporting it's highly appreciated,\n"
                      "     => Please report or email (gem.mapper.dev@gmail.com)\n");
-      fprintf(stream,"GEM::Running-Thread (threadID = %lu)\n",thread_id);
+      fprintf(stream,"GEM::Running-Thread (threadID = %"PRIu64")\n",thread_id);
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
       mapper_error_report_cmd(stream,mapper_parameters); // Display CMD used
       fprintf(stream,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");

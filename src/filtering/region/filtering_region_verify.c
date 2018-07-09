@@ -130,7 +130,7 @@ void filtering_region_verify_levenshtein(
         bpm_compute_edit_distance(bpm_pattern,text,text_length,
             &distance,&match_column,max_error,false);
         gem_cond_error_msg(distance != ALIGN_DISTANCE_INF,
-            "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%lu)",distance);
+            "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%"PRIu64")",distance);
       }
       // Return Discarded
       return;

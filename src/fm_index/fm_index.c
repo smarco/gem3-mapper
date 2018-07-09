@@ -257,7 +257,7 @@ void fm_index_decode_print_benchmark(
     ++dist;
   }
   // Print benchmark line
-  fprintf(stream,"%lu\t%lu\t%lu\t|\t%lu\t%lu\t%lu\t%lu\t%lu\n",
+  fprintf(stream,"%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t|\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n",
       bwt_position_base,bwt_position,dist,
       num_chars[0],num_chars[1],num_chars[2],num_chars[3],num_chars[4]);
   fflush(stream);
