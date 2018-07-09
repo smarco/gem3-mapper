@@ -198,7 +198,7 @@ void archive_builder_text_generate_forward(
   int line_length = 0;
   size_t line_allocated = 0;
   // Check MultiFASTA
-  gem_cond_error(feof(input_multifasta_file->file),
+  gem_cond_error(fm_eof(input_multifasta_file->file_manager),
       MULTIFASTA_EMPTY,input_multifasta_file->file_name);
   // Prepare ticket
   ticker_t ticker;
@@ -210,11 +210,11 @@ void archive_builder_text_generate_forward(
   input_multifasta_state_clear(parsing_state); // Init parsing state
   while (true) {
     // Get line
-    line_length = getline(&line_buffer,&line_allocated,input_multifasta_file->file);
+    line_length = fm_getline(&line_buffer,&line_allocated,input_multifasta_file->file_manager);
     ++(input_multifasta_file->line_no);
     if (line_length==-1) {
       gem_cond_error(
-          !feof(input_multifasta_file->file),MULTIFASTA_READING,
+          !fm_eof(input_multifasta_file->file_manager),MULTIFASTA_READING,
           input_multifasta_file->file_name,input_multifasta_file->line_no);
       break;
     }
@@ -239,12 +239,12 @@ void archive_builder_text_generate_forward(
     }
   }
   // Close sequence
-  archive_builder_text_process_unknowns(archive_builder); // Check Ns
-  archive_builder_text_close_sequence(archive_builder);
   gem_cond_error(
       input_multifasta_get_text_sequence_length(&input_multifasta_file->parsing_state)==0,
       MULTIFASTA_SEQ_EMPTY,input_multifasta_file->file_name,
-      input_multifasta_file->line_no); // Check sequence not null
+			input_multifasta_file->line_no); // Check sequence not null
+  archive_builder_text_process_unknowns(archive_builder); // Check Ns
+  archive_builder_text_close_sequence(archive_builder);
   // Free
   if (line_buffer != NULL) free(line_buffer);
   ticker_finish(&ticker);
@@ -342,7 +342,7 @@ void archive_builder_text_inspect(
   uint64_t enc_text_length = 0;
   while (true) {
     // Get line
-    line_length = getline(&line_buffer,&line_allocated,input_multifasta_file->file);
+    line_length = fm_getline(&line_buffer,&line_allocated,input_multifasta_file->file_manager);
     if (line_length == -1) break;
     // Account the line length
     if (line_buffer[0] != FASTA_TAG_BEGIN) {
@@ -364,7 +364,7 @@ void archive_builder_text_inspect(
   }
   ++enc_text_length; // Add extra separator (Close text)
   // Rewind input MULTIFASTA
-  fseek(input_multifasta_file->file,0,SEEK_SET);
+  fm_seek(input_multifasta_file->file_manager,0);
   input_multifasta_file->line_no = 0;
   // Log
   tfprintf(gem_log_get_stream(),

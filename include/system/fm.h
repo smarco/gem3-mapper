@@ -37,13 +37,14 @@ extern const int fm_open_flags[3];
 extern const mode_t fm_open_mode[3];
 
 typedef enum { FM_READ=0, FM_WRITE=1, FM_READ_WRITE=2 } fm_mode;
-typedef enum { FM_STREAM, FM_REGULAR_FILE, FM_GZIPPED_FILE, FM_BZIPPED_FILE } fm_type;
+typedef enum { FM_STREAM, FM_REGULAR_FILE, FM_GZIPPED_FILE, FM_BZIPPED_FILE, FM_POPEN } fm_type;
 typedef struct _fm_t fm_t;
 
 /*
  * Setup
  */
 fm_t* fm_open_file(char* const file_name,const fm_mode mode);
+fm_t* fm_open_popen(char* const file_name,const fm_mode mode);
 fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode);
 fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode);
 fm_t* fm_open_bzFILE(FILE* const stream,const fm_mode mode);
@@ -86,10 +87,12 @@ uint64_t fm_read_uint64(fm_t* const file_manager);
 uint32_t fm_read_uint32(fm_t* const file_manager);
 uint16_t fm_read_uint16(fm_t* const file_manager);
 uint8_t fm_read_uint8(fm_t* const file_manager);
+ssize_t fm_getline(char **buf, size_t *bufsiz, fm_t* const file_manager);
 uint64_t fm_read_mem(
     fm_t* const file_manager,
     void* const dst,
     const uint64_t num_bytes);
+
 // TODO uint64_t fm_read_mem_parallel(
 //    fm_t* const file_manager,
 //    void* const dst,

@@ -81,6 +81,10 @@ input_file_sliced_t* input_file_sliced_open(
     char* const file_name,
     const uint64_t input_num_blocks,
     const uint64_t block_size);
+input_file_sliced_t* input_file_sliced_popen(
+    char* const file_name,
+    const uint64_t input_num_blocks,
+    const uint64_t block_size);
 void input_file_sliced_close(
     input_file_sliced_t* const input_file_sliced);
 

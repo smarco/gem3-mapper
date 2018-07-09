@@ -33,13 +33,13 @@ void input_multifasta_file_open(
     input_multifasta_file_t* const input_multifasta_file,
     char* const input_multifasta_file_name) {
   input_multifasta_file->file_name = input_multifasta_file_name;
-  input_multifasta_file->file = fopen(input_multifasta_file_name,"rb");
+  input_multifasta_file->file_manager = fm_open_file(input_multifasta_file_name,FM_READ);
   input_multifasta_file->line_no = 0;
   input_multifasta_state_clear(&input_multifasta_file->parsing_state);
 }
 void input_multifasta_file_close(
     input_multifasta_file_t* const input_multifasta_file) {
-  fclose(input_multifasta_file->file);
+  fm_close(input_multifasta_file->file_manager);
 }
 /*
  * MultiFASTA parsing state
