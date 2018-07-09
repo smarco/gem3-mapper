@@ -156,9 +156,23 @@ void paired_matches_recompute_metrics(paired_matches_t* const paired_matches) {
   uint64_t i;
   for (i=0;i<num_maps;++i) {
     const paired_map_t* const paired_map = paired_maps[i];
+    match_trace_t* const match_end1 = paired_map->match_trace_end1;
+    match_trace_t* const match_end2 = paired_map->match_trace_end2;
     matches_metrics_update(
-        &paired_matches->metrics,paired_map->event_distance,
-        paired_map->edit_distance,paired_map->swg_score);
+        &paired_matches->metrics,
+        matches_cigar_compute_event_distance_excluding_long_clipping(
+            paired_matches->matches_end1->cigar_vector,
+            match_end1->match_alignment.cigar_offset,match_end1->match_alignment.cigar_length) +
+        matches_cigar_compute_event_distance_excluding_long_clipping(
+            paired_matches->matches_end2->cigar_vector,
+            match_end2->match_alignment.cigar_offset,match_end2->match_alignment.cigar_length),
+        matches_cigar_compute_edit_distance_excluding_long_clipping(
+            paired_matches->matches_end1->cigar_vector,
+            match_end1->match_alignment.cigar_offset,match_end1->match_alignment.cigar_length) +
+        matches_cigar_compute_edit_distance_excluding_long_clipping(
+            paired_matches->matches_end2->cigar_vector,
+            match_end2->match_alignment.cigar_offset,match_end2->match_alignment.cigar_length),
+        paired_map->swg_score);
   }
 }
 /*
@@ -217,9 +231,23 @@ void paired_matches_add_map(
   // Add paired map
   paired_matches_add_map_insert_sorted(paired_matches,paired_map);
   // Update metrics
+  match_trace_t* const match_end1 = paired_map->match_trace_end1;
+  match_trace_t* const match_end2 = paired_map->match_trace_end2;
   matches_metrics_update(
-      &paired_matches->metrics,paired_map->event_distance,
-      paired_map->edit_distance,paired_map->swg_score);
+      &paired_matches->metrics,
+      matches_cigar_compute_event_distance_excluding_long_clipping(
+          paired_matches->matches_end1->cigar_vector,
+          match_end1->match_alignment.cigar_offset,match_end1->match_alignment.cigar_length) +
+      matches_cigar_compute_event_distance_excluding_long_clipping(
+          paired_matches->matches_end2->cigar_vector,
+          match_end2->match_alignment.cigar_offset,match_end2->match_alignment.cigar_length),
+      matches_cigar_compute_edit_distance_excluding_long_clipping(
+          paired_matches->matches_end1->cigar_vector,
+          match_end1->match_alignment.cigar_offset,match_end1->match_alignment.cigar_length) +
+      matches_cigar_compute_edit_distance_excluding_long_clipping(
+          paired_matches->matches_end2->cigar_vector,
+          match_end2->match_alignment.cigar_offset,match_end2->match_alignment.cigar_length),
+      paired_map->swg_score);
 }
 void paired_matches_add(
     paired_matches_t* const paired_matches,
