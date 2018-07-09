@@ -114,19 +114,11 @@ uint64_t matches_cigar_compute_event_distance(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);
-uint64_t matches_cigar_compute_event_distance_excluding_long_clipping(
-    vector_t* const cigar_vector,
-    const uint64_t cigar_buffer_offset,
-    const uint64_t cigar_length);
 uint64_t matches_cigar_compute_edit_distance(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);
 uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
-    vector_t* const cigar_vector,
-    const uint64_t cigar_buffer_offset,
-    const uint64_t cigar_length);
-uint64_t matches_cigar_compute_edit_distance_excluding_long_clipping(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length);

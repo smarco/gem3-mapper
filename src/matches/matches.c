@@ -105,14 +105,8 @@ void matches_recompute_metrics(matches_t* const matches) {
   for (i=0;i<num_matches;++i) {
     const match_trace_t* const match = match_traces[i];
     matches_metrics_update(
-        metrics,
-        matches_cigar_compute_event_distance_excluding_long_clipping(
-            matches->cigar_vector,match->match_alignment.cigar_offset,
-            match->match_alignment.cigar_length),
-        matches_cigar_compute_edit_distance_excluding_long_clipping(
-            matches->cigar_vector,match->match_alignment.cigar_offset,
-            match->match_alignment.cigar_length),
-        match->swg_score);
+        metrics,match->event_distance,
+        match->edit_distance,match->swg_score);
   }
 }
 uint64_t matches_get_first_stratum_matches(matches_t* const matches) {
@@ -300,14 +294,8 @@ match_trace_t* matches_add_match_trace(
     matches_counters_add(matches->counters,match_trace->edit_distance,1);
     // Update metrics
     matches_metrics_update(
-        &matches->metrics,
-        matches_cigar_compute_event_distance_excluding_long_clipping(
-            matches->cigar_vector,match_trace->match_alignment.cigar_offset,
-            match_trace->match_alignment.cigar_length),
-        matches_cigar_compute_edit_distance_excluding_long_clipping(
-            matches->cigar_vector,match_trace->match_alignment.cigar_offset,
-            match_trace->match_alignment.cigar_length),
-        match_trace->swg_score);
+        &matches->metrics,match_trace->event_distance,
+        match_trace->edit_distance,match_trace->swg_score);
     // Insert preserving sorting
     matches_add_match_trace_insert_sorted(matches,new_match_trace);
     *match_replaced = false;
