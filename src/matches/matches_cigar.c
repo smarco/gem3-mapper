@@ -30,6 +30,11 @@
 #define GEM_ERROR_MATCHES_CIGAR_ZERO_LENGTH "Matches. CIGAR length cannot be zero"
 
 /*
+ * GLOBAL Parameters
+ */
+int matches_max_clip_length = 10;
+
+/*
  * CIGAR Buffer Handling
  */
 void matches_cigar_buffer_add_cigar_element__attr(
@@ -258,7 +263,7 @@ uint64_t matches_cigar_compute_event_distance_excluding_long_clipping(
         ++event_distance;
         break;
       case cigar_del:
-        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length >= 10) break;
+        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length > matches_max_clip_length) break;
       // No break
       case cigar_ins:
         ++event_distance;
@@ -334,7 +339,7 @@ uint64_t matches_cigar_compute_edit_distance_excluding_long_clipping(
         edit_distance++;
         break;
       case cigar_del:
-        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length >= 10) break;
+        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length > matches_max_clip_length) break;
       // No break
       case cigar_ins:
         edit_distance += cigar_buffer[i].length;

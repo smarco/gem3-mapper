@@ -27,6 +27,11 @@
 #include "utils/essentials.h"
 
 /*
+ * GLOBAL Parameters
+ */
+extern int matches_max_clip_length;
+
+/*
  * Alignment CIGAR (Mismatches/Indels/...)
  */
 typedef enum {
