@@ -36,11 +36,13 @@
  */
 void sequence_bisulfite_process_se(
     sequence_t* const sequence,
-    const bisulfite_read_t bisulfite_read_mode);
+    const bisulfite_read_t bisulfite_read_mode,
+    bool flip);
 void sequence_bisulfite_process_pe(
     sequence_t* const sequence_end1,
     sequence_t* const sequence_end2,
-    const bisulfite_read_t bisulfite_read_mode);
+    bool flip);
+    //    const bisulfite_read_t bisulfite_read_mode);
 
 /*
  * Restore Sequence
