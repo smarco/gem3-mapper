@@ -78,10 +78,10 @@ extern const char dna_complement_table[256];
 extern const uint8_t dna_encoded_complement_table[DNA_EXT_RANGE];
 
 extern const uint8_t dna_encode_table[256];
+extern const uint8_t dna_encode_table_C2T[256];
+extern const uint8_t dna_encode_table_G2A[256];
 extern const char dna_decode_table[DNA_EXT_RANGE];
 
-extern const char dna_bisulfite_C2T_table[256];
-extern const char dna_bisulfite_G2A_table[256];
 extern const uint8_t dna_encoded_bisulfite_C2T_table[DNA_EXT_RANGE];
 extern const uint8_t dna_encoded_bisulfite_G2A_table[DNA_EXT_RANGE];
 
@@ -110,6 +110,8 @@ extern const uint8_t dna_encoded_colorspace_table[DNA_EXT_RANGE][DNA_EXT_RANGE];
 #define dna_encoded_bisulfite_G2A(enc_char)  (dna_encoded_bisulfite_G2A_table[(int)(enc_char)])
 
 #define dna_encode(character)                (dna_encode_table[(int)(character)])
+#define dna_encode_C2T(character)                (dna_encode_table_C2T[(int)(character)])
+#define dna_encode_G2A(character)                (dna_encode_table_G2A[(int)(character)])
 #define dna_decode(enc_char)                 (dna_decode_table[(int)(enc_char)])
 
 #define dna_encoded_colorspace(enc_char_0,enc_char_1) (dna_encoded_colorspace_table[(int)(enc_char_0)][(int)(enc_char_1)])

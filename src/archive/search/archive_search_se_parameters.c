@@ -113,6 +113,9 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
 	search_parameters->control_sequences[0] = SEQUENCING_CONTROL;
 	search_parameters->control_sequences[1] = UNDERCONVERSION_CONTROL;
 	search_parameters->control_sequences[2] = OVERCONVERSION_CONTROL;
+  search_parameters->rrbs = false;
+  // Restriction restriction_sites
+  search_parameters->restriction_sites = NULL;
   // Clipping
   search_parameters->clipping = clipping_uncalled;
   search_parameters->clip_left = 0;

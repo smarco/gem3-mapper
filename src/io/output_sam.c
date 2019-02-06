@@ -481,7 +481,7 @@ void output_sam_print_opt_field_tag_TP() {}
 //  XM  i  Number of mismatches in the alignment
 //  XO  i  Number of gap opens
 //  XG  i  Number of gap extentions
-/* 
+/*
  *  XB  A  Conversion type for bisulfite reads
  *  i.e.
  *    XB:A:U => non_converted
@@ -1102,9 +1102,9 @@ void output_sam_print_optional_fields_se(
   // NM
   if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
   /*
-   * MD. We don't output MD flags for bisulfite matches because 
+   * MD. We don't output MD flags for bisulfite matches because
    *   (a) they are not correct w.r.t. the stated reference
-   *   (b) if we calculated them correctly they would be large as they show all mismatches  
+   *   (b) if we calculated them correctly they would be large as they show all mismatches
    */
   if (match_trace) {
     if (sam_parameters->bisulfite_output) {
@@ -1142,7 +1142,7 @@ void output_sam_print_optional_fields_pe(
   }
   // NM
   if (match_trace) output_sam_print_opt_field_tag_NM(buffered_output_file,matches,match_trace);
-  /* 
+  /*
    * MD We don't output MD flags for bisulfite matches because
    *   (a) they are not correct w.r.t. the stated reference
    *   (b) if we calculated them correctly they would be large as they would show all mismatches

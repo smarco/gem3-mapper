@@ -36,7 +36,8 @@
 void pattern_init_encode(
     pattern_t* const pattern,
     sequence_t* const sequence,
-    const search_parameters_t* const parameters) {
+    const search_parameters_t* const parameters,
+    const bisulfite_conversion_t bisulfite_conversion) {
   // Parameters
   const uint64_t sequence_length = sequence_get_length(sequence);
   const char* const read = sequence_get_read(sequence);
@@ -68,10 +69,31 @@ void pattern_init_encode(
       break;
   }
   // Encode read
-  for (j=0;i<sequence_length;++i,++j) {
-    const char character = read[i];
-    if (!is_dna_canonical(character)) ++num_wildcards;
-    pattern->key[j] = dna_encode(character);
+  switch(bisulfite_conversion) {
+    case no_conversion:
+      for (j=0;i<sequence_length;++i,++j) {
+        const char character = read[i];
+        if (!is_dna_canonical(character)) ++num_wildcards;
+        pattern->key[j] = dna_encode(character);
+      }
+      break;
+    case C2T_conversion:
+      for (j=0;i<sequence_length;++i,++j) {
+        const char character = read[i];
+        if (!is_dna_canonical(character)) ++num_wildcards;
+        pattern->key[j] = dna_encode_C2T(character);
+      }
+    break;
+    case G2A_conversion:
+      for (j=0;i<sequence_length;++i,++j) {
+        const char character = read[i];
+        if (!is_dna_canonical(character)) ++num_wildcards;
+        pattern->key[j] = dna_encode_G2A(character);
+      }
+    break;
+    default:
+      GEM_INVALID_CASE();
+      break;
   }
   // Skip right-clipping (if any)
   switch (parameters->clipping) {
@@ -141,6 +163,7 @@ void pattern_init(
     bool* const do_quality_search,
     const search_parameters_t* const parameters,
     const bool run_length_pattern,
+    const bisulfite_conversion_t bisulfite_conversion,
     mm_allocator_t* const mm_allocator) {
   // Allocate pattern memory
   const uint64_t sequence_length = sequence_get_length(sequence);
@@ -160,7 +183,7 @@ void pattern_init(
    *   Counts the number of wildcards (characters not allowed as replacements) and low_quality_bases
    */
   // Compute then pattern
-  pattern_init_encode(pattern,sequence,parameters);
+  pattern_init_encode(pattern,sequence,parameters,bisulfite_conversion);
   // Compute the RL-pattern
   pattern_init_encode_rl(pattern,run_length_pattern,mm_allocator);
   /*

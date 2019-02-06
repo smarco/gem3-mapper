@@ -108,7 +108,7 @@ void approximate_search_prepare(
   // Pattern
   pattern_init(
       &search->pattern,sequence,&search->do_quality_search,
-      search->search_parameters,run_length_pattern,search->mm_allocator);
+      search->search_parameters,run_length_pattern,search->bisulfite_conversion,search->mm_allocator);
   // Region profile
   const uint64_t key_length = search->pattern.key_length;
   region_profile_init(&search->region_profile,key_length);

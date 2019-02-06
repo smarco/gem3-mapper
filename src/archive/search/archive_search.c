@@ -157,7 +157,3 @@ uint64_t archive_search_get_num_bpm_align_canonical_candidates(const archive_sea
 uint64_t archive_search_get_num_bpm_align_candidate_tiles_length(const archive_search_t* const archive_search) {
   return approximate_search_get_num_filtering_candidate_buffered_tiles_length(&archive_search->approximate_search);
 }
-
-
-
-

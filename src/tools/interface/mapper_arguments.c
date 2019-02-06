@@ -72,11 +72,13 @@ option_t gem_mapper_options[] = {
   { 403, "pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 404, "discordant-pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
   { 406, "pe-template-length", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
-  /* Bisulfite Alignment */
+  /* Bisulfite and Hi-C Alignment */
   { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred','1','2','interleaved','non-stranded'",  "(default=inferred)" },
-  { 501, "underconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
-  { 502, "overconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
-  { 503, "control_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
+  { 501, "underconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
+  { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
+  { 503, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
+  { 504, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
+  { 505, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -120,7 +122,7 @@ char* gem_mapper_groups[] = {
   /*  2 */ "I/O",
   /*  3 */ "Single-end Alignment",
   /*  4 */ "Paired-end Alignment",
-  /*  5 */ "Bisulfite Alignment",
+  /*  5 */ "Bisulfite and Hi-C Alignment",
   /*  6 */ "Alignment Score",
   /*  7 */ "MAPQ Score",
   /*  8 */ "Reporting",
@@ -219,6 +221,16 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   mapper_cond_error_msg(
       search->select_parameters.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");
+  /* RRBS */
+  if(search->rrbs) {
+    if(search->restriction_sites == NULL) {
+      restriction_t *rest = restriction_new("C-CGG"); // If no restriction site has been set, default to MspI site
+      if(rest != NULL) {
+        search->restriction_sites = vector_new(1, restriction_t *);
+        vector_insert(search->restriction_sites, rest, restriction_t *);
+      }
+    }
+  }
 }
 /*
  * Mapper Arguments Parsing
@@ -726,6 +738,7 @@ bool gem_mapper_parse_arguments_bisulfite(
     char* optarg) {
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
+  restriction_t *rest = NULL;
   // Bisulfite
   switch (option) {
     case 500: // --bisulfite_read
@@ -759,6 +772,20 @@ bool gem_mapper_parse_arguments_bisulfite(
       return true;
     case 503: // --control_sequence
       search->control_sequences[0] = strdup(optarg);
+      return true;
+    case 504: // -- restriction-site
+      rest = restriction_new(optarg);
+      if(rest != NULL) {
+        if(search->restriction_sites == NULL) {
+          search->restriction_sites = vector_new(1, restriction_t *);
+        }
+        vector_insert(search->restriction_sites, rest, restriction_t *);
+      } else {
+        gem_fatal_error_msg("Error setting --restriction-site option");
+      }
+    return true;
+    case 505: // --rrbs
+      search->rrbs = true;
       return true;
     default:
       return false; // Not found
@@ -1174,4 +1201,3 @@ void gem_mapper_parse_arguments(
   mm_free(getopt_short_string);
   mm_free(getopt_options);
 }
-

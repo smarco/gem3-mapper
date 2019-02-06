@@ -115,6 +115,7 @@ void mapper_pe_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     search_pipeline_handlers_prepare_pe(
         archive_search_end1,archive_search_end2,
         sequence_end1,sequence_end2,
+		  no_conversion,no_conversion,
         search_pipeline->search_pipeline_handlers);
     // Generate Candidates (Search into the archive)
     archive_search_pe_stepwise_init_search(archive_search_end1,archive_search_end2);

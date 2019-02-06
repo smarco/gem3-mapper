@@ -40,12 +40,8 @@ void sequence_init(
   // Extra fields
   string_init(&sequence->casava_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_allocator);
   string_init(&sequence->extra_tag,SEQUENCE_TAG_ATTRIBUTE_INITIAL_LENGTH,mm_allocator);
-  // Bisulfite
-  if (bisulfite_read_mode!=bisulfite_disabled) {
-    sequence->bs_sequence_end = (bisulfite_read_mode==bisulfite_read_2) ? paired_end2 : paired_end1;
-    string_init(&sequence->bs_original_sequence,SEQUENCE_BISULFITE_INITIAL_LENGTH,mm_allocator);
-  }
 }
+
 void sequence_clear(sequence_t* const sequence) {
   string_clear(&sequence->tag);
   string_clear(&sequence->read);
@@ -160,4 +156,3 @@ void sequence_print(FILE* const stream,sequence_t* const sequence) {
     fprintf(stream,"%s",sequence_get_read(sequence));
   }
 }
-

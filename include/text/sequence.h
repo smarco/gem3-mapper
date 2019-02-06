@@ -52,6 +52,12 @@ typedef enum {
 	bisulfite_non_stranded
 } bisulfite_read_t;
 
+typedef enum {
+    no_conversion,
+    C2T_conversion,
+    G2A_conversion
+} bisulfite_conversion_t;
+
 /*
  * Sequence
  */
@@ -61,9 +67,6 @@ typedef struct {
   string_t tag;                    // Sequence Tag
   string_t read;                   // Sequence Read
   string_t qualities;              // Sequence Qualities
-  /* BS-Sequence */
-  string_t bs_original_sequence;   // Bisulfite original sequence before conversion
-  sequence_end_t bs_sequence_end;  // Bisulfite sequence end
   /* Attributes */
   bool has_qualities;
   sequence_end_t end_info;

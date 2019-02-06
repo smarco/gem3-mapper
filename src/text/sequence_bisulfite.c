@@ -26,29 +26,11 @@
 
 #include "text/sequence_bisulfite.h"
 
-/*
- * Process Sequence
- */
-void sequence_bisulfite_convert(
-    string_t* const input_sequence,
-    string_t* const backup_sequence,
-    const char* const BS_table) {
-  // Backup original sequence
-  string_copy(backup_sequence,input_sequence);
-  // Convert sequence
-  const uint64_t length = string_get_length(input_sequence);
-  char* const buffer = string_get_buffer(input_sequence);
-  uint64_t pos;
-  for (pos=0;pos<length;pos++) {
-    buffer[pos] = BS_table[(int)buffer[pos]];
-  }
-}
-
-/*bool sequence_bisulfite_check_cg_depletion_se(
-    string_t* const read_sequence) {
+bool sequence_bisulfite_check_cg_depletion_se(
+    sequence_t* const read_sequence) {
   uint64_t counts[7] = {0, 0, 0, 0, 0, 0, 0};
-  const uint64_t length = string_get_length(read_sequence);
-  char* const buffer = string_get_buffer(read_sequence);
+  const uint64_t length = sequence_get_length(read_sequence);
+  char* const buffer = sequence_get_read(read_sequence);
   uint64_t pos;
   for (pos=0;pos<length;pos++) {
     counts[(int)dna_encode_table[(int)buffer[pos]]]++;
@@ -56,85 +38,20 @@ void sequence_bisulfite_convert(
   return counts[1] > counts[2];
 }
 bool sequence_bisulfite_check_cg_depletion_pe(
-    string_t* const read_sequence1,
-    string_t* const read_sequence2) {
+    sequence_t* const read_sequence1,
+    sequence_t* const read_sequence2) {
   uint64_t counts1[7] = {0, 0, 0, 0, 0, 0, 0};
   uint64_t counts2[7] = {0, 0, 0, 0, 0, 0, 0};
-  uint64_t length = string_get_length(read_sequence1);
-  char* buffer = string_get_buffer(read_sequence1);
+  uint64_t length = sequence_get_length(read_sequence1);
+  char* buffer = sequence_get_read(read_sequence1);
   uint64_t pos;
   for (pos=0;pos<length;pos++) {
     counts1[(int)dna_encode_table[(int)buffer[pos]]]++;
   }
-  length = string_get_length(read_sequence2);
-  buffer = string_get_buffer(read_sequence2);
+  length = sequence_get_length(read_sequence2);
+  buffer = sequence_get_read(read_sequence2);
   for (pos=0;pos<length;pos++) {
     counts2[(int)dna_encode_table[(int)buffer[pos]]]++;
   }
   return (counts1[1] + counts2[2]) > (counts1[2] + counts2[1]);
-  } */
-
-void sequence_bisulfite_process_se(
-    sequence_t* const sequence,
-    const bisulfite_read_t bisulfite_read_mode,
-    bool flip) {
-  // Fully convert reads before searching into archive, making a copy of the original
-  if (bisulfite_read_mode==bisulfite_read_inferred) {
-    sequence->bs_sequence_end = sequence->end_info;
-  } else {
-    //    sequence->bs_sequence_end = sequence_bisulfite_check_cg_depletion_se(&sequence->read) ? paired_end2 : paired_end1;
-    sequence->bs_sequence_end = flip ? paired_end2 : paired_end1;
   }
-  string_clear(&sequence->bs_original_sequence);
-  
-  switch(sequence->bs_sequence_end) {
-  case paired_end1:
-    sequence_bisulfite_convert(&sequence->read,
-        &sequence->bs_original_sequence,dna_bisulfite_C2T_table);
-    break;
-  case paired_end2:
-    sequence_bisulfite_convert(&sequence->read,
-        &sequence->bs_original_sequence,dna_bisulfite_G2A_table);
-    break;
-  default:
-    break;
-  }
-  if (bisulfite_read_mode==bisulfite_read_interleaved) {
-    sequence->bs_sequence_end = (sequence->bs_sequence_end==paired_end1) ? paired_end2 : paired_end1;
-  }
-}
-void sequence_bisulfite_process_pe(
-	sequence_t* const sequence_end1,
-	sequence_t* const sequence_end2,
-	bool flip) {
-//    const bisulfite_read_t bisulfite_read_mode) {
-  // Fully convert reads before searching into archive, making a copy of the original
-
-//  bool flip = bisulfite_read_mode==bisulfite_non_stranded ?
-//    sequence_bisulfite_check_cg_depletion_pe(&sequence_end1->read, &sequence_end2->read) : false;
-  if(flip) {
-    sequence_bisulfite_convert(&sequence_end1->read,
-			       &sequence_end1->bs_original_sequence,dna_bisulfite_G2A_table);
-    sequence_bisulfite_convert(&sequence_end2->read,
-			       &sequence_end2->bs_original_sequence,dna_bisulfite_C2T_table);
-  } else {
-    sequence_bisulfite_convert(&sequence_end1->read,
-			       &sequence_end1->bs_original_sequence,dna_bisulfite_C2T_table);
-    sequence_bisulfite_convert(&sequence_end2->read,
-			       &sequence_end2->bs_original_sequence,dna_bisulfite_G2A_table);
-  }
-}
-/*
- * Restore Sequence
- */
-void sequence_bisulfite_restore_se(sequence_t* const sequence) {
-  if (!string_is_null(&sequence->bs_original_sequence)) {
-    string_copy(&sequence->read,&sequence->bs_original_sequence);
-  }
-}
-void sequence_bisulfite_restore_pe(
-    sequence_t* const sequence_end1,
-    sequence_t* const sequence_end2) {
-  string_copy(&sequence_end1->read,&sequence_end1->bs_original_sequence);
-  string_copy(&sequence_end2->read,&sequence_end2->bs_original_sequence);
-}
