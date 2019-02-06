@@ -197,11 +197,14 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 //    if (gem_streq(sequence->tag.buffer,"Sim.Illumina.l100.0000009233")) {
 //      printf("HERE\n");
 //    }
-    if(mapper_io_handler->bisulfite_read == bisulfite_read_inferred)
-      bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
-    else if(non_stranded) {
-        bisulfite_conversion = sequence_bisulfite_check_cg_depletion_se(sequence) ? G2A_conversion : C2T_conversion;
-    }
+    if(bisulfite_index) {
+		 if(mapper_io_handler->bisulfite_read == bisulfite_read_inferred)
+			bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
+		 else if(non_stranded) {
+			 bisulfite_conversion = sequence_bisulfite_check_cg_depletion_se(sequence) ? G2A_conversion : C2T_conversion;
+		 
+		 }
+	 }
     // Prepare search
     archive_search_handlers_prepare_se(archive_search,sequence,bisulfite_conversion,archive_search_handlers);
 
