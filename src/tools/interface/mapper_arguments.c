@@ -82,10 +82,10 @@ option_t gem_mapper_options[] = {
   { 501, "underconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
   { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
   { 503, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
-  { 504, "restriction-enzyme", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<enzyme name> | <restriction site> (i.e., 'HindIII' or 'C-CGG')", "(default = NULL)" },
-  { 505, "output-restriction-sites", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<output file name>", "(default = NULL)" },
+  { 504, "restriction-enzyme", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<enzyme name> | <restriction site> (i.e., 'HindIII' or 'C-CGG')", "(default = NULL)" },
+  { 505, "output-restriction-sites", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<output file name>", "(default = NULL)" },
   { 506, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
-  { 507, "3c", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
+  { 507, "3c", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "", "" },
 	/* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
