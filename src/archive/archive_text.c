@@ -73,6 +73,7 @@ archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
   archive_text->forward_text_length = mm_read_uint64(memory_manager); // Total length of the forward text
   // Text
   archive_text->enc_text = dna_text_read_mem(memory_manager);
+  archive_text->bisulfite_enc_text = NULL;
   // Load Sampled RL-Index Positions
   if (archive_text->run_length) archive_text->sampled_rl = sampled_rl_read_mem(memory_manager);
   // Return
@@ -81,10 +82,42 @@ archive_text_t* archive_text_read_mem(mm_t* const memory_manager) {
 void archive_text_delete(archive_text_t* const archive_text) {
   // Delete Text
   dna_text_delete(archive_text->enc_text);
+  if(archive_text->bisulfite_enc_text != NULL) mm_free(archive_text->bisulfite_enc_text);
   // Delete Sampled RL-Index Positions
   if (archive_text->run_length) sampled_rl_delete(archive_text->sampled_rl);
   mm_free(archive_text);
 }
+
+/*
+ * Generate normal text from bisulfite index
+ */
+void archive_text_generate_bisulfite_enc_text(archive_text_t *archive_text) {
+  uint64_t len = archive_text->forward_text_length >> 1;
+  uint8_t *text = dna_text_retrieve_sequence(archive_text->enc_text,0);
+  uint8_t* enc_text = mm_malloc(len);
+  // Handle the bulk of the generation in 64 bit chunks
+  uint64_t* out = (uint64_t*) enc_text;
+  uint64_t* c2t = (uint64_t*) text;
+  uint64_t* g2a = (uint64_t*) (text + len);
+  for(uint64_t i = 0; i < len >> 3; i++) {
+    uint64_t a = *c2t++;
+    uint64_t b = *g2a++;
+    *out++ = a^((a&((a^b)>>1))<<1);  // Take the C2T text (a) and change a T to a C if the G2A text (b) has a C at that location
+  }
+  // And the remainder
+  if(len & 3) {
+    uint8_t* c2t_8 = (uint8_t *)c2t;
+    uint8_t* g2a_8 = (uint8_t *)g2a;
+    uint8_t* out_8 = (uint8_t *)out;
+    for(uint64_t i = 0; i < (len & 3); i++) {
+      uint8_t a = *c2t_8++;
+      uint8_t b = *g2a_8++;
+      *out_8++ = a^((a&((a^b)>>1))<<1);
+    }
+  }
+  archive_text->bisulfite_enc_text = enc_text;
+}
+
 /*
  * Accessors
  */
@@ -180,6 +213,58 @@ void archive_text_retrieve(
   text_trace->text_padded_left = 0;
   text_trace->text_padded_right = 0;
 }
+
+void archive_text_retrieve_bisulfite_normal(
+    archive_text_t* const archive_text,
+    const uint64_t text_position,
+    const uint64_t text_length,
+    const bool reverse_complement_text,
+    text_trace_t* const text_trace,
+    mm_allocator_t* const mm_allocator) {
+  // Retrieve text
+  text_trace->text_allocated = false;
+  text_trace->text_padded_allocated = false;
+  text_trace->text_length = text_length;
+  text_trace->strand = archive_text_get_position_strand(archive_text,text_position);
+  text_trace->position = text_position;
+  if (text_position < archive_text->forward_text_length) {
+    if (reverse_complement_text) {
+      // Reverse-Complement the text
+      uint8_t* const text = archive_text->bisulfite_enc_text + text_position;
+      text_trace->text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+      text_trace->text_allocated = true;
+      uint64_t i_forward, i_backward;
+      for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
+        text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
+      }
+    } else {
+      text_trace->text = archive_text->bisulfite_enc_text + text_position;
+    }
+  } else {
+    // Forward projection
+    const uint64_t position_fprojection = archive_text_get_projection(archive_text,text_position,text_length);
+    uint8_t* const text = archive_text->bisulfite_enc_text + position_fprojection;
+    if (reverse_complement_text) {
+      text_trace->text = text;
+    } else {
+      // Reverse-Complement the text
+      text_trace->text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+      text_trace->text_allocated = true;
+      uint64_t i_forward, i_backward;
+      for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
+        text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
+      }
+    }
+  }
+  text_trace->rl_text = NULL;
+  text_trace->rl_runs_acc = NULL;
+  // Init Padded Text
+  text_trace->text_padded = text_trace->text;
+  text_trace->text_padded_length = text_trace->text_length;
+  text_trace->text_padded_left = 0;
+  text_trace->text_padded_right = 0;
+}
+
 /*
  * Display
  */

@@ -295,5 +295,3 @@ void archive_check_pe_matches(
       paired_matches->matches_end2,check_type,mm_allocator);
   // TODO More checks related with template-size orientation, etc (But this might be stats better)
 }
-
-

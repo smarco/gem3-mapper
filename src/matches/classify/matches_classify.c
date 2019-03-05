@@ -37,30 +37,47 @@ void matches_classify(matches_t* const matches) {
     classification->wdelta_group = 0;
     return;
   }
+  match_trace_t* const primary_match = matches_get_primary_match(matches);
+  const bool local_alignment = primary_match->type == match_type_local;
+
   // Unique
   matches_metrics_t* const metrics = &matches->metrics;
-  if (num_matches == 1) {
+  if (num_matches == 1 || metrics->min2_edit_distance == UINT32_MAX) {
     classification->matches_class = matches_class_unique;
     classification->delta_group = -1;
-    classification->wdelta_group =
-        (int64_t)matches->max_complete_stratum - (int64_t)metrics->min1_edit_distance;
+    classification->wdelta_group = (int64_t)matches->max_complete_stratum - (int64_t)metrics->min1_edit_distance;
     return;
   }
   // Multi-map
-  match_trace_t* const primary_match = matches_get_primary_match(matches);
+
+  // matches_metrics_print(stderr,metrics);
+  const uint64_t primary_edit_distance = local_alignment ? primary_match->edit_distance_local : primary_match->edit_distance;
   classification->matches_class = matches_class_mmap;
+//  fprintf(stderr,"pm_swg = %d, pm_evd = %lu, pm_ed = %lu, ped = %lu\n",
+//  		primary_match->swg_score,
+//			primary_match->event_distance,
+//			primary_match->edit_distance,
+//			primary_edit_distance);
+//  fprintf(stderr,"max1_swg = %d, min1_evd = %lu, min1_ed = %lu\n",
+//   		metrics->max1_swg_score,
+// 			metrics->min1_event_distance,
+// 			metrics->min1_edit_distance);
   if (primary_match->swg_score != metrics->max1_swg_score ||
-      primary_match->event_distance != metrics->min1_event_distance ||
-      primary_match->edit_distance != metrics->min1_edit_distance) {
-    classification->delta_group = 0; // Tie
+  		primary_match->event_distance != metrics->min1_event_distance ||
+			primary_edit_distance != metrics->min1_edit_distance) {
+//  	fprintf(stderr,"A\n");
+  	classification->delta_group = 0; // Tie
   } else if (metrics->max1_swg_score == metrics->max2_swg_score ||
-             metrics->min1_event_distance == metrics->min2_event_distance ||
-             metrics->min1_edit_distance == metrics->min2_edit_distance) {
-    classification->delta_group = 0; // Tie
+//  		metrics->min1_event_distance == metrics->min2_event_distance ||
+  		(!local_alignment && metrics->min1_event_distance == metrics->min2_event_distance) ||
+  		metrics->min1_edit_distance == metrics->min2_edit_distance) {
+  	classification->delta_group = 0; // Tie
+//  	fprintf(stderr,"B\n");
   } else {
-    // General Multi-map
-    classification->delta_group =
-        (int64_t)metrics->min2_edit_distance - (int64_t)metrics->min1_edit_distance;
+  	// General Multi-map
+  	classification->delta_group =
+  			(int64_t)metrics->min2_edit_distance - (int64_t)metrics->min1_edit_distance;
+//  	fprintf(stderr,"C\n");
   }
   classification->wdelta_group =
       (int64_t)MIN(matches->max_complete_stratum,metrics->min2_edit_distance) -

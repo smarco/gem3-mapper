@@ -53,9 +53,9 @@ typedef enum {
 } bisulfite_read_t;
 
 typedef enum {
-    no_conversion,
-    C2T_conversion,
-    G2A_conversion
+    no_conversion = 0,
+    C2T_conversion = 1,
+    G2A_conversion = 2,
 } bisulfite_conversion_t;
 
 /*

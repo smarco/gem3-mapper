@@ -31,6 +31,7 @@ void paired_matches_classify(paired_matches_t* const paired_matches) {
   // Parameters
   const uint64_t num_pairs = paired_matches_get_num_maps(paired_matches);
   matches_classification_t* const classification = &paired_matches->classification;
+
   // Unmapped
   if (num_pairs == 0) {
     classification->matches_class = matches_class_unmapped;

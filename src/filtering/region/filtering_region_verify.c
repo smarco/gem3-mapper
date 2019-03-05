@@ -106,6 +106,7 @@ void filtering_region_verify_levenshtein(
     filtering_region_t* const filtering_region,
     const bool kmer_count_filter,
     pattern_t* const pattern) {
+
   // Parameters
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   const uint64_t max_error = pattern->max_effective_filtering_error;

@@ -88,11 +88,54 @@ void matches_predictors_compute_mmaps(
  */
 void matches_predictors_compute_se(
     matches_predictors_t* const predictors,
-    matches_t* const matches) {
+    matches_t* const matches,
+		match_trace_t *primary_match,
+		search_parameters_t* const search_parameters) {
   // Parameters
   matches_metrics_t* const metrics = &matches->metrics;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches==0) return;
+
+  // Primary/Subdominant predictors
+  match_trace_t** match_traces = matches_get_match_traces(matches);
+
+  uint64_t num_effective_matches = num_matches;
+
+  // Recompute metrics in the case of a local primary map
+  if(search_parameters->split_map_score) {
+  	if(primary_match->type == match_type_local) {
+  		const uint32_t gap_open_score = search_parameters->swg_penalties.gap_open_score;
+  		const uint32_t gap_extension_score = search_parameters->swg_penalties.gap_extension_score;
+    	num_effective_matches = 1;
+  		matches_metrics_t* const metrics = &matches->metrics;
+  		const uint64_t primary_block_index = primary_match->match_block_index;
+  		match_block_t* const primary_block = vector_get_elm(matches->match_blocks,primary_block_index,match_block_t);
+  		const uint64_t primary_block_length = primary_block->hi - primary_block->lo;
+  		const int64_t edit_adjust = (int64_t)matches->match_total_covered_bases - (int64_t)primary_block_length;
+  		const uint64_t event_distance_adjust = (primary_block->lo > 0 && primary_block->clip_right > 0) ? 2 : 1;
+  		const int32_t swg_score_adjust = (primary_block->lo + primary_block->clip_right) * gap_extension_score +
+  				event_distance_adjust * gap_open_score;
+//   		gem_cond_error_msg(edit_adjust < 0, "Block length > Total length (%"PRIu64" %"PRIu64")", primary_block_length, matches->match_total_covered_bases);
+  		if(edit_adjust != 0) {
+  			// Recompute distance metrics for matches in same local group as primary match
+  			matches_metrics_init(metrics);
+  			for (uint64_t i=0;i<num_matches;++i) {
+  				match_trace_t* match = match_traces[i];
+  				if(match->match_block_index == primary_block_index) {
+  			 		gem_cond_error_msg(match->edit_distance < edit_adjust, "Edit distance will become negative (%"PRIu64" %"PRIu64") %"PRIu64,
+  			 				match->edit_distance, edit_adjust, matches->match_total_covered_bases);
+  					match->edit_distance_local = match->edit_distance - edit_adjust;
+  					match->swg_score -= swg_score_adjust;
+  					match->event_distance -= event_distance_adjust;
+  					matches_metrics_update(
+  							metrics,match->event_distance,
+								match->edit_distance_local,match->swg_score);
+  					num_effective_matches++;
+  				}
+  			}
+  		}
+  	}
+  }
   // Classify
   matches_classify(matches);
   // Search Scope
@@ -100,10 +143,8 @@ void matches_predictors_compute_se(
   predictors->candidates_accepted = metrics->candidates_accepted;
   predictors->mcs_end1 = matches->max_complete_stratum;
   predictors->mcs_end2 = 0;
-  // Primary/Subdominant predictors
-  match_trace_t** const match_traces = matches_get_match_traces(matches);
-  match_trace_t* const primary_match = match_traces[0];
-  if (num_matches==1) {
+
+  if (num_effective_matches==1) {
     matches_predictors_compute_unique(
         predictors,metrics,primary_match->edit_distance,
         primary_match->event_distance,primary_match->swg_score,

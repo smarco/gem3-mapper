@@ -88,7 +88,7 @@ bool filtering_candidates_align_region(
   if (match_trace.type == match_type_regular) {
     bool match_replaced;
     match_trace_t* const match_trace_added =
-        matches_add_match_trace(matches,locator,&match_trace,&match_replaced);
+        matches_add_match_trace(filtering_candidates->search_parameters,matches,locator,&match_trace,&match_replaced);
     if (match_trace_added!=NULL) {
       filtering_region_transient_cache_add(
           &filtering_candidates->filtering_region_cache,region,match_trace_added);
@@ -118,9 +118,9 @@ int32_t filtering_candidates_align_local_region(
   // Add to matches
   if (match_trace.type == match_type_regular) {
     bool match_replaced;
-    matches_add_match_trace(matches,locator,&match_trace,&match_replaced);
+    matches_add_match_trace(filtering_candidates->search_parameters,matches,locator,&match_trace,&match_replaced);
   } else { // match_trace.type == match_type_local
-    matches_local_pending_add_to_regular_matches(matches,locator);
+    matches_local_pending_add_to_regular_matches(filtering_candidates->search_parameters,matches,locator);
   }
   return match_trace.swg_score;
 }
@@ -145,7 +145,7 @@ void filtering_candidates_align_extended_region(
   if (!match_trace_aligned) return; // Not aligned
   // Add to matches (Global/Local Alignment)
   if (match_trace.type == match_type_regular) {
-    matches_add_match_trace_extended(matches,locator,&match_trace);
+    matches_add_match_trace_extended(filtering_candidates->search_parameters,matches,locator,&match_trace);
   } else { // match_trace.type == match_type_local
     matches_local_pending_add_to_extended_matches(matches,locator);
   }
@@ -162,6 +162,7 @@ void filtering_candidates_align_candidates(
     tab_fprintf(gem_log_get_stream(),"[GEM]>Filtering.Candidates (align_acepted_regions)\n");
     tab_global_inc();
   }
+
   // Hint to matches
   const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
   if (num_filtering_regions==0) return;

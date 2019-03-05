@@ -96,6 +96,7 @@ typedef struct {
   strand_t strand;
   bs_strand_t bs_strand;
   int64_t position;
+  int64_t tag_id;
 } location_t;
 
 /*
@@ -157,7 +158,6 @@ uint64_t locator_inverse_map_position(
     const strand_t strand,
     const bs_strand_t bs_strand,
     const uint64_t text_position);
-
 
 /*
  * Display

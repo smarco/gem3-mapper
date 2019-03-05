@@ -98,6 +98,15 @@ double archive_score_logit(
       logit_coeff->coeff_kmer_frequency *
       (double)matches_predictors->kmer_frequency;
   // Return probability
+//  fprintf(stderr,"edit: %g, event: %g, svg: %g\n",
+//  		matches_predictors->primary_edit_distance_norm,
+//			matches_predictors->primary_event_distance_norm,
+//			matches_predictors->primary_swg_score_norm);
+//  fprintf(stderr,"sd_edit: %g, sd_event: %g, sd_svg: %g\n",
+//  		matches_predictors->subdominant_edit_distance_norm,
+//			matches_predictors->subdominant_event_distance_norm,
+//			matches_predictors->subdominant_swg_score_norm);
+//  fprintf(stderr,"LR factor = %g\n", lr_factor);
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }
 /*

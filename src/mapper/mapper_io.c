@@ -178,6 +178,7 @@ void mapper_io_handler_delete(
 /*
  * Pair-End Reload/Parse Helpers
  */
+
 uint64_t mapper_se_reload_buffer(
     mapper_io_handler_t* const mapper_io_handler) {
   return buffered_input_file_reload(mapper_io_handler->buffered_fasta_input_end1,0);

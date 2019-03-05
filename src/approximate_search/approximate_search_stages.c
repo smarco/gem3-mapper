@@ -77,6 +77,7 @@ void approximate_search_exact_filtering_adaptive(
     tab_global_inc();
     tab_global_inc();
   }
+  matches->local_search = false;
   // Region Profile (a.k.a. seeding stage)
   approximate_search_region_profile(search);
   if (search->processing_state==asearch_processing_state_no_regions) return; // Corner case

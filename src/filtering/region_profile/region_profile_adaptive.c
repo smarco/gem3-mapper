@@ -167,15 +167,15 @@ bool region_profile_generator_add_character(
     // Check maximum steps allowed to optimize region
     --(generator->max_steps);
     if (generator->max_steps == 0) {
-      region_profile_generator_close_region(generator,
-          generator->last_cut,generator->lo_cut,generator->hi_cut);
-      generator->key_position = generator->last_cut; // Restart
-      region_profile_generator_restart(generator);
-      return true;
+    	region_profile_generator_close_region(generator,
+    			generator->last_cut,generator->lo_cut,generator->hi_cut);
+    	generator->key_position = generator->last_cut; // Restart
+    	region_profile_generator_restart(generator);
+    	return true;
     }
     return false;
   } else { // num_candidates == 0
-    // Zero candidates & (allow zero-regions or no cutting point)
+  	// Zero candidates & (allow zero-regions or no cutting point)
     if (generator->allow_zero_regions || generator->last_cut == REGION_CUTPOINT_NULL) {
       region_profile_generator_close_region(generator,
           generator->key_position,lo,hi);
@@ -254,18 +254,26 @@ void region_profile_generate_adaptive(
     const uint64_t max_regions,
     const bool allow_zero_regions) {
   PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
+
+  //  Hints
+  uint64_t number_split_hints = region_profile->region_split_hints == NULL ? 0 : vector_get_used(region_profile->region_split_hints);
+  const uint64_t * const split_hints = number_split_hints == 0 ? NULL : vector_get_mem(region_profile->region_split_hints, uint64_t);
+	uint64_t next_split_hint = number_split_hints > 0 ? split_hints[--number_split_hints] + 1 : 0;
+
   // DEBUG
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     static uint64_t region_profile_num = 0;
     tab_fprintf(gem_log_get_stream(),"[GEM]>Region.Profile.Generate.Adaptive\n");
     tab_fprintf(gem_log_get_stream(),"[#%"PRIu64"]",region_profile_num++);
     pattern_enc_print(stderr,key,key_length);
+    tab_fprintf(gem_log_get_stream(),"[Hints: %"PRIu64", %"PRIu64"]", number_split_hints, next_split_hint);
     fprintf(gem_log_get_stream(),"\n");
     tab_fprintf(gem_log_get_stream(),"[Trace]");
   }
   // Parameters
   const uint64_t proper_length = fm_index_get_proper_length(fm_index);
   const uint64_t max_regions_profiled = MIN(max_regions,region_profile->max_expected_regions);
+
   // Init
   region_profile_generator_t generator;
   region_profile_generator_init(&generator,
@@ -276,6 +284,15 @@ void region_profile_generate_adaptive(
     if (generator.region_profile->num_filtering_regions >= max_regions_profiled) {
       PROF_INC_COUNTER(GP_REGION_PROFILE_QUIT_PROFILE);
       break;
+    }
+    if(generator.key_position < next_split_hint) {
+    	if(generator.hi - generator.lo <= profile_model->region_th) {
+    		region_profile_generator_close_region(&generator,
+    				generator.key_position,generator.lo,generator.hi);
+    	}
+    	region_profile_generator_restart(&generator);
+    	do next_split_hint = number_split_hints > 0 ? split_hints[--number_split_hints] + 1 : 0;
+    	while(generator.key_position < next_split_hint);
     }
     // Get next character
     --(generator.key_position);

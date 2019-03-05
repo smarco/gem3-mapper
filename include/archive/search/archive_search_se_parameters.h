@@ -33,6 +33,7 @@
 #include "archive/search/archive_select_parameters.h"
 #include "filtering/region_profile/region_profile.h"
 #include "neighborhood_search/nsearch_parameters.h"
+#include "text/restriction_locate.h"
 
 /*
  * Search Modes
@@ -108,9 +109,11 @@ typedef struct {
   mapping_mode_t mapping_mode;                         // Mapping mode
   bisulfite_read_t bisulfite_read;                     // Bisulfite mode
   bool rrbs;
+  bool ccc;
+  char* output_restriction_site_filename;
 	char* control_sequences[3];
   vector_t *restriction_sites;
-
+  restriction_site_locator_t restriction_site_locator;
   /* Clipping */
   clipping_type clipping;
   uint64_t clip_left;
@@ -142,6 +145,11 @@ typedef struct {
   double alignment_local_min_identity;                  // Alignment minimum identity to be local
   double alignment_local_min_swg_threshold;             // Alignment minimum SWG score to be local
   int32_t swg_score_dropoff;                            // SWG-Alignment local dropoff score
+  /* Split alignments */
+  bool split_map;                                       // Output secondary alignment tags (also sets split_map_score)
+  bool split_map_score;                                 // Scores local alignments as split maps rather than necessarily global
+  bool split_map_sort_pos;                              // Sorts local alignments by genome position rather than by alignment score
+  uint64_t split_map_max_overlap;                       // Maximum overlap allowed between alignments for them to be considered as a split map
   /* Scaffolding */
   double alignment_scaffolding_min_coverage;            // Minimum length of the alignment-region (chaining alignment-regions)
   double alignment_scaffolding_min_matching_length;     // Minimum matching chunk to be considered

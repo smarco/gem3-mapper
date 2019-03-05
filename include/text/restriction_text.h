@@ -30,13 +30,42 @@
 #define RESTRICTION_TEXT_H_
 
 #include "utils/essentials.h"
+#include "matches/match_trace.h"
+#include "archive/archive.h"
+#include "align/pattern/pattern.h"
+#include "text/restriction_locate.h"
 
 typedef struct {
   string_t restriction_site;
-  int cut_site_index;
-} restriction_t;
+  uint64_t search_pattern[3][DNA_EXT_RANGE];  // For searching in read
+  uint64_t reference_pattern[DNA_EXT_RANGE];  // For searching in reference
+  uint64_t search_pattern_mask;
+  uint64_t reference_pattern_mask;
+  uint64_t search_pattern_len;
+  uint64_t reference_pattern_len;
+  char* restriction_enzyme;
+  uint64_t cut_site_index;
+} restriction_site_t;
 
-restriction_t *restriction_new(char * const);
-void restriction_delete(restriction_t * const);
+
+restriction_site_t *restriction_new(char * const);
+void restriction_site_delete(restriction_site_t * const);
+void find_restriction_site_matches(
+		pattern_t const * const pattern,
+		vector_t const * const restriction_sites,
+		vector_t * const restriction_hits,
+		bisulfite_conversion_t const bisulfite_conversion);
+void restriction_text_init_locator(
+		const archive_t* const archive,
+		const vector_t* const restriction_sites,
+		restriction_site_locator_t * const restriction_site_locator,
+		const char * const output_sites_name,
+		const bool verbose_user);
+
+void restriction_match_trace_locate(
+		match_trace_t * const match_trace,
+		restriction_site_locator_t const * const restriction_site_locator);
+
+
 
 #endif

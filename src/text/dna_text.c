@@ -241,6 +241,7 @@ dna_text_t* dna_text_read_mem(mm_t* const memory_manager) {
   // Return
   return dna_text;
 }
+
 void dna_text_delete(dna_text_t* const dna_text) {
   if (dna_text->mm_text!=NULL) {
     mm_bulk_free(dna_text->mm_text);

@@ -51,6 +51,7 @@ asearch_stage_t as_filtering_control_filtering_adaptive_next_state(
     case asearch_processing_state_candidates_verified:
       if (matches_classify_local_alignment_fallback(
           matches,search->search_parameters->alignment_local)) {
+      	matches->local_search = true;
         PROF_INC_COUNTER(GP_AS_LOCAL_ALIGN_CALL);
         return asearch_stage_local_alignment;
       } else {

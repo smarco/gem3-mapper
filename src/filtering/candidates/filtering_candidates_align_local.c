@@ -77,9 +77,10 @@ void filtering_candidates_align_local(
   PROFILE_START(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
   // Add pending local matches (found so far)
   locator_t* const locator = filtering_candidates->archive->locator;
-  matches_local_pending_add_to_regular_matches(matches,locator);
-  // Check total alignments found
+
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  matches_local_pending_add_to_regular_matches(search_parameters,matches,locator);
+  // Check total alignments found
   select_parameters_t* const select_parameters = &search_parameters->select_parameters;
   const uint64_t max_searched_matches = select_parameters->max_searched_matches;
   uint64_t total_matches = matches_get_num_match_traces(matches);

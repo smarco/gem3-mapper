@@ -230,6 +230,7 @@ void paired_matches_add(
     const pair_layout_t pair_layout,
     const uint64_t template_length,
     const double template_length_sigma) {
+
   // Parameters
   mm_allocator_t* const mm_allocator = paired_matches->mm_allocator;
   // Alloc paired match & add counters
