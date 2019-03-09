@@ -67,6 +67,7 @@ typedef struct {
   /* Matches Counters */
   matches_counters_t* counters;            // Global counters
   uint64_t max_complete_stratum;           // Maximum complete stratum
+  uint64_t key_length;										 // Length of pattern;
   bool limited_exact_matches;              // Limited exact matches
   bool matches_extended;                   // Matches added from PE-extension of the other end
   bool local_search;                       // Are we in global or local search phase?

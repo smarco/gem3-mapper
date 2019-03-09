@@ -466,12 +466,13 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   gem_cond_fatal_error_msg(
         (ccc  || split_map_score) && mapper_parameters->archive->text->run_length,
         "Archive RL-text not supported for 3C or split-map modes (use standard index)");
-  if(search_parameters->restriction_sites != NULL)
+
+  const uint64_t num_threads = mapper_parameters->system.num_threads;
+  restriction_site_locator_builder_t * const restriction_site_locator_builder = search_parameters->restriction_sites != NULL ?
   	restriction_text_init_locator(archive, search_parameters->restriction_sites,
   			&search_parameters->restriction_site_locator, search_parameters->output_restriction_site_filename,
-				mapper_parameters->misc.verbose_user);
+				mapper_parameters->misc.verbose_user, num_threads) : NULL;
   // Setup threads
-  const uint64_t num_threads = mapper_parameters->system.num_threads;
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false);
   // Set error-report function
   g_mapper_searches = mapper_search;
@@ -527,6 +528,13 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     gem_cond_fatal_error(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
+  // Clean up restriction writer thread
+  if(restriction_site_locator_builder != NULL && restriction_site_locator_builder->output_handle != NULL) {
+  	gem_cond_fatal_error(pthread_join(restriction_site_locator_builder->restriction_site_writer, 0),SYS_THREAD_JOIN);
+  	fclose(restriction_site_locator_builder->output_handle);
+  	mm_free(restriction_site_locator_builder);
+  }
+
   PROFILE_VTUNE_STOP(); // Vtune
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);

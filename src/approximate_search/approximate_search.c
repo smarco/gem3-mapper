@@ -153,6 +153,7 @@ uint64_t approximate_search_get_num_filtering_candidate_buffered_tiles_length(
  */
 void approximate_search(approximate_search_t* const search,matches_t* const matches) {
   PROFILE_START(GP_AS_MAIN,PROFILE_LEVEL);
+	matches->key_length = search->pattern.key_length;
   /*
    * Select mapping strategy
    */

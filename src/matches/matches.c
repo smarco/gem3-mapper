@@ -320,9 +320,10 @@ void match_trace_get_block(
   			hi ++;
   			break;
   		case cigar_del:
-  			if(cigar_array[i].attributes != cigar_attr_trim || i < cigar_length - 1) {
+  			if(cigar_array[i].attributes == cigar_attr_trim) right_skip = cigar_array[i].length;
+  			else {
   				hi += cigar_array[i].length;
-  			} else right_skip = cigar_array[i].length;
+  			}
   			break;
   		case cigar_ins:
   			break;
@@ -408,7 +409,8 @@ void matches_add_match_trace_to_blocks(
 //		if(!i || blocks[i-1].hi <= blocks[i].lo) matches->match_total_covered_bases += blocks[i].hi - blocks[i].lo;
 //		else matches->match_total_covered_bases += blocks[i].hi - blocks[i-1].hi;
 //	}
-	matches->match_total_covered_bases = bounds[2];
+//	matches->match_total_covered_bases = bounds[2];
+	matches->match_total_covered_bases = matches->key_length;
 
 //  fprintf(stderr,"covered bases = %"PRIu64", insert_pos = %"PRIu64"\n", matches->match_total_covered_bases, insert_pos);
 

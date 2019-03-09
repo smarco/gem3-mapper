@@ -119,8 +119,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
 
   // Restriction sites
   search_parameters->restriction_sites = NULL;
-  search_parameters->restriction_site_locator.restriction_site_block_index = NULL;
-  search_parameters->restriction_site_locator.restriction_site_offsets = NULL;
+  search_parameters->restriction_site_locator.restriction_site_sequence_locator = NULL;
   search_parameters->output_restriction_site_filename = NULL;
   // Clipping
   search_parameters->clipping = clipping_uncalled;

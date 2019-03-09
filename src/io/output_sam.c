@@ -1479,7 +1479,7 @@ void output_sam_paired_end_matches_paired(
      * End/1
      */
     // Print Core Fields
-    uint8_t mapq_score = ccc ? match_end1->mapq_score : paired_map->mapq_score;
+    uint8_t mapq_score = ccc && match_end1->mapq_score > paired_map->mapq_score ? match_end1->mapq_score : paired_map->mapq_score;
     output_sam_print_core_fields_pe(
         buffered_output_file,archive_search_end1->sequence,
         matches_end1,match_end1,match_end2,mapq_score,
@@ -1552,7 +1552,7 @@ void output_sam_paired_end_matches_paired(
      * End/2
      */
     // Print Core Fields
-    mapq_score = ccc ? match_end2->mapq_score : paired_map->mapq_score;
+    mapq_score = ccc && match_end2->mapq_score > paired_map->mapq_score ? match_end2->mapq_score : paired_map->mapq_score;
     output_sam_print_core_fields_pe(
         buffered_output_file,archive_search_end2->sequence,
         matches_end2,match_end2,match_end1,mapq_score,

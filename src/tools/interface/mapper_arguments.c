@@ -238,6 +238,9 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
       }
     }
   }
+  /* 3C / HiC */
+  if(search->ccc && vector_get_used(search->restriction_sites) > 1)
+  	restriction_create_interaction_junctions(search->restriction_sites);
 }
 /*
  * Mapper Arguments Parsing
@@ -815,7 +818,7 @@ bool gem_mapper_parse_arguments_bisulfite(
     	search->ccc = true;
     	search->split_map = true;
     	search->split_map_score = true;
-    	search->alignment_local_min_identity = 20;
+    	search->alignment_local_min_identity = 15;
     	// Allow all orientations
     	// paired_search->pair_orientation[pair_orientation_FR] = pair_relation_concordant;
     	// paired_search->pair_orientation[pair_orientation_RF] = pair_relation_concordant;
