@@ -626,7 +626,6 @@ CUDA_BIN_PATH
 HAVE_CUDA
 HAVE_GOLD
 HAVE_LTO
-HAVE_OPENMP
 HAVE_BZLIB
 EGREP
 GREP
@@ -3333,20 +3332,6 @@ done
 
 
 
-for ac_header in omp.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "omp.h" "ac_cv_header_omp_h" "$ac_includes_default"
-if test "x$ac_cv_header_omp_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_OMP_H 1
-_ACEOF
- HAVE_OPENMP=1
-fi
-
-done
-
-
-
 # LTO configure parameters
 # Check whether --enable-lto was given.
 if test "${enable_lto+set}" = set; then :
@@ -3487,7 +3472,8 @@ fi
 
 
   # Checking for nvcc
-    VALID_CUDA=yes
+  VALID_CUDA=yes
+  FOUND_NVCC=no
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking nvcc in $cuda_sdk_prefix/bin" >&5
 $as_echo_n "checking nvcc in $cuda_sdk_prefix/bin... " >&6; }
   if test -x "$cuda_sdk_prefix/bin/nvcc"; then
@@ -3496,6 +3482,7 @@ $as_echo "yes" >&6; }
     cuda_bin_path="$cuda_sdk_prefix/bin"
     cuda_lib_path="$cuda_sdk_prefix/lib64"
     cuda_include_path="$cuda_sdk_prefix/include"
+    FOUND_NVCC=yes
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
 $as_echo "not found" >&6; }
@@ -3508,11 +3495,35 @@ $as_echo "yes" >&6; }
       cuda_bin_path="$cuda_repo_prefix/bin"
       cuda_lib_path="$cuda_repo_prefix/lib/x86_64-linux-gnu"
       cuda_include_path="$cuda_repo_prefix/include"
+      FOUND_NVCC=yes
     else
       { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Couldn't find cuda nvcc compiler" >&5
 $as_echo "$as_me: WARNING: Couldn't find cuda nvcc compiler" >&2;}
       VALID_CUDA=no
     fi
+  fi
+
+  # Test nvcc
+  if test "$FOUND_NVCC" == "yes" ; then
+    touch conftest.cu
+    nvcc_test_flags="-m64 -Xptxas=\"-dlcm=ca\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_20,code=\"sm_20,compute_20\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_20,code=sm_21"
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_30,code=sm_30"
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_35,code=\"sm_35,compute_35\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_37,code=sm_37"
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_50,code=\"sm_50,compute_50\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_52,code=\"sm_52,compute_52\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_60,code=\"sm_60,compute_60\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_61,code=\"sm_61,compute_61\""
+    nvcc_test_flags="$nvcc_test_flags -gencode arch=compute_62,code=\"sm_62,compute_62\""
+    $cuda_bin_path/nvcc --dryrun -c conftest.cu -o conftest.o $nvcc_test_flags >/dev/null 2>&1
+    if test $? -eq 1; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Error testing nvcc compiler" >&5
+$as_echo "$as_me: WARNING: Error testing nvcc compiler" >&2;}
+      VALID_CUDA=no
+    fi
+    rm conftest.cu conftest.o 2> /dev/null
   fi
 
   # Saving the current flags

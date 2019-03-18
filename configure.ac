@@ -33,9 +33,6 @@ AC_CHECK_LIB([bz2], [BZ2_bzReadOpen], [HAVE_BZLIB=1])
 AC_CHECK_HEADERS([bzlib.h],[HAVE_BZLIB=1],AC_MSG_WARN([Compiling GEM without bzlib support]))
 AC_SUBST([HAVE_BZLIB])
  
-AC_CHECK_HEADERS([omp.h],[HAVE_OPENMP=1])
-AC_SUBST([HAVE_OPENMP])
-
 # LTO configure parameters
 AC_ARG_ENABLE([lto],
   AC_HELP_STRING([--enable-lto],[Enables or Disables Linktime Code Optimization (default=yes)]),

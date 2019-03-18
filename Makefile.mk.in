@@ -57,7 +57,6 @@ FOLDER_TOOLS=$(ROOT_PATH)/tools
 
 HAVE_ZLIB = @HAVE_ZLIB@
 HAVE_BZLIB = @HAVE_BZLIB@
-HAVE_OPENMP = @HAVE_OPENMP@
 HAVE_CUDA = @HAVE_CUDA@
 HAVE_LTO = @HAVE_LTO@
 HAVE_GOLD = @HAVE_GOLD@
@@ -135,9 +134,9 @@ ifeq ($(CC),gcc)
   endif
   ifeq ($(HAVE_GOLD),1)
     AR=gcc-ar
-    OPT_AR=-fuse-linker-plugin
+    OPT_AR=-fuse-linker-plugin -Wno-ignored-optimization-argument
   endif
-  FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
+  FLAGS_OPT=-O3 $(OPT_LTO)
   FLAGS_LINK=$(OPT_AR)
 endif
 
@@ -163,13 +162,6 @@ endif
 ###############################################################################
 # System dependent flags
 ###############################################################################
-# OpenMP
-ifeq ($(HAVE_OPENMP),1)
-  DEF_OPENMP=-DHAVE_OPENMP
-  LIB_OPENMP+=-fopenmp
-  LIBS+=$(LIB_OPENMP)
-endif
-
 # GZip
 ifeq ($(HAVE_ZLIB),1)
   DEF_ZLIB=-DHAVE_ZLIB
