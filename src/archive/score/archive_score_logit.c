@@ -102,10 +102,16 @@ double archive_score_logit(
 //  		matches_predictors->primary_edit_distance_norm,
 //			matches_predictors->primary_event_distance_norm,
 //			matches_predictors->primary_swg_score_norm);
-//  fprintf(stderr,"sd_edit: %g, sd_event: %g, sd_svg: %g\n",
+//  fprintf(stderr,"sd_edit: %g, sd_event: %g, sd_svg: %g, avg_reg_len_norm: %g\n",
 //  		matches_predictors->subdominant_edit_distance_norm,
 //			matches_predictors->subdominant_event_distance_norm,
-//			matches_predictors->subdominant_swg_score_norm);
+//			matches_predictors->subdominant_swg_score_norm,
+//			matches_predictors->avg_region_length_norm);
+//  fprintf(stderr,"mapq_end1: %d, mapq_end2: %d, kmer_freq: %g\, cand_accept: %lu\n",
+//  		matches_predictors->mapq_end1,
+//			matches_predictors->mapq_end1,
+//			matches_predictors->kmer_frequency,
+//			matches_predictors->candidates_accepted);
 //  fprintf(stderr,"LR factor = %g\n", lr_factor);
   return 1.0 / (1.0 + (1.0/exp(lr_factor)));
 }

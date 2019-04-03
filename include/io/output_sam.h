@@ -44,6 +44,8 @@ typedef struct {
   bool omit_secondary_read__qualities;
   /* CIGAR */
   bool print_mismatches;
+  /* Split Maps */
+  bool hard_clip_split_maps;
   /* XA */
   bool compact_xa;
   /* Bisulfite */

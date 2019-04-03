@@ -69,6 +69,7 @@ asearch_stage_t as_filtering_control_filtering_adaptive_next_state(
 void approximate_search_filtering_adaptive(
     approximate_search_t* const search,
     matches_t* const matches) {
+
   // Process proper search-stage
   while (true) {
     switch (search->search_stage) {

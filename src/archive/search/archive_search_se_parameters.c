@@ -140,7 +140,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_parameters->split_map = false;
   search_parameters->split_map_score = false;
   search_parameters->split_map_sort_pos = false;
-  search_parameters->split_map_max_overlap = 8;
+  search_parameters->split_map_max_overlap = 0;
 
   // Paired End
   search_paired_parameters_init(&search_parameters->search_paired_parameters);

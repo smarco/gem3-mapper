@@ -65,8 +65,9 @@ option_t gem_mapper_options[] = {
   { 315, "qgram-filter", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
   { 316, "split-map", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
   { 317, "split-map-score", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
-  { 318, "split-map-max-overlap", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>" , "(default=4)" },
+  { 318, "split-map-max-overlap", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>" , "(default=0)" },
   { 319, "split-map-sort-pos", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
+	{ 320, "hard-clip-split-maps", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "", "(default=false)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 4, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 4, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -231,7 +232,7 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   /* RRBS */
   if(search->rrbs) {
     if(search->restriction_sites == NULL) {
-      restriction_site_t *rest = restriction_new("C-CGG"); // If no restriction site has been set, default to MspI site
+      restriction_site_t *rest = restriction_new("MspI        "); // If no restriction site has been set, default to MspI site
       if(rest != NULL) {
         search->restriction_sites = vector_new(1, restriction_site_t *);
         vector_insert(search->restriction_sites, rest, restriction_site_t *);
@@ -239,7 +240,7 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
     }
   }
   /* 3C / HiC */
-  if(search->ccc && vector_get_used(search->restriction_sites) > 1)
+  if(search->ccc && search->restriction_sites != NULL && vector_get_used(search->restriction_sites) > 1)
   	restriction_create_interaction_junctions(search->restriction_sites);
 }
 /*
@@ -601,6 +602,9 @@ bool gem_mapper_parse_arguments_single_end(
     case 319: // --split-map-sort-pos in {'true'|'false'} (default=false)
       search->split_map_sort_pos = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       return true;
+    case 320: // --hard-clip-split-maps in {'true'|'false'} (default=false)
+      parameters->io.sam_parameters.hard_clip_split_maps = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      return true;
     default:
       return false; // Not found
   }
@@ -761,7 +765,7 @@ bool gem_mapper_parse_arguments_bisulfite(
     char* optarg) {
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
-  search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
+  // search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
   restriction_site_t *rest = NULL;
   // Bisulfite
   switch (option) {
@@ -818,6 +822,7 @@ bool gem_mapper_parse_arguments_bisulfite(
     	search->ccc = true;
     	search->split_map = true;
     	search->split_map_score = true;
+    	parameters->io.sam_parameters.hard_clip_split_maps = false;
     	search->alignment_local_min_identity = 15;
     	// Allow all orientations
     	// paired_search->pair_orientation[pair_orientation_FR] = pair_relation_concordant;
@@ -831,8 +836,8 @@ bool gem_mapper_parse_arguments_bisulfite(
       // paired_search->min_template_length = 0;
       // paired_search->max_template_length = UINT64_MAX;
       // Turn off pair extension
-      paired_search->paired_end_extension_shortcut = false;
-      paired_search->paired_end_extension_recovery = false;
+      // paired_search->paired_end_extension_shortcut = false;
+      // paired_search->paired_end_extension_recovery = false;
     	return true;
     default:
       return false; // Not found

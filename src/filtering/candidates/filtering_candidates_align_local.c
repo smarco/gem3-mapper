@@ -56,11 +56,29 @@ void filtering_candidates_align_local_discarded(
   // Local-align the most promising regions
   filtering_region_t** const regions_discarded = filtering_candidates_get_discarded_regions(filtering_candidates);
   const uint64_t num_regions_discarded = filtering_candidates_get_num_discarded_regions(filtering_candidates);
+  const bool split_mode = search_parameters->split_map_score;
   uint64_t i;
   for (i=0;i<num_regions_discarded;++i) {
     // Cut-off max-reported matches
     filtering_region_t* const filtering_region = regions_discarded[i];
-    if (matches_get_num_match_traces(matches) >= max_searched_matches) break;
+    if(split_mode) {
+    	const uint64_t num_blocks = vector_get_used(matches->match_blocks);
+    	uint64_t num_matches = 0;
+    	match_block_t *blocks = vector_get_mem(matches->match_blocks, match_block_t);
+    	const match_scaffold_t * const match_scaffold = &filtering_region->match_scaffold;
+    	const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
+    	if(num_alignment_regions > 0) {
+    		const uint64_t begin = filtering_region->match_scaffold.alignment_regions[0].key_begin;
+    		const uint64_t end = filtering_region->match_scaffold.alignment_regions[num_alignment_regions-1].key_end;
+    		for(uint64_t k = 0; k < num_blocks; k++) {
+    			if(begin >= blocks[k].lo && end <= blocks[k].hi)
+    				num_matches += blocks[k].num_matches;
+    		}
+    	}
+    	if(num_matches >= max_searched_matches) break;
+    } else {
+    	if (matches_get_num_match_traces(matches) >= max_searched_matches) break;
+    }
     // Align Region
     PROF_INC_COUNTER(GP_CANDIDATE_REGION_LOCAL_ALIGNED);
     filtering_candidates_align_local_region(
@@ -81,13 +99,13 @@ void filtering_candidates_align_local(
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   matches_local_pending_add_to_regular_matches(search_parameters,matches,locator);
   // Check total alignments found
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
-  uint64_t total_matches = matches_get_num_match_traces(matches);
-  if (total_matches >= max_searched_matches) {
-    PROFILE_STOP(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
-    return;
-  }
+//  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+//  const uint64_t max_searched_matches = select_parameters->max_searched_matches;
+//  uint64_t total_matches = matches_get_num_match_traces(matches);
+//  if (total_matches >= max_searched_matches) {
+//    PROFILE_STOP(GP_FC_REALIGN_LOCAL_CANDIDATE_REGIONS,PROFILE_LEVEL);
+//    return;
+//  }
   // Local align all discarded regions
   filtering_candidates_align_local_discarded(filtering_candidates,pattern,matches);
   // DEBUG

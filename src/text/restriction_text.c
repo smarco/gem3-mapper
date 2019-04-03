@@ -58,6 +58,7 @@ static char *restriction_enzyme_defs[][2] = {
 		{"CviQI", "G-TAC"},
 		{"CviAII", "C-ATG"},
 		{"AseI", "AT-TAAT"},
+		{"MspI", "C-CGG"},
 		{NULL, NULL}
 };
 
@@ -203,7 +204,7 @@ restriction_site_t *restriction_new(char * const rest_char) {
      	char *const junction = mm_malloc(search_pattern_len);
      	uint64_t k = 0;
      	for(uint64_t i = 0; i < ref_pattern_len - rest->cut_site_index; i++) junction[k++] = p[i];
-     	rest->search_pattern_split_offset = k;
+     	rest->search_pattern_split_offset = search_pattern_len - 1 - k;
      	for(uint64_t i = rest->cut_site_index; i < ref_pattern_len; i++) junction[k++] = p[i];
      	restriction_make_search_patterns(rest, junction, search_pattern_len);
      	mm_free(junction);

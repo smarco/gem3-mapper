@@ -346,7 +346,8 @@ void match_align_swg_chained_from_last(
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    match_scaffold_t* const match_scaffold,
+//    match_scaffold_t* const match_scaffold,
+		const match_alignment_region_t* const last_alignment_region,
     const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
@@ -355,9 +356,9 @@ void match_align_swg_chained_from_last(
   const uint64_t text_length = text_trace->text_length;
   const uint64_t max_bandwidth = pattern->max_effective_bandwidth;
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  match_alignment_region_t* const alignment_regions = match_scaffold->alignment_regions;
-  const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
-  const match_alignment_region_t* const last_alignment_region = alignment_regions + (num_alignment_regions-1);
+  // match_alignment_region_t* const alignment_regions = match_scaffold->alignment_regions;
+  // const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
+  // const match_alignment_region_t* const last_alignment_region = alignment_regions + (num_alignment_regions-1);
   const uint64_t last_key_begin = match_alignment_region_get_key_begin(last_alignment_region);
   const uint64_t last_key_end = match_alignment_region_get_key_end(last_alignment_region);
   const uint64_t last_text_end = match_alignment_region_get_text_end(last_alignment_region);
@@ -398,22 +399,29 @@ bool match_align_swg_chained_gap(
     search_parameters_t* const search_parameters,
     pattern_t* const pattern,
     text_trace_t* const text_trace,
-    match_scaffold_t* const match_scaffold,
+    // match_scaffold_t* const match_scaffold,
+		const match_alignment_region_t* const prev_alignment_region,
+		const match_alignment_region_t* const current_alignment_region,
     const uint64_t match_alignment_region_idx,
     const bool local_alignment,
     match_trace_t* const match_trace,
     mm_allocator_t* const mm_allocator) {
   // Parameters
   match_alignment_t* const match_alignment = &match_trace->match_alignment;
-  match_alignment_region_t* const alignment_regions = match_scaffold->alignment_regions;
-  const match_alignment_region_t* const prev_alignment_region = alignment_regions + (match_alignment_region_idx-1);
-  const match_alignment_region_t* const current_alignment_region = alignment_regions + match_alignment_region_idx;
-  const uint64_t prev_key_begin = match_alignment_region_get_key_begin(prev_alignment_region);
+//  match_alignment_region_t* const alignment_regions = match_scaffold->alignment_regions;
+//  const match_alignment_region_t* const prev_alignment_region = alignment_regions + (match_alignment_region_idx-1);
+//  const match_alignment_region_t* const current_alignment_region = alignment_regions + match_alignment_region_idx;
   const uint64_t prev_key_end = match_alignment_region_get_key_end(prev_alignment_region);
-  const uint64_t prev_text_end = match_alignment_region_get_text_end(prev_alignment_region);
   const uint64_t current_key_begin = match_alignment_region_get_key_begin(current_alignment_region);
+  if(prev_key_end >= current_key_begin) {
+  	match_alignment->score=SWG_SCORE_MIN;
+  	return false;
+  }
+  const uint64_t prev_key_begin = match_alignment_region_get_key_begin(prev_alignment_region);
+  const uint64_t prev_text_end = match_alignment_region_get_text_end(prev_alignment_region);
   const uint64_t current_key_end = match_alignment_region_get_key_end(current_alignment_region);
   const uint64_t current_text_begin = match_alignment_region_get_text_begin(current_alignment_region);
+
   // Offsets
   const uint64_t key_chunk_begin_offset = prev_key_end;
   const uint64_t key_chunk_length = current_key_begin - key_chunk_begin_offset;
@@ -466,21 +474,25 @@ void match_align_swg_chained(
       text_trace,match_alignment,cigar_vector,mm_allocator);
   // Chain alignment-regions
   uint64_t i;
+  const match_alignment_region_t* prev_alignment_region = alignment_regions;
   for (i=1;i<num_alignment_regions;++i) {
+    const match_alignment_region_t* const curr_alignment_region = alignment_regions + i;
     // Align the gap
     match_align_swg_chained_gap(
         matches,search_parameters,pattern,text_trace,
-        match_scaffold,i,local_alignment,match_trace,mm_allocator);
-    if (match_alignment->score == SWG_SCORE_MIN) return;
+				prev_alignment_region,curr_alignment_region,
+        i,local_alignment,match_trace,mm_allocator);
+    if (match_alignment->score == SWG_SCORE_MIN) continue;
     // Add alignment-region
     match_align_swg_chained_add_region(
-        alignment_regions+i,search_parameters,pattern,
+        curr_alignment_region,search_parameters,pattern,
         text_trace,match_alignment,cigar_vector,mm_allocator);
+    prev_alignment_region = curr_alignment_region;
   }
   // Chain from last alignment-region
   match_align_swg_chained_from_last(
       matches,search_parameters,pattern,text_trace,
-      match_scaffold,local_alignment,match_trace,mm_allocator);
+      prev_alignment_region,local_alignment,match_trace,mm_allocator);
   // Restore match position
   match_alignment->match_position = match_position;
   match_alignment->match_text_offset = match_position - text_trace->position;

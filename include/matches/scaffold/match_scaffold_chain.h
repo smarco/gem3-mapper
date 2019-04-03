@@ -36,6 +36,7 @@ void match_scaffold_chain(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     const bool exact_extend,
+		const matches_t * const matches,
     mm_allocator_t* const mm_allocator);
 
 #endif /* MATCH_SCAFFOLD_CHAIN_H_ */

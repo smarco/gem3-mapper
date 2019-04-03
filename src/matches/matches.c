@@ -356,12 +356,17 @@ void matches_add_match_trace_to_blocks(
 	uint64_t num_match_blocks = vector_get_used(matches->match_blocks);
 	match_block_t *blocks = vector_get_mem(matches->match_blocks, match_block_t);
 	uint64_t insert_pos = 0;
-//	fprintf(stderr,"bounds = [%"PRIu64", %"PRIu64"], num_match_blocks = %"PRIu64"\n", bounds[0], bounds[1], num_match_blocks);
+	// fprintf(stderr,"bounds = [%"PRIu64", %"PRIu64"], num_match_blocks = %"PRIu64"\n", bounds[0], bounds[1], num_match_blocks);
 	uint64_t i;
 	bool overlaps = false;
+	bool contained = false;
 	for(i = 0; i < num_match_blocks; i++) {
-		if((bounds[0] >= blocks[i].hi || blocks[i].hi - bounds[0] < max_overlap)
-			 || (bounds[1] <= blocks[i].lo || bounds[1] - blocks[i].lo < max_overlap)) { // Almost non-overlapping blocks
+		// Edge case - new match trace contained within existing block
+		if(bounds[0] >= blocks[i].lo && bounds[1] <= blocks[i].hi) {
+			contained = true;
+			break;
+		} else if((bounds[0] >= blocks[i].hi || blocks[i].hi - bounds[0] < max_overlap)
+				|| (bounds[1] <= blocks[i].lo || bounds[1] - blocks[i].lo < max_overlap)) { // Almost non-overlapping blocks
 			blocks[i].overlaps = false;
 		} else {
 			if(bounds[0] >= blocks[i].lo) {
@@ -374,54 +379,60 @@ void matches_add_match_trace_to_blocks(
 			overlaps = true;
 		}
 	}
-//	fprintf(stderr,"...bounds = [%"PRIu64", %"PRIu64"] overlaps:%c\n", bounds[0], bounds[1], overlaps ? 'T' : 'F');
-	int64_t* new_index = num_match_blocks ? mm_allocator_calloc(matches->mm_allocator,num_match_blocks, int64_t, false) : NULL;
-	if(!overlaps) {
-		vector_reserve(matches->match_blocks, num_match_blocks + 1, false);
-		blocks = vector_get_mem(matches->match_blocks, match_block_t);
-	}
-	uint64_t j;
-	for(i = j = 0; i < num_match_blocks; i++) {
-		if(!blocks[i].overlaps) {
-			if(blocks[i].lo > bounds[0]) break;
-			new_index[i] = j++;
-		} else new_index[i] = -1;
-	}
-	insert_pos = j++;
-	match_block_t block, block1;
+	if(contained) {
+		insert_pos = i;
+	} else {
+		// fprintf(stderr,"...bounds = [%"PRIu64", %"PRIu64"] overlaps:%c\n", bounds[0], bounds[1], overlaps ? 'T' : 'F');
+		int64_t* new_index = num_match_blocks ? mm_allocator_calloc(matches->mm_allocator,num_match_blocks, int64_t, false) : NULL;
+		if(!overlaps) {
+			vector_reserve(matches->match_blocks, num_match_blocks + 1, false);
+			blocks = vector_get_mem(matches->match_blocks, match_block_t);
+		}
+		uint64_t j;
+		for(i = j = 0; i < num_match_blocks; i++) {
+			if(!blocks[i].overlaps) {
+				if(blocks[i].lo > bounds[0]) break;
+				new_index[i] = j++;
+			} else new_index[i] = -1;
+		}
+		insert_pos = j++;
+		match_block_t block, block1;
 
-	if(i < num_match_blocks) copy_match_block(&block, blocks + i);
-	for(;i < num_match_blocks; i++) {
-		if(i < num_match_blocks - 1) copy_match_block(&block1, blocks + i + 1);
-		if(!block.overlaps) {
-			new_index[i] = j;
-			copy_match_block(blocks + (j++),&block);
-		} else new_index[i] = -1;
-		copy_match_block(&block, &block1);
+		if(i < num_match_blocks) copy_match_block(&block, blocks + i);
+		for(;i < num_match_blocks; i++) {
+			if(i < num_match_blocks - 1) copy_match_block(&block1, blocks + i + 1);
+			if(!block.overlaps) {
+				new_index[i] = j;
+				copy_match_block(blocks + (j++),&block);
+			} else new_index[i] = -1;
+			copy_match_block(&block, &block1);
+		}
+		vector_set_used(matches->match_blocks,j);
+		blocks[insert_pos].lo = bounds[0];
+		blocks[insert_pos].hi = bounds[1];
+		blocks[insert_pos].clip_right = bounds[2] - bounds[1];
+		matches->match_total_covered_bases = 0;
+		for(i = 0; i < j; i++) {
+			if(!i || blocks[i-1].hi <= blocks[i].lo) matches->match_total_covered_bases += blocks[i].hi - blocks[i].lo;
+			else matches->match_total_covered_bases += blocks[i].hi - blocks[i-1].hi;
+		}
+		//	matches->match_total_covered_bases = bounds[2];
+		// matches->match_total_covered_bases = matches->key_length;
+
+		// fprintf(stderr,"covered bases = %"PRIu64", insert_pos = %"PRIu64"\n", matches->match_total_covered_bases, insert_pos);
+
+		uint64_t num_match_traces = matches_get_num_match_traces(matches);
+		match_trace_t **traces = matches_get_match_traces(matches);
+		for(uint64_t i = 0; i < j; i++) blocks[i].num_matches = 0;
+		for(uint64_t i = 0; i < num_match_traces; i++) {
+			uint64_t old_block_index = traces[i]->match_block_index;
+			traces[i]->match_block_index = new_index[old_block_index] < 0 ? insert_pos : (uint64_t)new_index[old_block_index];
+			blocks[traces[i]->match_block_index].num_matches++;
+		}
+		if(new_index != NULL) mm_allocator_free(matches->mm_allocator, new_index);
 	}
-	vector_set_used(matches->match_blocks,j);
-	blocks[insert_pos].lo = bounds[0];
-	blocks[insert_pos].hi = bounds[1];
-	blocks[insert_pos].clip_right = bounds[2] - bounds[1];
-
-//	matches->match_total_covered_bases = 0;
-//	for(i = 0; i < j; i++) {
-//		if(!i || blocks[i-1].hi <= blocks[i].lo) matches->match_total_covered_bases += blocks[i].hi - blocks[i].lo;
-//		else matches->match_total_covered_bases += blocks[i].hi - blocks[i-1].hi;
-//	}
-//	matches->match_total_covered_bases = bounds[2];
-	matches->match_total_covered_bases = matches->key_length;
-
-//  fprintf(stderr,"covered bases = %"PRIu64", insert_pos = %"PRIu64"\n", matches->match_total_covered_bases, insert_pos);
-
-	uint64_t num_match_traces = matches_get_num_match_traces(matches);
-	match_trace_t **traces = matches_get_match_traces(matches);
-	for(uint64_t i = 0; i < num_match_traces; i++) {
-		uint64_t old_block_index = traces[i]->match_block_index;
-		traces[i]->match_block_index = new_index[old_block_index] < 0 ? insert_pos : (uint64_t)new_index[old_block_index];
-	}
-	if(new_index != NULL) mm_allocator_free(matches->mm_allocator, new_index);
 	match_trace->match_block_index=insert_pos;
+	blocks[insert_pos].num_matches++;
 }
 
 match_trace_t* matches_add_match_trace(
@@ -442,6 +453,7 @@ match_trace->mapq_score = 0;
     match_trace_locate(match_trace,locator);
     restriction_match_trace_locate(match_trace, &search->restriction_site_locator);
 //  	fprintf(stderr,"Adding map trace: %s %lu\n", match_trace->sequence_name, match_trace->text_position);
+    *match_replaced = false;
     if(search->split_map_score) {
     	matches_add_match_trace_to_blocks(search, matches, match_trace);
     }
@@ -462,18 +474,20 @@ match_trace->mapq_score = 0;
         match_trace->edit_distance,match_trace->swg_score);
     // Insert preserving sorting
     matches_add_match_trace_insert_sorted(matches,new_match_trace);
-    *match_replaced = false;
-		uint64_t num_match_traces = matches_get_num_match_traces(matches);
-		match_trace_t **traces = matches_get_match_traces(matches);
-		match_block_t *blocks = vector_get_mem(matches->match_blocks, match_block_t);
-		if(search->split_map) for(uint64_t i = 0; i < num_match_traces; i++) {
-    	uint64_t bounds[3];
-    	match_trace_get_block(matches, traces[i], bounds);
-			uint64_t block_index = traces[i]->match_block_index;
-//			fprintf(stderr,"..trace %"PRIu64" (%"PRIu64"-%"PRIu64") : block %"PRIu64" (%"PRIu64"-%"PRIu64") %p\n", i, bounds[0], bounds[1], block_index, blocks[block_index].lo, blocks[block_index].hi, blocks + block_index);
-			gem_cond_error_msg(bounds[0] < blocks[block_index].lo || bounds[1] > blocks[block_index].hi,
-					"Trace not contained in block (trace: %"PRIu64"-%"PRIu64", (block: %"PRIu64"-%"PRIu64")", bounds[0], bounds[1], blocks[block_index].lo, blocks[block_index].hi);
-		}
+//		uint64_t num_match_traces = matches_get_num_match_traces(matches);
+//		match_trace_t **traces = matches_get_match_traces(matches);
+//		match_block_t *blocks = vector_get_mem(matches->match_blocks, match_block_t);
+//		if(search->split_map) for(uint64_t i = 0; i < num_match_traces; i++) {
+//    	uint64_t bounds[3];
+//    	match_trace_get_block(matches, traces[i], bounds);
+//			uint64_t block_index = traces[i]->match_block_index;
+//			fprintf(stderr,"..trace %"PRIu64" (%"PRIu64"-%"PRIu64") : block %"PRIu64" (%"PRIu64"-%"PRIu64") num_match: %"PRIu64"\n",
+//					i, bounds[0], bounds[1], block_index,
+//					blocks[block_index].lo, blocks[block_index].hi,
+//					blocks[block_index].num_matches);
+//			gem_cond_error_msg(bounds[0] < blocks[block_index].lo || bounds[1] > blocks[block_index].hi,
+//					"Trace not contained in block (trace: %"PRIu64"-%"PRIu64", (block: %"PRIu64"-%"PRIu64")", bounds[0], bounds[1], blocks[block_index].lo, blocks[block_index].hi);
+//		}
 
     return new_match_trace;
   } else {
@@ -503,7 +517,7 @@ match_trace->mapq_score = 0;
 					uint64_t bounds[3];
 					match_trace_get_block(matches, traces[i], bounds);
 					uint64_t block_index = traces[i]->match_block_index;
-				//	fprintf(stderr,"..trace %"PRIu64" (%"PRIu64"-%"PRIu64") : block %"PRIu64" (%"PRIu64"-%"PRIu64") %p\n", i, bounds[0], bounds[1], block_index, blocks[block_index].lo, blocks[block_index].hi, blocks + block_index);
+					// fprintf(stderr,"..trace %"PRIu64" (%"PRIu64"-%"PRIu64") : block %"PRIu64" (%"PRIu64"-%"PRIu64") %p\n", i, bounds[0], bounds[1], block_index, blocks[block_index].lo, blocks[block_index].hi, blocks + block_index);
 					gem_cond_error_msg(bounds[0] < blocks[block_index].lo || bounds[1] > blocks[block_index].hi,
 										"Trace not contained in block (trace: %"PRIu64"-%"PRIu64", (block: %"PRIu64"-%"PRIu64")", bounds[0], bounds[1], blocks[block_index].lo, blocks[block_index].hi);
 				} 
@@ -569,6 +583,10 @@ void matches_local_pending_add_to_extended_matches(
   }
   vector_clear(matches->match_traces_local);
 }
+uint64_t matches_num_match_blocks(const matches_t * const matches) {
+	return matches->match_blocks == NULL ? 0 : vector_get_used(matches->match_blocks);
+}
+
 /*
  * Display
  */

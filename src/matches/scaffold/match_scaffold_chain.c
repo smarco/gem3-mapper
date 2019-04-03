@@ -152,11 +152,14 @@ uint64_t match_scaffold_chain_exact_extend_right(
     const uint64_t key_length,
     const uint8_t* const text,
     const uint64_t text_length,
-    const uint64_t region_idx) {
+    const uint64_t region_idx,
+		const matches_t * const matches) {
   match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + region_idx;
   const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
   uint64_t inc_coverage = 0;
   int64_t right_key_max, right_text_max;
+	vector_t * const potential_split_sites = matches->match_potential_split_sites;
+	const uint64_t number_split_sites = vector_get_used(potential_split_sites);
   if (region_idx==num_alignment_regions-1) {
     right_key_max = key_length-1;
     right_text_max = text_length-1;
@@ -167,6 +170,19 @@ uint64_t match_scaffold_chain_exact_extend_right(
   }
   int64_t right_key = match_alignment_region_get_key_end(match_alignment_region);
   int64_t right_text = match_alignment_region_get_text_end(match_alignment_region);
+	if(number_split_sites > 0) {
+		// If the region is to the left of a potential split, limit our search to the split site
+		for(uint64_t i = 0; i < number_split_sites; i++) {
+			const uint64_t split = *vector_get_elm(potential_split_sites, i, uint64_t);
+			if(split >= right_key) {
+				if(split <= right_key_max) {
+					right_text_max -= right_key_max - split + 1;
+					right_key_max = split - 1;
+				}
+				break;
+			}
+		}
+	}
   while (right_key_max>=right_key && right_text_max>=right_text) {
     // Check match
     const uint8_t candidate_enc = text[right_text];
@@ -177,6 +193,7 @@ uint64_t match_scaffold_chain_exact_extend_right(
   }
   match_alignment_region_set_key_end(match_alignment_region,right_key);
   match_alignment_region_set_text_end(match_alignment_region,right_text);
+
   return inc_coverage;
 }
 uint64_t match_scaffold_chain_exact_extend_left(
@@ -185,12 +202,16 @@ uint64_t match_scaffold_chain_exact_extend_left(
     const uint64_t key_length,
     const uint8_t* const text,
     const uint64_t text_length,
-    const uint64_t region_idx) {
+    const uint64_t region_idx,
+		const matches_t * const matches) {
   match_alignment_region_t* const match_alignment_region = match_scaffold->alignment_regions + region_idx;
   const uint64_t region_key_begin = match_alignment_region_get_key_begin(match_alignment_region);
   const uint64_t region_text_begin = match_alignment_region_get_text_begin(match_alignment_region);
   uint64_t inc_coverage = 0;
   if (region_key_begin>0 && region_text_begin>0) {
+		vector_t * const potential_split_sites = matches->match_potential_split_sites;
+		const uint64_t number_split_sites = vector_get_used(potential_split_sites);
+
     int64_t left_key_max, left_text_max;
     if (region_idx==0) {
       left_key_max = 0;
@@ -200,6 +221,19 @@ uint64_t match_scaffold_chain_exact_extend_left(
       left_key_max = match_alignment_region_get_key_end(prev_alignment_region);
       left_text_max = match_alignment_region_get_text_end(prev_alignment_region);
     }
+		if(number_split_sites > 0) {
+			// If the region is to the right of a potential split, limit our search to the split site
+			for(int64_t i = number_split_sites - 1; i >= 0; i--) {
+				const uint64_t split = *vector_get_elm(potential_split_sites, i , uint64_t);
+				if(split <= region_key_begin) {
+					if(split > left_key_max) {
+						left_text_max += split - left_key_max;
+						left_key_max = split;
+					}
+					break;
+				}
+			}
+		}
     int64_t left_key = region_key_begin-1;
     int64_t left_text = region_text_begin-1;
     while (left_key_max<=left_key && left_text_max<=left_text) {
@@ -221,7 +255,8 @@ void match_scaffold_chain_exact_extend(
     const uint64_t key_length,
     const uint8_t* const text,
     const uint64_t text_length,
-    const bool left_gap_alignment) {
+    const bool left_gap_alignment,
+		const matches_t * const matches) {
   // Parameters
   const uint64_t num_alignment_regions = match_scaffold->num_alignment_regions;
   uint64_t inc_coverage = 0;
@@ -232,20 +267,20 @@ void match_scaffold_chain_exact_extend(
     for (i=num_alignment_regions-1;i>=0;--i) {
       // Extend right
       inc_coverage += match_scaffold_chain_exact_extend_right(
-          match_scaffold,key,key_length,text,text_length,i);
+          match_scaffold,key,key_length,text,text_length,i,matches);
       // Extend left
       inc_coverage += match_scaffold_chain_exact_extend_left(
-          match_scaffold,key,key_length,text,text_length,i);
+          match_scaffold,key,key_length,text,text_length,i,matches);
     }
   } else {
     // Exact extend all alignment-regions (from left to right)
     for (i=0;i<num_alignment_regions;++i) {
       // Extend left
       inc_coverage += match_scaffold_chain_exact_extend_left(
-          match_scaffold,key,key_length,text,text_length,i);
+          match_scaffold,key,key_length,text,text_length,i,matches);
       // Extend right
       inc_coverage += match_scaffold_chain_exact_extend_right(
-          match_scaffold,key,key_length,text,text_length,i);
+          match_scaffold,key,key_length,text,text_length,i,matches);
     }
   }
   match_scaffold->scaffolding_coverage += inc_coverage;
@@ -258,6 +293,7 @@ void match_scaffold_chain(
     pattern_t* const pattern,
     text_trace_t* const text_trace,
     const bool exact_extend,
+		const matches_t * const matches,
     mm_allocator_t* const mm_allocator) {
   PROF_INC_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_SCAFFOLDS);
   PROFILE_START(GP_MATCH_SCAFFOLD_CHAIN_REGIONS,PROFILE_LEVEL);
@@ -275,7 +311,7 @@ void match_scaffold_chain(
       if (exact_extend && match_scaffold->scaffolding_coverage < key_length) {
         match_scaffold_chain_exact_extend(
             match_scaffold,key,key_length,
-            text,text_length,left_gap_alignment);
+            text,text_length,left_gap_alignment,matches);
       }
       match_scaffold->match_alignment.score =
           key_length - match_scaffold->scaffolding_coverage; // Set score as matching bases

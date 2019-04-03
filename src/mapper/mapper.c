@@ -200,24 +200,21 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   uint64_t reads_processed = 0;
 
   while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
-//    // DEBUG
-//    if (gem_streq(sequence->tag.buffer,"Sim.Illumina.l100.0000009233")) {
-//      printf("HERE\n");
-//    }
     if(bisulfite_index) {
 		 if(mapper_io_handler->bisulfite_read == bisulfite_read_inferred)
 			bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
 		 else if(non_stranded) {
 			 bisulfite_conversion = sequence_bisulfite_check_cg_depletion_se(sequence) ? G2A_conversion : C2T_conversion;
-
 		 }
 	 }
     // Prepare search
     archive_search_handlers_prepare_se(archive_search,sequence,bisulfite_conversion,archive_search_handlers);
-
     if(process_restriction_sites) {
     	find_restriction_site_matches(&archive_search->approximate_search.pattern,restriction_sites,restriction_hits,bisulfite_conversion);
     	archive_search->approximate_search.region_profile.region_split_hints = restriction_hits;
+    	if(vector_get_used(restriction_hits) > 0) {
+    		search_parameters->region_profile_model.strategy = region_profile_SMEM;
+    	}
     }
 
     // Search into the archive
@@ -248,7 +245,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
         approximate_search_prepare(&archive_search->approximate_search,run_length_pattern,sequence);
         if(process_restriction_sites)
         	find_restriction_site_matches(&archive_search->approximate_search.pattern,restriction_sites,restriction_hits,bisulfite_conversion);
-
+        	archive_search->approximate_search.region_profile.region_split_hints = restriction_hits;
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
         gem_timer_t timer;
         TIMER_RESTART(&timer); archive_search_se(archive_search,matches); TIMER_STOP(&timer);
@@ -372,6 +369,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
     TIMER_RESTART(&timer); archive_search_pe(archive_search_end1,archive_search_end2,paired_matches); TIMER_STOP(&timer);
     fprintf(stderr,"Done %s in %2.4f ms.\n",sequence_end1->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
 #else
+
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 //    region_profile_print(stdout,&archive_search_end1->approximate_search.region_profile,true);
 #endif

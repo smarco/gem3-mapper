@@ -54,6 +54,7 @@ typedef struct {
 	uint64_t lo;              // Start position of block in read
 	uint64_t hi;						  // End position of block in read
 	uint64_t clip_right;      // clip_left == lo
+	uint64_t num_matches;     // Number of matches to this block
 	bool overlaps;
 	bool printed;
 } match_block_t;
@@ -159,6 +160,8 @@ void matches_local_pending_add_to_regular_matches(
 void matches_local_pending_add_to_extended_matches(
     matches_t* const matches,
     const locator_t* const locator);
+uint64_t matches_num_match_blocks(
+		const matches_t * const matches);
 
 /*
  * Display

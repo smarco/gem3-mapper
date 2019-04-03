@@ -245,7 +245,7 @@ bool match_scaffold_levenshtein(
         mm_allocator);
   }
   // Chains scaffolds
-  match_scaffold_chain(match_scaffold,pattern,text_trace,false,mm_allocator);
+  match_scaffold_chain(match_scaffold,pattern,text_trace,false,matches,mm_allocator);
   // DEBUG
   gem_cond_debug_block(DEBUG_MATCH_SCAFFOLD_EDIT) {
     tab_fprintf(gem_log_get_stream(),"[GEM]>Match.Scaffold.Levenshtein\n");

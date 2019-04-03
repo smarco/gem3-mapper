@@ -131,7 +131,34 @@ void archive_score_matches_se_default(
   	uint64_t num_match_blocks = vector_get_used(matches->match_blocks);
   	match_trace_t **traces = vector_get_mem(matches->match_traces, match_trace_t *);
   	for(uint64_t k = 0; k < num_matches; k++) traces[k]->primary = false;
+  	const region_profile_t * const region_profile = &archive_search->approximate_search.region_profile;
+		const region_search_t* const region_search = region_profile->filtering_region;
   	for(uint64_t i = 0; i < num_match_blocks; i++) {
+  		const match_block_t* const block = vector_get_elm(matches->match_blocks,i,match_block_t);
+  		// Count filtered regions contained in block
+  		matches_metrics_t* const metrics = &matches->metrics;
+  		uint64_t num_regions = 0;
+  		uint64_t total_region_length = 0;
+  		uint64_t max_region_length = 0;
+  		const uint64_t lo = block->lo;
+  		const uint64_t hi = block->hi;
+  		if(region_search != NULL) {
+  			for(uint64_t k = 0; k < region_profile->num_filtering_regions; k++) {
+  				if(region_search[k].degree == REGION_FILTER_NONE) continue;
+  				if(region_search[k].begin >= lo && region_search[k].end <= hi) {
+  					num_regions++;
+  					uint64_t region_length = region_search[k].end - region_search[k].begin;
+  					total_region_length += region_length;
+  					if(region_length > max_region_length) max_region_length = region_length;
+  				}
+  			}
+  		}
+  		matches->max_complete_stratum = num_regions;
+  		if(num_regions > 0) {
+  			metrics->avg_region_length = total_region_length / num_regions;
+    		metrics->max_region_length = max_region_length;
+    	}
+    	metrics->candidates_accepted = num_regions;
   		for(uint64_t k = 0; k < num_matches; k++) {
   			if(traces[k]->match_block_index == i) {
   				traces[k]->primary=true;
