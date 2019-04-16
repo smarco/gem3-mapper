@@ -45,11 +45,11 @@
  */
 typedef enum {
   bisulfite_disabled,
-  bisulfite_read_inferred,
-  bisulfite_read_1,
-  bisulfite_read_2,
-  bisulfite_read_interleaved,
-	bisulfite_non_stranded
+  bisulfite_inferred_C2T_G2A, // First read C2T converted, second (if present) G2A
+  bisulfite_inferred_G2A_C2T, // First read G2A converted, second (if present) C2T
+  bisulfite_C2T,  // Perform C2T conversion
+  bisulfite_G2A,  // Perform G2A conversion
+	bisulfite_non_stranded,  // Perform both conversions and merge
 } bisulfite_read_t;
 
 typedef enum {
