@@ -88,40 +88,82 @@ void matches_predictors_compute_mmaps(
  */
 void matches_predictors_compute_se(
     matches_predictors_t* const predictors,
-    matches_t* const matches) {
+    matches_t* const matches,
+		match_trace_t *primary_match,
+		search_parameters_t* const search_parameters) {
   // Parameters
   matches_metrics_t* const metrics = &matches->metrics;
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches==0) return;
+
+    // Primary/Subdominant predictors
+  match_trace_t** match_traces = matches_get_match_traces(matches);
+
+  uint64_t num_effective_matches = num_matches;
+  uint64_t primary_edit_distance = primary_match->edit_distance;
+  uint64_t read_length = metrics->read_length;
+  // Recompute metrics in the case of a local primary map
+  if(search_parameters->split_map_score) {
+  	if(primary_match->type == match_type_local) {
+  		matches_metrics_t* const metrics = &matches->metrics;
+  		const uint64_t primary_block_index = primary_match->match_block_index;
+  		match_block_t* const primary_block = vector_get_elm(matches->match_blocks,primary_block_index,match_block_t);
+  		const uint64_t primary_block_length = primary_block->hi - primary_block->lo;
+  		const int64_t edit_adjust = (int64_t)matches->match_total_covered_bases - (int64_t)primary_block_length;
+  		const uint64_t event_distance_adjust = (primary_block->lo > 0 && primary_block->clip_right > 0) ? 2 : 1;
+//   		gem_cond_error_msg(edit_adjust < 0, "Block length > Total length (%"PRIu64" %"PRIu64")", primary_block_length, matches->match_total_covered_bases);
+  		// Recompute distance metrics for matches in same local group as primary match
+  		const uint64_t candidates_accepted = metrics->candidates_accepted;
+  		matches_metrics_init(metrics);
+  		metrics->candidates_accepted = candidates_accepted;
+  		for (uint64_t i=0;i<num_matches;++i) {
+  			match_trace_t* match = match_traces[i];
+  			if(match->match_block_index == primary_block_index) {
+  				gem_cond_error_msg(match->edit_distance < edit_adjust, "Edit distance will become negative (%"PRIu64" %"PRIu64") %"PRIu64,
+  						match->edit_distance, edit_adjust, matches->match_total_covered_bases);
+  				match->edit_distance_local = match->edit_distance - edit_adjust;
+  				match->event_distance -= event_distance_adjust;
+  				matches_metrics_update(
+  						metrics,match->event_distance,
+							match->edit_distance_local,match->swg_score);
+  			}
+  		}
+			num_effective_matches = primary_block->num_matches;
+  		primary_edit_distance = primary_match->edit_distance_local;
+  		read_length = primary_block_length;
+  	}
+  }
   // Classify
-  matches_classify(matches);
+  matches_classify_local(matches, primary_match);
   // Search Scope
   predictors->candidates_subdominant = matches_counters_count_first_subdominant(matches->counters);
   predictors->candidates_accepted = metrics->candidates_accepted;
   predictors->mcs_end1 = matches->max_complete_stratum;
   predictors->mcs_end2 = 0;
-  // Primary/Subdominant predictors
-  match_trace_t** const match_traces = matches_get_match_traces(matches);
-  match_trace_t* const primary_match = match_traces[0];
-  if (num_matches==1) {
+
+  const uint64_t prev_read_length = metrics->read_length;
+  metrics->read_length = read_length;
+  if (num_effective_matches==1) {
     matches_predictors_compute_unique(
-        predictors,metrics,primary_match->edit_distance,
+        predictors,metrics,primary_edit_distance,
         primary_match->event_distance,primary_match->swg_score,
         primary_match->error_quality,MAX_TEMPLATE_LENGTH_SIGMAS);
-  } else {
+   } else {
     matches_predictors_compute_mmaps(
-        predictors,metrics,primary_match->edit_distance,
+        predictors,metrics,primary_edit_distance,
         primary_match->event_distance,primary_match->swg_score,
         primary_match->error_quality,MAX_TEMPLATE_LENGTH_SIGMAS);
   }
   // Mappability
-  predictors->sequence_length_norm = (double)metrics->read_length/metrics->proper_length;
+  predictors->sequence_length_norm = (double)read_length/metrics->proper_length;
   predictors->avg_region_length_norm = (double)metrics->avg_region_length/metrics->proper_length;
   predictors->max_region_length_norm = (double)metrics->max_region_length/metrics->proper_length;
   predictors->kmer_frequency = metrics->kmer_frequency;
+
   // MAPQ
   predictors->mapq_end1 = 0;
   predictors->mapq_end2 = 0;
+  metrics->read_length = prev_read_length;
 }
 /*
  * PE-Matches Compute Predictors

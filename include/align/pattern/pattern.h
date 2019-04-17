@@ -35,6 +35,7 @@
 typedef struct {
   /* Processed Search Pattern */
   uint8_t* key;                      // Encoded Pattern
+  uint8_t* key_non_bs;               // Encoded Pattern without bs conversion (same as key unless a bisulfite mapping is being performed)
   uint8_t* quality_mask;             // Quality Mask
   uint64_t key_length;               // Total Length
   uint64_t clip_left;                // Input sequence left-clipped

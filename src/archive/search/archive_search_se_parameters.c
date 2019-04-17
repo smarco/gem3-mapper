@@ -114,8 +114,13 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
 	search_parameters->control_sequences[1] = UNDERCONVERSION_CONTROL;
 	search_parameters->control_sequences[2] = OVERCONVERSION_CONTROL;
   search_parameters->rrbs = false;
-  // Restriction restriction_sites
+  // 3C (Hi-C etc.)
+  search_parameters->ccc = false;
+
+  // Restriction sites
   search_parameters->restriction_sites = NULL;
+  search_parameters->restriction_site_locator.restriction_site_sequence_locator = NULL;
+  search_parameters->output_restriction_site_filename = NULL;
   // Clipping
   search_parameters->clipping = clipping_uncalled;
   search_parameters->clip_left = 0;
@@ -131,6 +136,12 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   select_parameters_init(&search_parameters->select_parameters);
   // MAPQ Score
   select_parameters_init_mapq(search_parameters);
+  // Split mapping
+  search_parameters->split_map = false;
+  search_parameters->split_map_score = false;
+  search_parameters->split_map_sort_pos = false;
+  search_parameters->split_map_max_overlap = 0;
+
   // Paired End
   search_paired_parameters_init(&search_parameters->search_paired_parameters);
   // GPU

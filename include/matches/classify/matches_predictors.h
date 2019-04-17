@@ -64,7 +64,10 @@ typedef struct {
  */
 void matches_predictors_compute_se(
     matches_predictors_t* const predictors,
-    matches_t* const matches);
+    matches_t* const matches,
+		match_trace_t *primary_match,
+		search_parameters_t* const search_parameters);
+
 void matches_predictors_compute_pe(
     matches_predictors_t* const predictors,
     paired_matches_t* const paired_matches);

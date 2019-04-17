@@ -258,6 +258,7 @@ void paired_matches_add(
     const pair_layout_t pair_layout,
     const uint64_t template_length,
     const double template_length_sigma) {
+
   // Parameters
   mm_allocator_t* const mm_allocator = paired_matches->mm_allocator;
   // Alloc paired match & add counters
@@ -445,6 +446,7 @@ pair_relation_t paired_matches_compute_relation(
   }
   return pair_relation;
 }
+
 /*
  * Cross pair matches
  */
@@ -457,14 +459,23 @@ void paired_matches_cross_pair(
   // Parameters
   search_paired_parameters_t* const search_paired_parameters = &search_parameters->search_paired_parameters;
   const pair_discordant_search_t discordant_search = search_paired_parameters->pair_discordant_search;
+  const uint64_t num_match_blocks_end1 = matches_num_match_blocks(paired_matches->matches_end1);
+  const uint64_t num_match_blocks_end2 = matches_num_match_blocks(paired_matches->matches_end2);
+
   // Check layout
   double template_length_sigma;
   pair_orientation_t pair_orientation;
   pair_layout_t pair_layout;
   uint64_t template_length;
-  const pair_relation_t pair_relation = paired_matches_compute_relation(
+  pair_relation_t pair_relation = paired_matches_compute_relation(
       search_paired_parameters,mapper_stats,match_trace_end1,match_trace_end2,
       &pair_orientation,&pair_layout,&template_length,&template_length_sigma);
+  if(pair_relation == pair_relation_concordant) {
+  	if(match_trace_end1->type == match_type_local && match_trace_end1->match_block_index != num_match_blocks_end1 - 1)
+  		pair_relation = pair_relation_invalid;
+  	if(match_trace_end2->type == match_type_local && match_trace_end2->match_block_index != num_match_blocks_end2 - 1)
+  		pair_relation = pair_relation_invalid;
+  }
   switch (pair_relation) {
     case pair_relation_invalid:
       break;
@@ -515,8 +526,8 @@ void paired_matches_find_pairs_sorted(
   uint64_t position_end1;
   for (position_end1=0;position_end1<num_matches_end1;++position_end1) {
     // Fetch match-trace end/1
-    match_trace_t* const match_trace_end1 = matches_sorted_end1[position_end1];
-    const char* sequence_name = match_trace_end1->sequence_name;
+  	match_trace_t* const match_trace_end1 = matches_sorted_end1[position_end1];
+  	    const char* sequence_name = match_trace_end1->sequence_name;
     uint64_t position_end2 = paired_matches_find_pairs_locate(matches_sorted_end2,num_matches_end2,sequence_name);
     while (position_end2 < num_matches_end2) {
       // Fetch match-trace end/2

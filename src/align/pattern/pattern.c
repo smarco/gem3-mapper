@@ -81,6 +81,7 @@ void pattern_init_encode(
       for (j=0;i<sequence_length;++i,++j) {
         const char character = read[i];
         if (!is_dna_canonical(character)) ++num_wildcards;
+        pattern->key_non_bs[j] = dna_encode(character);
         pattern->key[j] = dna_encode_C2T(character);
       }
     break;
@@ -88,6 +89,7 @@ void pattern_init_encode(
       for (j=0;i<sequence_length;++i,++j) {
         const char character = read[i];
         if (!is_dna_canonical(character)) ++num_wildcards;
+        pattern->key_non_bs[j] = dna_encode(character);
         pattern->key[j] = dna_encode_G2A(character);
       }
     break;
@@ -168,6 +170,8 @@ void pattern_init(
   // Allocate pattern memory
   const uint64_t sequence_length = sequence_get_length(sequence);
   pattern->key = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,false);
+  if(bisulfite_conversion == no_conversion) pattern->key_non_bs = pattern->key;
+  else pattern->key_non_bs = mm_allocator_calloc(mm_allocator,sequence_length,uint8_t,false);
   // Set quality search & Build quality model & mask
   *do_quality_search =
       (parameters->qualities_format!=sequence_qualities_ignore) &&
@@ -228,6 +232,8 @@ void pattern_destroy(
     mm_allocator_t* const mm_allocator) {
   // Pattern
   if (pattern->key != NULL) {
+  	if(pattern->key_non_bs != pattern->key)
+      mm_allocator_free(mm_allocator,pattern->key_non_bs);
     mm_allocator_free(mm_allocator,pattern->key);
   }
   if (pattern->quality_mask != NULL) {

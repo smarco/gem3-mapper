@@ -140,7 +140,7 @@ void match_scaffold_region_chain(
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_ALIGNMENT_COVERAGE,
       (100*match_scaffold->scaffolding_coverage)/pattern->key_length);
   // Scaffold chaining alignment-regions (from region-profile)
-  match_scaffold_chain(match_scaffold,pattern,text_trace,!rl_space,mm_allocator);
+  match_scaffold_chain(match_scaffold,pattern,text_trace,!rl_space,matches,mm_allocator);
   // PROF
   PROF_ADD_COUNTER(GP_MATCH_SCAFFOLD_CHAIN_REGIONS_COVERAGE,
       (100*match_scaffold->scaffolding_coverage)/pattern->key_length);

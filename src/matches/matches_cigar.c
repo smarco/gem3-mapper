@@ -394,6 +394,7 @@ int64_t matches_cigar_element_effective_length(
   }
   return 0;
 }
+
 int64_t matches_cigar_compute_effective_length(
     vector_t* const cigar_vector,
     const uint64_t cigar_offset,

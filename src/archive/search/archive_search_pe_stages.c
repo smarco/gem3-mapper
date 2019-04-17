@@ -47,6 +47,7 @@
  * Constants
  */
 #define ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH 300
+#define ARCHIVE_SEARCH_PE_EXTENSION_MIN_READ_LENGTH 15
 
 /*
  * PE Search Begin
@@ -135,9 +136,9 @@ bool archive_search_pe_use_recovery_extension(
   if (!search_parameters->search_paired_parameters.paired_end_extension_recovery) return false;
   // Check key-length
   const uint64_t key_length_end1 = archive_search_end1->approximate_search.pattern.key_length;
-  if (key_length_end1==0 || key_length_end1>ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
+  if (key_length_end1<ARCHIVE_SEARCH_PE_EXTENSION_MIN_READ_LENGTH || key_length_end1>ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
   const uint64_t key_length_end2 = archive_search_end2->approximate_search.pattern.key_length;
-  if (key_length_end2==0 || key_length_end2>ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
+  if (key_length_end2<ARCHIVE_SEARCH_PE_EXTENSION_MIN_READ_LENGTH || key_length_end2>ARCHIVE_SEARCH_PE_EXTENSION_MAX_READ_LENGTH) return false;
 //  // Test suitability for extension
 //  if (paired_matches->matches_end1->metrics.mapq < MAPQ_CONFIDENCE_SCORE_MIN ||
 //      paired_matches->matches_end2->metrics.mapq < MAPQ_CONFIDENCE_SCORE_MIN) {

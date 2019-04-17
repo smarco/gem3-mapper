@@ -128,6 +128,7 @@ uint64_t region_profile_compute_smem(
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
+		const int64_t key_start,
     const uint64_t key_length,
     const uint64_t init_position,
     smem_interval_vector_t* const smem_interval_vector) {
@@ -164,7 +165,7 @@ uint64_t region_profile_compute_smem(
   uint64_t leftmost = init_position+1;
   for (idx=num_smem_intervals-1;idx>=0;--idx) {
     smem_interval_t* const smem_interval = smem_interval_vector->smem_interval + idx;
-    for (i=init_position-1;i>=0;--i) {
+    for (i=init_position-1;i>=key_start;--i) {
       // Fetch character
       const uint8_t enc_char = key[i];
       if (enc_char == ENC_DNA_CHAR_N) {
@@ -206,6 +207,9 @@ void region_profile_generate_smem(
     const uint8_t* const key,
     const uint64_t key_length,
     const uint64_t max_candidates) {
+
+	uint64_t number_split_hints = region_profile->region_split_hints == NULL ? 0 : vector_get_used(region_profile->region_split_hints);
+
   PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
   // Parameters
   mm_allocator_t* const mm_allocator = region_profile->mm_allocator;
@@ -220,15 +224,34 @@ void region_profile_generate_smem(
   // Compute SMEMs for each key position
   uint64_t i;
   region_profile->num_filtering_regions = 0;
-  for (i=0;i<key_length;) {
-    // Compute SMEMs
-    if (key[i] == ENC_DNA_CHAR_N) {
-      ++i;
-    } else {
-      const uint64_t next_pos = region_profile_compute_smem(
-          region_profile,fm_index,key,key_length,i,&smem_interval_vector);
-      i = next_pos;
-    }
+  if(number_split_hints == 0) {
+  	for (i=0;i<key_length;) {
+  		// Compute SMEMs
+  		if (key[i] == ENC_DNA_CHAR_N) {
+  			++i;
+  		} else {
+  			const uint64_t next_pos = region_profile_compute_smem(
+  					region_profile,fm_index,key,0,key_length,i,&smem_interval_vector);
+  			i = next_pos;
+  		}
+  	}
+  } else {
+  	const uint64_t * const split_hints = number_split_hints == 0 ? NULL : vector_get_mem(region_profile->region_split_hints, uint64_t);
+  	uint64_t low = 0;
+  	for(uint64_t split = 0; split <= number_split_hints; split++) {
+  		uint64_t high = split == number_split_hints ? key_length : split_hints[split];
+    	for (i=low;i<high;) {
+    		// Compute SMEMs
+    		if (key[i] == ENC_DNA_CHAR_N) {
+    			++i;
+    		} else {
+    			const uint64_t next_pos = region_profile_compute_smem(
+    					region_profile,fm_index,key,(int64_t)low,high,i,&smem_interval_vector);
+    			i = next_pos;
+    		}
+    	}
+     	low = high;
+  	}
   }
   // Schedule to filter all
   region_profile_schedule_exact(region_profile,max_candidates);

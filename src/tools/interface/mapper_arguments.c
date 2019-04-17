@@ -1,4 +1,5 @@
 /*
+ *
  *  GEM-Mapper v3 (GEM3)
  *  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
  *
@@ -62,6 +63,11 @@ option_t gem_mapper_options[] = {
   { 313, "candidate-generation-adaptive", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<app_threshold>,<app_steps>,<app_dec>" , "" },
   { 314, "candidate-verification", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "'BPM'|'chained'" , "" },
   { 315, "qgram-filter", REQUIRED, TYPE_STRING, 3, VISIBILITY_DEVELOPER, "<kmer_tiles>,<qgram_length>" , "" },
+  { 316, "split-map", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
+  { 317, "split-map-score", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
+  { 318, "split-map-max-overlap", REQUIRED, TYPE_INT, 3, VISIBILITY_ADVANCED, "<number>" , "(default=0)" },
+  { 319, "split-map-sort-pos", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "" , "(default=false)" },
+	{ 320, "hard-clip-split-maps", OPTIONAL, TYPE_STRING, 3, VISIBILITY_ADVANCED, "", "(default=false)" },
   /* Paired-end Alignment */
   { 'p', "paired-end-alignment", NO_ARGUMENT, TYPE_NONE, 4, VISIBILITY_USER, "" , "" },
   { 'l', "min-template-length", REQUIRED, TYPE_INT, 4, VISIBILITY_USER, "<number>" , "(default=disabled)" },
@@ -77,16 +83,18 @@ option_t gem_mapper_options[] = {
   { 501, "underconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
   { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
   { 503, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
-  { 504, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
-  { 505, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
-  /* Alignment Score */
+  { 504, "restriction-enzyme", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<enzyme name> | <restriction site> (i.e., 'HindIII' or 'C-CGG')", "(default = NULL)" },
+  { 505, "output-restriction-sites", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<output file name>", "(default = NULL)" },
+  { 506, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
+  { 507, "3c", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_USER, "", "" },
+	/* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
   { 'A', "matching-score", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
   { 'B', "mismatch-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=4)" },
   { 'O', "gap-open-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=6)" },
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
-  /* MAQ Score */
+  /* MAPQ Score */
   { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
   /* Reporting */
   { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 8, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
@@ -224,13 +232,16 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   /* RRBS */
   if(search->rrbs) {
     if(search->restriction_sites == NULL) {
-      restriction_t *rest = restriction_new("C-CGG"); // If no restriction site has been set, default to MspI site
+      restriction_site_t *rest = restriction_new("MspI        "); // If no restriction site has been set, default to MspI site
       if(rest != NULL) {
-        search->restriction_sites = vector_new(1, restriction_t *);
-        vector_insert(search->restriction_sites, rest, restriction_t *);
+        search->restriction_sites = vector_new(1, restriction_site_t *);
+        vector_insert(search->restriction_sites, rest, restriction_site_t *);
       }
     }
   }
+  /* 3C / HiC */
+  if(search->ccc && search->restriction_sites != NULL && vector_get_used(search->restriction_sites) > 1)
+  	restriction_create_interaction_junctions(search->restriction_sites);
 }
 /*
  * Mapper Arguments Parsing
@@ -499,7 +510,7 @@ bool gem_mapper_parse_arguments_single_end(
         input_text_parse_extended_uint64(num_regions,&search->region_profile_model.num_regions);
         input_text_parse_extended_uint64(region_error,&search->region_profile_model.region_error);
         input_text_parse_extended_uint64(max_candidates,&search->region_profile_model.max_candidates);
-      } else if (strncasecmp(optarg,"adaptive,",9)==0) {
+      } else if (strncasecmp(optarg,"adaptive",8)==0) {
         // --candidate-generation adaptive
         mapper_cond_error_msg(strcasecmp(optarg,"adaptive")!=0,"Invalid usage '--candidate-generation adaptive'");
         search->region_profile_model.strategy = region_profile_adaptive;
@@ -575,8 +586,24 @@ bool gem_mapper_parse_arguments_single_end(
       input_text_parse_extended_uint64(qgram_length,&search->candidate_verification.kmer_length);
       return true;
     }
-    case 316: // --candidate-drop-off in {'true'|'false'} (default=true)
-      search->candidate_verification.candidate_local_drop_off = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+    case 316: // --split-map in {'true'|'false'} (default=false)
+      search->split_map = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      if(search->split_map) {
+      	search->split_map_score = true;
+      	search->alignment_local_min_identity = 20;
+      }
+      return true;
+    case 317: // --split-map-score in {'true'|'false'} (default=false)
+      search->split_map_score = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      return true;
+    case 318: // --split-map-max-overlap <num>
+    	input_text_parse_integer((const char** const)&optarg,(int64_t*)&search->split_map_max_overlap);
+      return true;
+    case 319: // --split-map-sort-pos in {'true'|'false'} (default=false)
+      search->split_map_sort_pos = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
+      return true;
+    case 320: // --hard-clip-split-maps in {'true'|'false'} (default=false)
+      parameters->io.sam_parameters.hard_clip_split_maps = (optarg==NULL) ? true : input_text_parse_extended_bool(optarg);
       return true;
     default:
       return false; // Not found
@@ -738,7 +765,8 @@ bool gem_mapper_parse_arguments_bisulfite(
     char* optarg) {
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
-  restriction_t *rest = NULL;
+  // search_paired_parameters_t* const paired_search = &search->search_paired_parameters;
+  restriction_site_t *rest = NULL;
   // Bisulfite
   switch (option) {
     case 500: // --bisulfite_read
@@ -773,20 +801,44 @@ bool gem_mapper_parse_arguments_bisulfite(
     case 503: // --control_sequence
       search->control_sequences[0] = strdup(optarg);
       return true;
-    case 504: // -- restriction-site
+    case 504: // --restriction-site
       rest = restriction_new(optarg);
       if(rest != NULL) {
         if(search->restriction_sites == NULL) {
-          search->restriction_sites = vector_new(1, restriction_t *);
+          search->restriction_sites = vector_new(1, restriction_site_t *);
         }
-        vector_insert(search->restriction_sites, rest, restriction_t *);
+        vector_insert(search->restriction_sites, rest, restriction_site_t *);
       } else {
         gem_fatal_error_msg("Error setting --restriction-site option");
       }
     return true;
-    case 505: // --rrbs
+    case 505: // --output-restriction-sites
+    	search->output_restriction_site_filename = strdup(optarg);
+    	return true;
+    case 506: // --rrbs
       search->rrbs = true;
       return true;
+    case 507: // --3c
+    	search->ccc = true;
+    	search->split_map = true;
+    	search->split_map_score = true;
+    	parameters->io.sam_parameters.hard_clip_split_maps = false;
+    	search->alignment_local_min_identity = 15;
+    	// Allow all orientations
+    	// paired_search->pair_orientation[pair_orientation_FR] = pair_relation_concordant;
+    	// paired_search->pair_orientation[pair_orientation_RF] = pair_relation_concordant;
+    	// paired_search->pair_orientation[pair_orientation_FF] = pair_relation_concordant;
+    	// paired_search->pair_orientation[pair_orientation_RR] = pair_relation_concordant;
+    	// Turn off distance matching
+      // paired_search->template_length_estimation_min = 0;
+      // paired_search->template_length_estimation_max = UINT64_MAX;
+      // paired_search->template_length_estimation_samples = UINT64_MAX;
+      // paired_search->min_template_length = 0;
+      // paired_search->max_template_length = UINT64_MAX;
+      // Turn off pair extension
+      // paired_search->paired_end_extension_shortcut = false;
+      // paired_search->paired_end_extension_recovery = false;
+    	return true;
     default:
       return false; // Not found
   }

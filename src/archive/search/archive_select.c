@@ -88,7 +88,7 @@ void archive_select_se_matches(
     if (matches_to_report > 0) {
       archive_select_se_matches_discard(matches,strata_to_report);
     }
-  } else if (num_matches > max_reported_matches) {
+  } else if (vector_get_used(matches->match_blocks) < 2 && num_matches > max_reported_matches) {
     // Discard unwanted
     vector_set_used(matches->match_traces,max_reported_matches);
   }

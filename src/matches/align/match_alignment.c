@@ -60,7 +60,8 @@ void match_alignment_print_pretty(
     mm_allocator_t* const mm_allocator) {
   return alignment_print_pretty(
       stream,key,key_length,
-      text+match_alignment->match_text_offset,
+//      text+match_alignment->match_text_offset,
+			text,
       match_alignment->effective_length,
       cigar_vector,match_alignment->cigar_offset,
       match_alignment->cigar_length,mm_allocator);

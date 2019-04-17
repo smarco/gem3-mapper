@@ -558,6 +558,7 @@ void filtering_candidates_buffered_bpm_align_retrieve_region(
   match_scaffold_chain(
       &filtering_region->match_scaffold,pattern,
       &filtering_region->text_trace,false,
+			matches,
       filtering_candidates->mm_allocator);
   filtering_region->match_scaffold.scaffold_type = scaffold_levenshtein;
   // Add to filtering regions

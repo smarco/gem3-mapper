@@ -189,6 +189,13 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
           break;
       }
   } else bisulfite_conversion = no_conversion;
+
+  // Set up 3c/HiC specific restriction site handling
+   const bool ccc = search_parameters->ccc;
+   vector_t * const restriction_sites = search_parameters->restriction_sites;
+   const bool process_restriction_sites = ccc && (restriction_sites != NULL);
+   vector_t * const restriction_hits = matches->match_potential_split_sites;
+
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
 
@@ -204,6 +211,13 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 	 }
     // Prepare search
     archive_search_handlers_prepare_se(archive_search,sequence,bisulfite_conversion,archive_search_handlers);
+    if(process_restriction_sites) {
+    	find_restriction_site_matches(&archive_search->approximate_search.pattern,restriction_sites,restriction_hits,bisulfite_conversion);
+    	archive_search->approximate_search.region_profile.region_split_hints = restriction_hits;
+    	if(vector_get_used(restriction_hits) > 0) {
+    		search_parameters->region_profile_model.strategy = region_profile_SMEM;
+    	}
+    }
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -212,6 +226,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
     fprintf(stderr,"Done %s in %2.4f ms.\n",sequence->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
 #else
     archive_search_se(archive_search,matches);
+//    region_profile_print(stdout,&archive_search->approximate_search.region_profile,true);
 #endif
     if(non_stranded) {
 
@@ -230,6 +245,9 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
         const bool run_length_pattern = archive_search->archive->text->run_length;
         archive_search->approximate_search.bisulfite_conversion = bisulfite_conversion == C2T_conversion ? G2A_conversion : C2T_conversion;
         approximate_search_prepare(&archive_search->approximate_search,run_length_pattern,sequence);
+        if(process_restriction_sites)
+        	find_restriction_site_matches(&archive_search->approximate_search.pattern,restriction_sites,restriction_hits,bisulfite_conversion);
+        	archive_search->approximate_search.region_profile.region_split_hints = restriction_hits;
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
         gem_timer_t timer;
         TIMER_RESTART(&timer); archive_search_se(archive_search,matches); TIMER_STOP(&timer);
@@ -317,13 +335,17 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   mapper_search->sequence_end1 = &sequence_end1;
   mapper_search->sequence_end2 = &sequence_end2;
 
+  // 3c/HiC specific restriction site handling
+  const bool ccc = search_parameters->ccc;
+  vector_t *restriction_sites = search_parameters->restriction_sites;
+  const bool process_restriction_sites = ccc && (restriction_sites != NULL);
+  vector_t *restriction_hits_end1 = paired_matches->matches_end1->match_potential_split_sites;
+  vector_t *restriction_hits_end2 = paired_matches->matches_end2->match_potential_split_sites;
+
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_read_paired_sequence(mapper_io_handler,true,&sequence_end1,&sequence_end2)) {
 //    // DEBUG
-//    if (gem_streq(sequence_end1->tag.buffer,"Sim.Illumina.l100.0000491385/1")) {
-//      printf("HERE\n");
-//    }
     if(non_stranded) {
       if(sequence_bisulfite_check_cg_depletion_pe(sequence_end1,sequence_end2)) {
         bisulfite_conversion1 = G2A_conversion;
@@ -340,13 +362,22 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
        bisulfite_conversion1, bisulfite_conversion2,
 		archive_search_handlers);
 
+    if(process_restriction_sites) {
+      // Build up list of restriction site hits
+    	find_restriction_site_matches(&archive_search_end1->approximate_search.pattern,restriction_sites,restriction_hits_end1,bisulfite_conversion1);
+    	find_restriction_site_matches(&archive_search_end2->approximate_search.pattern,restriction_sites,restriction_hits_end2,bisulfite_conversion2);
+    	archive_search_end1->approximate_search.region_profile.region_split_hints = restriction_hits_end1;
+    	archive_search_end2->approximate_search.region_profile.region_split_hints = restriction_hits_end2;
+    }
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
     gem_timer_t timer;
     TIMER_RESTART(&timer); archive_search_pe(archive_search_end1,archive_search_end2,paired_matches); TIMER_STOP(&timer);
     fprintf(stderr,"Done %s in %2.4f ms.\n",sequence_end1->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
 #else
+
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+//    region_profile_print(stdout,&archive_search_end1->approximate_search.region_profile,true);
 #endif
     if(non_stranded) {
       bool remap = false;
@@ -361,6 +392,10 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
         archive_search_end2->approximate_search.bisulfite_conversion = bisulfite_conversion1;
         approximate_search_prepare(&archive_search_end1->approximate_search,run_length_pattern,sequence_end1);
         approximate_search_prepare(&archive_search_end2->approximate_search,run_length_pattern,sequence_end2);
+        if(process_restriction_sites) {
+        	find_restriction_site_matches(&archive_search_end1->approximate_search.pattern,restriction_sites,restriction_hits_end1,bisulfite_conversion2);
+        	find_restriction_site_matches(&archive_search_end2->approximate_search.pattern,restriction_sites,restriction_hits_end2,bisulfite_conversion1);
+        }
 
         // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -370,6 +405,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
 #else
         archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 #endif
+
       }
     }
     // Output matches
@@ -414,6 +450,11 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   gem_cond_fatal_error_msg(
       paired_end && mapper_parameters->archive->text->run_length,
       "Archive RL-text not supported for paired-end mode (use standard index)");
+  archive_t* const archive = mapper_parameters->archive;
+  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
+  gem_cond_fatal_error_msg(
+      bisulfite_index && mapper_parameters->archive->text->run_length,
+      "Archive RL-text not supported for bisulfite_mapping mode (use standard index)");
   gem_cond_fatal_error_msg(
       paired_end && (mapper_parameters->archive->type == archive_dna_forward),
       "Archive no-complement not supported for paired-end mode (use standard index)");
@@ -423,16 +464,25 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
         "CPU-index can achieve better performance "
         "(gem-indexer --gpu-index=false)");
   }
-  // Setup threads
+  search_parameters_t * const search_parameters = &mapper_parameters->search_parameters;
+  const bool ccc = search_parameters->ccc;
+  const bool split_map_score = search_parameters->split_map_score;
+  gem_cond_fatal_error_msg(
+        (ccc  || split_map_score) && mapper_parameters->archive->text->run_length,
+        "Archive RL-text not supported for 3C or split-map modes (use standard index)");
+
   const uint64_t num_threads = mapper_parameters->system.num_threads;
+  restriction_site_locator_builder_t * const restriction_site_locator_builder = search_parameters->restriction_sites != NULL ?
+  	restriction_text_init_locator(archive, search_parameters->restriction_sites,
+  			&search_parameters->restriction_site_locator, search_parameters->output_restriction_site_filename,
+				mapper_parameters->misc.verbose_user, num_threads) : NULL;
+  // Setup threads
   mapper_search_t* const mapper_search = mm_calloc(num_threads,mapper_search_t,false);
   // Set error-report function
   g_mapper_searches = mapper_search;
   MUTEX_INIT(mapper_parameters->error_report_mutex);
   gem_error_set_report_function(mapper_error_report);
   // Prepare output file/parameters (SAM headers)
-  archive_t* const archive = mapper_parameters->archive;
-  const bool bisulfite_index = (archive->type == archive_dna_bisulfite);
   if (mapper_parameters->io.output_format==SAM) {
     output_sam_print_header(
         mapper_parameters->output_file,archive,&mapper_parameters->io.sam_parameters,
@@ -482,6 +532,13 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
     gem_cond_fatal_error(pthread_join(*(mapper_search[i].thread_data),0),SYS_THREAD_JOIN);
     mm_free(mapper_search[i].thread_data);
   }
+  // Clean up restriction writer thread
+  if(restriction_site_locator_builder != NULL && restriction_site_locator_builder->output_handle != NULL) {
+  	gem_cond_fatal_error(pthread_join(restriction_site_locator_builder->restriction_site_writer, 0),SYS_THREAD_JOIN);
+  	fclose(restriction_site_locator_builder->output_handle);
+  	mm_free(restriction_site_locator_builder);
+  }
+
   PROFILE_VTUNE_STOP(); // Vtune
   ticker_finish(&ticker);
   ticker_mutex_cleanup(&ticker);

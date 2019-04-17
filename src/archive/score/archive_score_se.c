@@ -89,42 +89,93 @@ uint8_t archive_score_matches_se_logit_mmap(
 /*
  * SE Scoring Models
  */
+void archive_score_match_trace_se_default(
+		search_parameters_t* const search_parameters,
+		matches_t* const matches,
+		match_trace_t* map) {
+
+  // Classify
+  matches_predictors_t matches_predictors;
+  matches_predictors_compute_se(&matches_predictors,matches,map,search_parameters);
+  // Score
+  const int64_t delta = matches->classification.delta_group;
+  const int64_t wdelta_group = matches->classification.wdelta_group;
+  if (delta == 0) {
+    map->mapq_score = 0;
+  } else if (delta == -1) {
+    if (wdelta_group > 1) {
+      map->mapq_score = 60;
+    } else {
+      map->mapq_score = archive_score_matches_se_logit_unique(
+          search_parameters,&matches_predictors,&matches->classification);
+    }
+  } else {
+    if (wdelta_group > 1) {
+      map->mapq_score = 60;
+    } else {
+      map->mapq_score = archive_score_matches_se_logit_mmap(
+          search_parameters,&matches_predictors,&matches->classification);
+    }
+  }
+}
+
 void archive_score_matches_se_default(
     archive_search_t* const archive_search,
     matches_t* const matches) {
   // Unmapped
   const uint64_t num_matches = matches_get_num_match_traces(matches);
   if (num_matches==0) return;
-  // Local matches
-  match_trace_t* const primary_map = matches_get_primary_match(matches);
-  if (primary_map->type == match_type_local && primary_map->match_alignment.effective_length < 40) {
-    primary_map->mapq_score = 1;
-    return;
-  }
-  // Classify
+
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
-  matches_predictors_t matches_predictors;
-  matches_predictors_compute_se(&matches_predictors,matches);
-  // Score
-  const int64_t delta = matches->classification.delta_group;
-  const int64_t wdelta_group = matches->classification.wdelta_group;
-  if (delta == 0) {
-    primary_map->mapq_score = 0;
-  } else if (delta == -1) {
-    if (wdelta_group > 1) {
-      primary_map->mapq_score = 60;
-    } else {
-      primary_map->mapq_score = archive_score_matches_se_logit_unique(
-          search_parameters,&matches_predictors,&matches->classification);
-    }
+  if(search_parameters->split_map_score) { // Need to calculate mapq scores for primary match in each block
+  	uint64_t num_match_blocks = vector_get_used(matches->match_blocks);
+  	match_trace_t **traces = vector_get_mem(matches->match_traces, match_trace_t *);
+  	for(uint64_t k = 0; k < num_matches; k++) traces[k]->primary = false;
+  	const region_profile_t * const region_profile = &archive_search->approximate_search.region_profile;
+		const region_search_t* const region_search = region_profile->filtering_region;
+  	for(uint64_t i = 0; i < num_match_blocks; i++) {
+  		const match_block_t* const block = vector_get_elm(matches->match_blocks,i,match_block_t);
+  		// Count filtered regions contained in block
+  		matches_metrics_t* const metrics = &matches->metrics;
+  		uint64_t num_regions = 0;
+  		uint64_t total_region_length = 0;
+  		uint64_t max_region_length = 0;
+  		const uint64_t lo = block->lo;
+  		const uint64_t hi = block->hi;
+  		if(region_search != NULL) {
+  			for(uint64_t k = 0; k < region_profile->num_filtering_regions; k++) {
+  				if(region_search[k].degree == REGION_FILTER_NONE) continue;
+  				if(region_search[k].begin >= lo && region_search[k].end <= hi) {
+  					num_regions++;
+  					uint64_t region_length = region_search[k].end - region_search[k].begin;
+  					total_region_length += region_length;
+  					if(region_length > max_region_length) max_region_length = region_length;
+  				}
+  			}
+  		}
+  		matches->max_complete_stratum = num_regions;
+  		if(num_regions > 0) {
+  			metrics->avg_region_length = total_region_length / num_regions;
+    		metrics->max_region_length = max_region_length;
+    	}
+    	metrics->candidates_accepted = num_regions;
+  		for(uint64_t k = 0; k < num_matches; k++) {
+  			if(traces[k]->match_block_index == i) {
+  				traces[k]->primary=true;
+  				archive_score_match_trace_se_default(search_parameters,matches,traces[k]);
+  				break;
+  			}
+  		}
+  	}
   } else {
-    if (wdelta_group > 1) {
-      primary_map->mapq_score = 60;
-    } else {
-      primary_map->mapq_score = archive_score_matches_se_logit_mmap(
-          search_parameters,&matches_predictors,&matches->classification);
-    }
+  	// Regular mapping - only calcualte mapq for overall primary match
+  	archive_score_match_trace_se_default(search_parameters,matches,matches_get_primary_match(matches));
   }
+
+//  if (primary_map->type == match_type_local && primary_map->match_alignment.effective_length < 40) {
+//    primary_map->mapq_score = 1;
+//    return;
+//  }
 }
 void archive_score_matches_se_classify(
     archive_search_t* const archive_search,
@@ -142,7 +193,7 @@ void archive_score_matches_se_classify(
   search_parameters_t* const search_parameters = &archive_search->search_parameters;
   const archive_score_logit_model_t* const classify_model = archive_score_matches_se_get_model(search_parameters);
   matches_predictors_t matches_predictors;
-  matches_predictors_compute_se(&matches_predictors,matches);
+  matches_predictors_compute_se(&matches_predictors,matches,primary_map,search_parameters);
   // Score
   const int64_t delta = matches->classification.delta_group;
   const int64_t wdelta_group = matches->classification.wdelta_group;
@@ -211,7 +262,7 @@ void archive_score_matches_se(
       archive_score_matches_se_default(archive_search,matches);
       // Compute predictors
       matches_predictors_t matches_predictors;
-      matches_predictors_compute_se(&matches_predictors,matches);
+      matches_predictors_compute_se(&matches_predictors,matches,matches_get_primary_match(matches),search_parameters);
       // Dump predictors
       char* const sequence_tag = sequence_get_tag(archive_search->sequence);
       matches_predictors_se_print(stdout,sequence_tag,&matches_predictors,&matches->classification);

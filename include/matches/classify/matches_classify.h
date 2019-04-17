@@ -32,7 +32,7 @@
  * Matches Classify
  */
 void matches_classify(matches_t* const matches);
-
+void matches_classify_local(matches_t* const matches, const match_trace_t * const primary_match);
 /*
  * Matches Accuracy Tests
  */

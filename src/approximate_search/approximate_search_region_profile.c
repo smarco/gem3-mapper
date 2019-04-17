@@ -122,8 +122,11 @@ void approximate_search_region_profile(approximate_search_t* const search) {
     key = pattern->key;
     key_length = pattern->key_length;
   }
+	// uint64_t number_split_hints = region_profile->region_split_hints == NULL ? 0 : vector_get_used(region_profile->region_split_hints);
+	// region_profile_strategy_t strategy = number_split_hints > 0 ? region_profile_SMEM : parameters->region_profile_model.strategy;
   // Compute the region profile
-  switch (parameters->region_profile_model.strategy) {
+  region_profile_strategy_t strategy = parameters->region_profile_model.strategy;
+  switch (strategy) {
     case region_profile_fixed:
       region_profile_generate_fixed(
           region_profile,fm_index,key,key_length,

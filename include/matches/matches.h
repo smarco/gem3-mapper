@@ -46,6 +46,20 @@ typedef struct {
 } matches_classification_t;
 
 /*
+ * Match Blocks
+ * (non-overlapping regions of read with local alignments - a global alignment will create a single block stretching the length of the read)
+ */
+
+typedef struct {
+	uint64_t lo;              // Start position of block in read
+	uint64_t hi;						  // End position of block in read
+	uint64_t clip_right;      // clip_left == lo
+	uint64_t num_matches;     // Number of matches to this block
+	bool overlaps;
+	bool printed;
+} match_block_t;
+
+/*
  * Matches
  */
 typedef struct {
@@ -54,14 +68,21 @@ typedef struct {
   /* Matches Counters */
   matches_counters_t* counters;            // Global counters
   uint64_t max_complete_stratum;           // Maximum complete stratum
+  uint64_t key_length;										 // Length of pattern;
   bool limited_exact_matches;              // Limited exact matches
   bool matches_extended;                   // Matches added from PE-extension of the other end
+  bool local_search;                       // Are we in global or local search phase?
   /* Matches */
   vector_t* match_traces;                  // Matches (match_trace_t*)
   vector_t* match_traces_local;            // Local Matches (match_trace_t*)
   vector_t* match_traces_extended;         // Extended Matches (match_trace_t*)
   ihash_t* match_traces_begin;             // Begin position (of the aligned match) in the text-space
   ihash_t* match_traces_end;               // End position (of the aligned match) in the text-space
+  /* Blocks */
+  vector_t* match_blocks;                  // Almost non-overlapping blocks of the read with local alignments
+  uint64_t match_total_covered_bases;      // Number of bases covered by blocks
+  /* Identified restrictions sites */
+  vector_t* match_potential_split_sites;   //Iindexes into read of potential split sites (uint64_t)
   bool match_replaced;                     // A match has been replaced (can affect paired-end metrics)
   /* CIGAR */
   vector_t* cigar_vector;                  // CIGAR operations storage (cigar_element_t)
@@ -110,16 +131,21 @@ match_trace_t** matches_get_match_traces(const matches_t* const matches);
 void matches_traces_sort_by_genomic_position(
     match_trace_t** const match_traces,
     const uint64_t num_match_traces);
+void matches_traces_sort_by_primary_and_genomic_position(
+    match_trace_t** const match_traces,
+    const uint64_t num_match_traces);
 
 /*
  * Adding Match-traces
  */
 match_trace_t* matches_add_match_trace(
+		search_parameters_t* const search,
     matches_t* const matches,
     const locator_t* const locator,
     match_trace_t* const match_trace,
     bool* const match_replaced);
 void matches_add_match_trace_extended(
+		search_parameters_t* const search,
     matches_t* const matches,
     const locator_t* const locator,
     match_trace_t* const match_trace);
@@ -128,11 +154,14 @@ void matches_add_match_trace_local_pending(
     match_trace_t* const match_trace);
 
 void matches_local_pending_add_to_regular_matches(
+		search_parameters_t* const search,
     matches_t* const matches,
     const locator_t* const locator);
 void matches_local_pending_add_to_extended_matches(
     matches_t* const matches,
     const locator_t* const locator);
+uint64_t matches_num_match_blocks(
+		const matches_t * const matches);
 
 /*
  * Display

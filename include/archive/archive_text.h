@@ -42,12 +42,13 @@ typedef enum {
 } archive_text_type;
 typedef struct {
   // Meta-information
-  bool run_length;                  // Archive-Text type
-  bool explicit_complement;         // Stores explicit RC-text
-  uint64_t forward_text_length;     // Total length of the forward text
+  bool run_length;                   // Archive-Text type
+  bool explicit_complement;          // Stores explicit RC-text
+  uint64_t forward_text_length;      // Total length of the forward text
   // Indexed text
-  dna_text_t* enc_text;             // Index-Text
-  sampled_rl_t* sampled_rl;         // Sampled RL-Index Positions
+  dna_text_t* enc_text;              // Index-Text
+  uint8_t* bisulfite_enc_text; // Non-converted text from bisulfite index
+  sampled_rl_t* sampled_rl;          // Sampled RL-Index Positions
 } archive_text_t;
 
 /*
@@ -64,8 +65,10 @@ void archive_text_write(
 /*
  * Setup/Loader
  */
+
 archive_text_t* archive_text_read_mem(mm_t* const memory_manager);
 void archive_text_delete(archive_text_t* const archive_text);
+void archive_text_generate_bisulfite_enc_text(archive_text_t *archive_text);
 
 /*
  * Accessors
@@ -94,6 +97,14 @@ void archive_text_retrieve(
     text_trace_t* const text_trace,
     mm_allocator_t* const mm_allocator);
 
+void archive_text_retrieve_bisulfite_normal(
+    archive_text_t* const archive_text,
+    const uint64_t text_position,
+    const uint64_t text_length,
+    const bool reverse_complement_text,
+    text_trace_t* const text_trace,
+    mm_allocator_t* const mm_allocator);
+    
 /*
  * Display
  */

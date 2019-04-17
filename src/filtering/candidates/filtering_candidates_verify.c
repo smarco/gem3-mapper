@@ -78,7 +78,7 @@ void filtering_candidates_extend_discarded_candidates(
   const uint64_t num_regions_discarded = filtering_candidates_get_num_discarded_regions(filtering_candidates);
   // Extend all discarded regions
   uint64_t i;
-  for (i=0;i<num_regions_discarded;++i) {
+    for (i=0;i<num_regions_discarded;++i) {
     // Fetch region and retrieve Text
     filtering_region_t* const filtering_region = regions_discarded[i];
     filtering_region_retrieve_text(filtering_region,

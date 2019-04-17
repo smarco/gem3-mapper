@@ -35,7 +35,7 @@
  * Debug
  */
 #define DEBUG_FILTERING_CANDIDATES                     GEM_DEEP_DEBUG
-#define DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING    false // GEM_DEEP_DEBUG too verbose
+#define DEBUG_FILTERING_CANDIDATES_REGIONS_MATCHING    true// GEM_DEEP_DEBUG too verbose
 
 /*
  * Profile

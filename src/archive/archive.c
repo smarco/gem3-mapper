@@ -56,6 +56,7 @@ archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only
   archive->locator = locator_read_mem(archive->mm);
   // Load archive::text
   archive->text = archive_text_read_mem(archive->mm);
+  if(archive->type == archive_dna_bisulfite) archive_text_generate_bisulfite_enc_text(archive->text);
   if (read_text_only) return archive;
   // Load archive::fm-index
   archive->fm_index = fm_index_read_mem(archive->mm,ARCHIVE_DEBUG_CHECK_INDEX);
@@ -141,4 +142,3 @@ void archive_print(FILE* const stream,const archive_t* const archive) {
   // Flush
   fflush(stream);
 }
-

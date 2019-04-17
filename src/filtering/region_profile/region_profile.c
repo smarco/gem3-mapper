@@ -44,6 +44,7 @@ void region_profile_init(
   region_profile->max_expected_regions =
       MAX(REGION_PROFILE_MIN_REGIONS_ALLOCATED,DIV_CEIL(pattern_length,10));
   region_profile->filtering_region = NULL;
+  region_profile->region_split_hints = NULL;
 }
 void region_profile_model_init(
     region_profile_model_t* const region_profile_model) {

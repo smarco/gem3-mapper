@@ -198,10 +198,10 @@ int retriever_query_parse(
   }
   ++text_line;
   // Parse bs-strand (optional)
-  if (strcmp(text_line,"C2T")==0) {
+  if (strncmp(text_line,"C2T",3)==0) {
     retriever_query->bs_strand = bs_strand_C2T;
     text_line += 3;
-  } else if (strcmp(text_line,"G2A")==0) {
+  } else if (strncmp(text_line,"G2A",3)==0) {
     retriever_query->bs_strand = bs_strand_G2A;
     text_line += 3;
   } else {
@@ -221,11 +221,15 @@ int retriever_query_parse(
   return 0;
 }
 void retriever_query_location(
-    retriever_data_t* const retriever_data,retriever_query_t* const retriever_query) {
+  retriever_data_t* const retriever_data,retriever_query_t* const retriever_query) {
   // Locate the sequence
-  locator_interval_t* const locator_interval =
-      locator_inverse_map(retriever_data->archive->locator,retriever_query->tag,
-          Forward,retriever_query->bs_strand,retriever_query->text_position);
+  const bool bisulfite_index = retriever_data->archive->type==archive_dna_bisulfite;
+  const bool use_bs_normal = bisulfite_index && retriever_query->bs_strand==bs_strand_none;
+  locator_interval_t* const locator_interval = use_bs_normal ?
+    locator_inverse_map(retriever_data->archive->locator,retriever_query->tag,
+      Forward,bs_strand_C2T,retriever_query->text_position) :
+    locator_inverse_map(retriever_data->archive->locator,retriever_query->tag,
+      Forward,retriever_query->bs_strand,retriever_query->text_position);
   if (locator_interval==NULL) {
     gem_retriever_error_msg("[#%"PRIu64"]Sequence location (%s:%c%s:%"PRIu64") not found in the archive\n",
         retriever_query->id,retriever_query->tag,
@@ -251,10 +255,17 @@ void retriever_query_location(
   const uint64_t text_length = index_end_position-index_begin_position;
   // Retrieve the sequence
   text_trace_t text_trace;
-  archive_text_retrieve(
+  if(use_bs_normal) {
+    archive_text_retrieve_bisulfite_normal(
+      retriever_data->archive->text,index_begin_position,
+      text_length,retriever_query->strand==Reverse,
+      &text_trace,retriever_data->mm_allocator);
+  } else {
+    archive_text_retrieve(
       retriever_data->archive->text,index_begin_position,
       text_length,retriever_query->strand==Reverse,false,
       &text_trace,retriever_data->mm_allocator);
+  }
   const uint8_t* const text = text_trace.text; // Candidate
   // Output the sequence
   uint64_t i;
@@ -309,4 +320,3 @@ int main(int argc,char** argv) {
   archive_delete(retriever_data.archive); // Delete archive
   return 0;
 }
-

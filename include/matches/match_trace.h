@@ -46,6 +46,7 @@ typedef struct {
   match_type type;                   // Match type
   /* Location */
   char* sequence_name;               // Sequence name (After decoding.Eg Chr1)
+  int64_t tag_id;                    // ID of sequence
   strand_t strand;                   // Mapping Strand
   bs_strand_t bs_strand;             // Bisulfite Strand
   uint64_t text_position;            // Position of the match in the text. Local text (Eg wrt Chr1)
@@ -56,12 +57,19 @@ typedef struct {
   /* Distance/Score */
   uint64_t event_distance;           // Distance
   uint64_t edit_distance;            // Edit-Distance
+  uint64_t edit_distance_local;      // Edit-Distance within local block
   int32_t swg_score;                 // SWG Distance/Score
   float error_quality;               // Average errors quality
   uint8_t mapq_score;                // MAPQ Score
   /* Alignment */
   match_alignment_t match_alignment; // Match Alignment (CIGAR + ...)
   void* match_scaffold;              // Supporting Scaffolding
+  /* Split maps */
+  uint64_t match_block_index;        // Index to match_block to which this trace belongs (for split maps)
+  bool primary;                      // Whether this trace is the primary for the block (for split maps)
+  /* Restriction sites */
+  uint32_t first_restriction_site;   // Index of first restriction site found in reference for this mapping (0 = none found)
+  uint32_t last_restriction_site;    // Index of last restriction site (0 = none found)
 } match_trace_t;
 
 /*
@@ -82,6 +90,9 @@ int match_trace_cmp_swg_score(
     const match_trace_t** const _a,
     const match_trace_t** const _b);
 int match_trace_cmp_genomic_position(
+    const match_trace_t** const _a,
+    const match_trace_t** const _b);
+int match_trace_cmp_primary_and_genomic_position(
     const match_trace_t** const _a,
     const match_trace_t** const _b);
 int matche_trace_cigar_cmp(

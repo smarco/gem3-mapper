@@ -239,6 +239,7 @@ void locator_map(
     location->strand = Reverse;
     location->tag = locator_interval_get_tag(locator,interval);
   }
+  location->tag_id = interval->tag_id;
   location->bs_strand = interval->bs_strand;
 }
 // Inverse Locator (Location-to-position mapping)
@@ -308,7 +309,6 @@ void locator_interval_print(
     case bs_strand_none: fprintf(stream,"\n"); break;
     case bs_strand_C2T:  fprintf(stream,"\tBisulfite(C2T)\n"); break;
     case bs_strand_G2A:  fprintf(stream,"\tBisulfite(G2A)\n"); break;
-    case bs_strand_mixed: // fprintf(stream,"\tBisulfite(Mixed)\n"); break;
     default: GEM_INVALID_CASE(); break;
   }
 }

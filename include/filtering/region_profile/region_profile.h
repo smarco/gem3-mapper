@@ -103,6 +103,8 @@ typedef struct {
   uint64_t max_region_length;        // Largest region length
   uint64_t avg_region_length;        // Average region length
   double kmer_frequency;
+  /* Hints */
+  vector_t *region_split_hints;
   /* MM */
   mm_allocator_t* mm_allocator;      // MM-Allocator
 } region_profile_t;

@@ -124,7 +124,6 @@ typedef enum {
   bs_strand_none = 0,
   bs_strand_C2T = 1,
   bs_strand_G2A = 2,
-  bs_strand_mixed = UINT64_MAX
 } bs_strand_t; // Bisulfite strand type
 
 /*
