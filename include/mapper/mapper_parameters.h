@@ -28,6 +28,7 @@
 #define MAPPER_PARAMETERS_H_
 
 #include "utils/essentials.h"
+#include "text/restriction_text.h"
 #include "io/output_sam.h"
 #include "io/output_map.h"
 #include "io/input_text.h"

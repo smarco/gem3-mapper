@@ -162,23 +162,48 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 
   // Init I/O handler
   mapper_io_handler = mapper_io_handler_new_se(
-      parameters,parameters->io.input_buffer_size,
-      archive_search_handlers->mm_allocator);
+					       parameters,parameters->io.input_buffer_size,
+					       archive_search_handlers->mm_allocator);
 
   // Set structures pointers (DEBUG)
   mapper_search->mapper_io_handler = mapper_io_handler;
   mapper_search->sequence_end1 = &sequence;
 
+  // Initialize bisulfite handling
+  bool bisulfite_index = mapper_io_handler->archive_bisulfite;
+  bool non_stranded = false;
+  bisulfite_conversion_t bisulfite_conversion = C2T_conversion;
+  if(bisulfite_index) {
+      switch(mapper_io_handler->bisulfite_read) {
+        case bisulfite_G2A:
+          bisulfite_conversion = G2A_conversion;
+          break;
+        case bisulfite_disabled:
+          bisulfite_conversion = no_conversion;
+          bisulfite_index = false;
+          break;
+        case bisulfite_non_stranded:
+          non_stranded = true;
+          break;
+        default:
+          break;
+      }
+  } else bisulfite_conversion = no_conversion;
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
-  while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
-//    // DEBUG
-//    if (gem_streq(sequence->tag.buffer,"Sim.Illumina.l100.0000009233")) {
-//      printf("HERE\n");
-//    }
 
-    // Prepare Search
-    archive_search_handlers_prepare_se(archive_search,sequence,archive_search_handlers);
+  while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
+    if(bisulfite_index) {
+		 if(mapper_io_handler->bisulfite_read == bisulfite_inferred_C2T_G2A)
+				bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
+		 else if(mapper_io_handler->bisulfite_read == bisulfite_inferred_G2A_C2T)
+				bisulfite_conversion = sequence->end_info == paired_end2 ? C2T_conversion : G2A_conversion;
+		 else if(non_stranded) {
+			 bisulfite_conversion = sequence_bisulfite_check_cg_depletion_se(sequence) ? G2A_conversion : C2T_conversion;
+		 }
+	 }
+    // Prepare search
+    archive_search_handlers_prepare_se(archive_search,sequence,bisulfite_conversion,archive_search_handlers);
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -188,7 +213,32 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 #else
     archive_search_se(archive_search,matches);
 #endif
+    if(non_stranded) {
 
+      // For the non-stranded case we re-do the search with the other conversion
+      // if we haven't already found a good mapping
+
+      bool remap = false;
+      if(!matches_get_num_match_traces(matches)) remap = true;
+      else {
+          match_trace_t* primary_match = (matches_get_match_traces(matches))[0];
+          if(primary_match->edit_distance>1) remap = true;
+      }
+      if(remap) {
+
+        // Prepare sequence
+        const bool run_length_pattern = archive_search->archive->text->run_length;
+        archive_search->approximate_search.bisulfite_conversion = bisulfite_conversion == C2T_conversion ? G2A_conversion : C2T_conversion;
+        approximate_search_prepare(&archive_search->approximate_search,run_length_pattern,sequence);
+#ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
+        gem_timer_t timer;
+        TIMER_RESTART(&timer); archive_search_se(archive_search,matches); TIMER_STOP(&timer);
+        fprintf(stderr,"Done %s in %2.4f ms.\n",sequence->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+#else
+        archive_search_se(archive_search,matches);
+#endif
+      }
+    }
     // Output matches
     mapper_io_handler_output_matches(mapper_io_handler,
         archive_search,matches,mapper_search->mapping_stats);
@@ -245,6 +295,23 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
       archive_search_handlers->mapper_stats,
       archive_search_handlers->mm_allocator);
 
+  // Initialize bisulfite handling
+  bool bisulfite_index = mapper_io_handler->archive_bisulfite;
+  bool non_stranded = bisulfite_index && (mapper_io_handler->bisulfite_read == bisulfite_non_stranded);
+  bisulfite_conversion_t bisulfite_conversion1, bisulfite_conversion2;
+  if(bisulfite_index) {
+    if(mapper_io_handler->bisulfite_read == bisulfite_inferred_C2T_G2A) {
+			bisulfite_conversion1 = C2T_conversion;
+			bisulfite_conversion2 = G2A_conversion;
+		} else {
+			bisulfite_conversion2 = C2T_conversion;
+			bisulfite_conversion1 = G2A_conversion;
+		}
+  } else {
+    non_stranded = false;
+    bisulfite_conversion1 = bisulfite_conversion2 = no_conversion;
+  }
+
   // Set structures pointers (DEBUG)
   mapper_search->mapper_io_handler = mapper_io_handler;
   mapper_search->sequence_end1 = &sequence_end1;
@@ -257,12 +324,21 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
 //    if (gem_streq(sequence_end1->tag.buffer,"Sim.Illumina.l100.0000491385/1")) {
 //      printf("HERE\n");
 //    }
-
+    if(non_stranded) {
+      if(sequence_bisulfite_check_cg_depletion_pe(sequence_end1,sequence_end2)) {
+        bisulfite_conversion1 = G2A_conversion;
+        bisulfite_conversion2 = C2T_conversion;
+      } else {
+        bisulfite_conversion1 = C2T_conversion;
+        bisulfite_conversion2 = G2A_conversion;
+      }
+    }
     // Prepare Search
     archive_search_handlers_prepare_pe(
-        archive_search_end1,archive_search_end2,
-        sequence_end1,sequence_end2,
-        archive_search_handlers);
+       archive_search_end1,archive_search_end2,
+			 sequence_end1,sequence_end2,
+       bisulfite_conversion1, bisulfite_conversion2,
+		archive_search_handlers);
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -272,11 +348,34 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
 #else
     archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
 #endif
+    if(non_stranded) {
+      bool remap = false;
+      if(!paired_matches_is_mapped(paired_matches)) remap = true;
+      else {
+          paired_map_t* primary_map = (paired_matches_get_maps(paired_matches))[0];
+          if(primary_map->edit_distance>1) remap = true;
+      }
+      if(remap) {
+        const bool run_length_pattern = archive_search_end1->archive->text->run_length;
+        archive_search_end1->approximate_search.bisulfite_conversion = bisulfite_conversion2;
+        archive_search_end2->approximate_search.bisulfite_conversion = bisulfite_conversion1;
+        approximate_search_prepare(&archive_search_end1->approximate_search,run_length_pattern,sequence_end1);
+        approximate_search_prepare(&archive_search_end2->approximate_search,run_length_pattern,sequence_end2);
 
+        // Search into the archive
+#ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
+        gem_timer_t timer;
+        TIMER_RESTART(&timer); archive_search_pe(archive_search_end1,archive_search_end2,paired_matches); TIMER_STOP(&timer);
+        fprintf(stderr,"Done %s in %2.4f ms.\n",sequence_end1->tag.buffer,TIMER_GET_TOTAL_MS(&timer));
+#else
+        archive_search_pe(archive_search_end1,archive_search_end2,paired_matches);
+#endif
+      }
+    }
     // Output matches
     mapper_io_handler_output_paired_matches(
-        mapper_io_handler,archive_search_end1,archive_search_end2,
-        paired_matches,mapper_search->mapping_stats);
+					    mapper_io_handler,archive_search_end1,archive_search_end2,
+					    paired_matches,mapper_search->mapping_stats);
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end1->sequence);
     //output_fastq(mapper_search->buffered_output_file,&archive_search_end2->sequence);
 

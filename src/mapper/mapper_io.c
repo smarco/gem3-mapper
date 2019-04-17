@@ -133,6 +133,7 @@ mapper_io_handler_t* mapper_io_handler_new_pe(
   // Attributes
   mapper_io_handler->paired_end = true;
   mapper_io_handler->archive_bisulfite = (parameters->archive->type==archive_dna_bisulfite);
+  mapper_io_handler->bisulfite_read = parameters->search_parameters.bisulfite_read;
   mapper_io_handler->mapper_parameters_io = &parameters->io;
   search_paired_parameters_t* const paired_parameters =
       &parameters->search_parameters.search_paired_parameters;
@@ -284,10 +285,6 @@ error_code_t mapper_read_sequence(
   if (error_code==INPUT_STATUS_FAIL) {
     MAPPER_ERROR_IO_PARSE_SEQUENCE(mapper_io_handler);
   }
-  // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
-  if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_process_se(*sequence,mapper_io_handler->bisulfite_read);
-  }
   // Return
   PROF_INC_COUNTER(GP_MAPPER_NUM_READS);
   return error_code;
@@ -314,10 +311,6 @@ error_code_t mapper_read_paired_sequence(
   if (error_code==INPUT_STATUS_FAIL) {
     MAPPER_ERROR_IO_PARSE_SEQUENCE(mapper_io_handler);
   }
-  // Bisulfite: Fully convert reads before searching into archive, making a copy of the original
-  if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_process_pe(*sequence_end1,*sequence_end2,mapper_io_handler->bisulfite_read);
-  }
   // Return
   PROF_ADD_COUNTER(GP_MAPPER_NUM_READS,2);
   return INPUT_STATUS_OK;
@@ -330,10 +323,6 @@ void mapper_io_handler_output_matches(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t* const mstats) {
-  // Bisulfite: Copy back original read
-  if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_restore_se(archive_search->sequence);
-  }
   // Output
 #ifdef MAPPER_OUTPUT
   mapper_parameters_io_t* const mapper_parameters_io = mapper_io_handler->mapper_parameters_io;
@@ -364,11 +353,7 @@ void mapper_io_handler_output_paired_matches(
     archive_search_t* const archive_search_end2,
     paired_matches_t* const paired_matches,
     mapping_stats_t* const mstats) {
-  // Bisulfite: Copy back original read
-  if (mapper_io_handler->archive_bisulfite) {
-    sequence_bisulfite_restore_pe(
-        archive_search_end1->sequence,archive_search_end2->sequence);
-  }
+
   // Output
 #ifdef MAPPER_OUTPUT
   mapper_parameters_io_t* const mapper_parameters_io = mapper_io_handler->mapper_parameters_io;

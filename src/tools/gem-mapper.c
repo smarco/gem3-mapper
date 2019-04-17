@@ -45,9 +45,8 @@ char* const gem_version = GEM_VERSION_STRING(GEM_VERSION);
 input_file_sliced_t* gem_mapper_open_input_file(
     char* const input_file_name,const fm_type input_compression,
     const uint64_t input_block_size,const uint64_t input_num_blocks,
-    const bool verbose_user) {
+	const bool verbose_user) {
   // Open input file
-  // FIXME: Check this way of opening a FILE/PIPE
   if(input_file_name != NULL) {
 	  size_t l = strlen(input_file_name);
 	  if(l > 1) {

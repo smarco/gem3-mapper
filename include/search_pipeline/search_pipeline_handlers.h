@@ -67,12 +67,15 @@ void search_pipeline_handlers_delete(search_pipeline_handlers_t* const search_pi
 void search_pipeline_handlers_prepare_se(
     archive_search_t* const archive_search,
     sequence_t* const sequence,
+	 bisulfite_conversion_t const bisulfite_conversion,	
     search_pipeline_handlers_t* const search_pipeline_handlers);
 void search_pipeline_handlers_prepare_pe(
     archive_search_t* const archive_search_end1,
     archive_search_t* const archive_search_end2,
     sequence_t* const sequence_end1,
     sequence_t* const sequence_end2,
+	 bisulfite_conversion_t const bisulfite_conversion_end1,
+    bisulfite_conversion_t const bisulfite_conversion_end2,
     search_pipeline_handlers_t* const search_pipeline_handlers);
 
 #endif /* SEARCH_PIPELINE_HANDLERS_H_ */

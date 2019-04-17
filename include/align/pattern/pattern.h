@@ -81,6 +81,7 @@ void pattern_init(
     bool* const do_quality_search,
     const search_parameters_t* const parameters,
     const bool run_length_pattern,
+    const bisulfite_conversion_t bisulfite_conversion,
     mm_allocator_t* const mm_allocator);
 void pattern_destroy(
     pattern_t* const pattern,

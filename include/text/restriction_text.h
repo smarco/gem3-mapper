@@ -22,19 +22,21 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  *            Simon Heath <simon.heath@gmail.com>
  * DESCRIPTION:
- *   Mapper module provides support functions to bisulfite mode(s)
+ *   Mapper module encapsulates and provides accessors to all
+ *   the parameters used by the mapper
  */
 
-#ifndef SEQUENCE_BISULFITE_H_
-#define SEQUENCE_BISULFITE_H_
+#ifndef RESTRICTION_TEXT_H_
+#define RESTRICTION_TEXT_H_
 
 #include "utils/essentials.h"
-#include "archive/search/archive_search.h"
 
-bool sequence_bisulfite_check_cg_depletion_se(
-    sequence_t* const read_sequence);
-bool sequence_bisulfite_check_cg_depletion_pe(
-    sequence_t* const read_sequence1,
-    sequence_t* const read_sequence2);
+typedef struct {
+  string_t restriction_site;
+  int cut_site_index;
+} restriction_t;
 
-#endif /* SEQUENCE_BISULFITE_H_ */
+restriction_t *restriction_new(char * const);
+void restriction_delete(restriction_t * const);
+
+#endif

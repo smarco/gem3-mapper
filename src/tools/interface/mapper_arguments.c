@@ -72,11 +72,13 @@ option_t gem_mapper_options[] = {
   { 403, "pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=separated,overlap)" },
   { 404, "discordant-pair-layout", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "'separate'|'overlap'|'contain'" , "(default=contain)" },
   { 406, "pe-template-length", REQUIRED, TYPE_STRING, 4, VISIBILITY_ADVANCED, "<min>,<max>,<samples>" , "(default=0,800,100)" },
-  /* Bisulfite Alignment */
-  { 500, "bisulfite-read", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred','1','2','interleaved','non-stranded'",  "(default=inferred)" },
-  { 501, "underconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
-  { 502, "overconversion_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
-  { 503, "control_sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
+  /* Bisulfite and Hi-C Alignment */
+  { 500, "bisulfite-conversion", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred-C2T-G2A','inferred-G2A-C2T','C2T','G2A','non-stranded'",  "(default=inferred-C2T-G2A)" },
+  { 501, "underconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
+  { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
+  { 503, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
+  { 504, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
+  { 505, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -86,7 +88,6 @@ option_t gem_mapper_options[] = {
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
   /* MAQ Score */
   { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
-  { 701, "mapq-ignore-clipping-longer", REQUIRED, TYPE_INT, 7, VISIBILITY_USER, "<number>" , "(default=10)" },
   /* Reporting */
   { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 8, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  8, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
@@ -121,7 +122,7 @@ char* gem_mapper_groups[] = {
   /*  2 */ "I/O",
   /*  3 */ "Single-end Alignment",
   /*  4 */ "Paired-end Alignment",
-  /*  5 */ "Bisulfite Alignment",
+  /*  5 */ "Bisulfite and Hi-C Alignment",
   /*  6 */ "Alignment Score",
   /*  7 */ "MAPQ Score",
   /*  8 */ "Reporting",
@@ -200,8 +201,8 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   /* Mapping strategy (Mapping mode + properties) */
   if (paired_search->paired_end_search) {
     parameters->mapper_type = mapper_pe;
-    gem_cond_warn_msg((search->bisulfite_read != bisulfite_read_inferred) && (search->bisulfite_read != bisulfite_non_stranded),
-        "Option '--bisulfite_read' can only be set in paired end mode to {'inferred'|'non-stranded'}");
+    gem_cond_warn_msg((search->bisulfite_read != bisulfite_inferred_C2T_G2A) && (search->bisulfite_read != bisulfite_inferred_G2A_C2T) && (search->bisulfite_read != bisulfite_non_stranded),
+        "Option '--bisulfite_read' can only be set in paired end mode to {'inferred-C2T-G2A'|'inferred-G2A-C2T'|'non-stranded'}");
     search->mapq_model_pe = search->mapq_model_se;
     search->mapq_model_se = mapq_model_gem;
   } else {
@@ -220,6 +221,16 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   mapper_cond_error_msg(
       search->select_parameters.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");
+  /* RRBS */
+  if(search->rrbs) {
+    if(search->restriction_sites == NULL) {
+      restriction_t *rest = restriction_new("C-CGG"); // If no restriction site has been set, default to MspI site
+      if(rest != NULL) {
+        search->restriction_sites = vector_new(1, restriction_t *);
+        vector_insert(search->restriction_sites, rest, restriction_t *);
+      }
+    }
+  }
 }
 /*
  * Mapper Arguments Parsing
@@ -727,30 +738,31 @@ bool gem_mapper_parse_arguments_bisulfite(
     char* optarg) {
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
+  restriction_t *rest = NULL;
   // Bisulfite
   switch (option) {
     case 500: // --bisulfite_read
-      if (gem_strcaseeq(optarg,"inferred")) {
-        search->bisulfite_read = bisulfite_read_inferred;
+      if (gem_strcaseeq(optarg,"inferred-C2T-G2A")) {
+        search->bisulfite_read = bisulfite_inferred_C2T_G2A;
         return true;
       }
-      if (gem_strcaseeq(optarg,"1")) {
-        search->bisulfite_read = bisulfite_read_1;
+      if (gem_strcaseeq(optarg,"inferred-G2A-C2T")) {
+        search->bisulfite_read = bisulfite_inferred_G2A_C2T;
         return true;
       }
-      if (gem_strcaseeq(optarg,"2")) {
-        search->bisulfite_read = bisulfite_read_2;
+      if (gem_strcaseeq(optarg,"C2T")) {
+        search->bisulfite_read = bisulfite_C2T;
         return true;
       }
-      if (gem_strcaseeq(optarg,"interleaved")) {
-        search->bisulfite_read = bisulfite_read_interleaved;
+      if (gem_strcaseeq(optarg,"G2A")) {
+        search->bisulfite_read = bisulfite_G2A;
         return true;
       }
       if (gem_strcaseeq(optarg,"non-stranded")) {
         search->bisulfite_read = bisulfite_non_stranded;
         return true;
       }
-      gem_fatal_error_msg("Option '--bisulfite_read' must be '1'|'2'|'interleaved'|'inferred'|'non-stranded'");
+      gem_fatal_error_msg("Option '--bisulfite-conversion' must be 'inferred_C2T_G2A'|'inferred_G2A_C2T'|'C2T'|'G2A'|'non-stranded'");
       return true;
     case 501: // --underconversion_sequence
       search->control_sequences[1] = strdup(optarg);
@@ -760,6 +772,20 @@ bool gem_mapper_parse_arguments_bisulfite(
       return true;
     case 503: // --control_sequence
       search->control_sequences[0] = strdup(optarg);
+      return true;
+    case 504: // -- restriction-site
+      rest = restriction_new(optarg);
+      if(rest != NULL) {
+        if(search->restriction_sites == NULL) {
+          search->restriction_sites = vector_new(1, restriction_t *);
+        }
+        vector_insert(search->restriction_sites, rest, restriction_t *);
+      } else {
+        gem_fatal_error_msg("Error setting --restriction-site option");
+      }
+    return true;
+    case 505: // --rrbs
+      search->rrbs = true;
       return true;
     default:
       return false; // Not found
@@ -859,12 +885,6 @@ bool gem_mapper_parse_arguments_mapq_score(
         mapper_error_msg("Option '--mapq-model' must be in {'none'|'gem'}");
       }
       return true;
-    case 701: { // --mapq-ignore-clipping-longer (default=10)
-      uint64_t clip_length;
-      input_text_parse_extended_uint64(optarg,&clip_length);
-      matches_max_clip_length = clip_length;
-      return true;
-    }
     default:
       return false; // Not found
   }
@@ -1181,4 +1201,3 @@ void gem_mapper_parse_arguments(
   mm_free(getopt_short_string);
   mm_free(getopt_options);
 }
-

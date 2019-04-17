@@ -129,7 +129,7 @@ void fm_initialize(fm_t* const file_manager) {
   switch (file_manager->file_type) {
     case FM_STREAM:
     case FM_REGULAR_FILE:
-	  case FM_POPEN:
+	 case FM_POPEN:
       break;
 #ifdef HAVE_ZLIB
     case FM_GZIPPED_FILE: {
@@ -290,6 +290,7 @@ fm_t* fm_open_FILE(FILE* const stream,const fm_mode mode) {
   // Return fm
   return file_manager;
 }
+
 fm_t* fm_open_gzFILE(FILE* const stream,const fm_mode mode) {
 #ifndef HAVE_ZLIB
   gem_fatal_error(FM_NO_ZLIB_SUPPORT);

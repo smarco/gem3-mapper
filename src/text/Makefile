@@ -36,7 +36,8 @@ MODULES=cdna_bitwise_text \
         sequence \
         sequence_bisulfite \
         sequence_qualities_model \
-        text_trace
+        text_trace \
+        restriction_text 
 
 SRCS=$(addsuffix .c, $(MODULES))
 OBJS=$(addprefix $(FOLDER_BUILD)/, $(SRCS:.c=.o))

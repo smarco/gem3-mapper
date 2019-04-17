@@ -146,6 +146,22 @@ const uint8_t dna_encode_table[256] =
   [DNA_CHAR_SEP] = ENC_DNA_CHAR_SEP,
   [DNA_CHAR_JUMP] = ENC_DNA_CHAR_JUMP
 };
+const uint8_t dna_encode_table_C2T[256] =
+{
+  [0 ... 255] = 4,
+  ['A'] = 0, ['C'] = 3, ['G'] = 2,  ['T'] = 3, ['N'] = 4,
+  ['a'] = 0, ['c'] = 3, ['g'] = 2,  ['t'] = 3, ['n'] = 4,
+  [DNA_CHAR_SEP] = ENC_DNA_CHAR_SEP,
+  [DNA_CHAR_JUMP] = ENC_DNA_CHAR_JUMP
+};
+const uint8_t dna_encode_table_G2A[256] =
+{
+  [0 ... 255] = 4,
+  ['A'] = 0, ['C'] = 1, ['G'] = 0,  ['T'] = 3, ['N'] = 4,
+  ['a'] = 0, ['c'] = 1, ['g'] = 0,  ['t'] = 3, ['n'] = 4,
+  [DNA_CHAR_SEP] = ENC_DNA_CHAR_SEP,
+  [DNA_CHAR_JUMP] = ENC_DNA_CHAR_JUMP
+};
 const char dna_decode_table[DNA_EXT_RANGE] =
 {
   [ENC_DNA_CHAR_A] = DNA_CHAR_A,
@@ -155,22 +171,6 @@ const char dna_decode_table[DNA_EXT_RANGE] =
   [ENC_DNA_CHAR_N] = DNA_CHAR_N,
   [ENC_DNA_CHAR_SEP] = DNA_CHAR_SEP,
   [ENC_DNA_CHAR_JUMP] = DNA_CHAR_JUMP
-};
-const char dna_bisulfite_C2T_table[256] =
-{
-  [0 ... 255] = '~',
-  ['A'] = 'A', ['C'] = 'T', ['G'] = 'G',  ['T'] = 'T', ['N'] = 'N',
-  ['a'] = 'A', ['c'] = 'T', ['g'] = 'G',  ['t'] = 'T', ['n'] = 'N',
-  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
-  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
-};
-const char dna_bisulfite_G2A_table[256] =
-{
-  [0 ... 255] = '~',
-  ['A'] = 'A', ['C'] = 'C', ['G'] = 'A',  ['T'] = 'T', ['N'] = 'N',
-  ['a'] = 'A', ['c'] = 'C', ['g'] = 'A',  ['t'] = 'T', ['n'] = 'N',
-  [DNA_CHAR_SEP] = DNA_CHAR_SEP,
-  [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
 };
 const uint8_t dna_encoded_bisulfite_C2T_table[DNA_EXT_RANGE] =
 {
@@ -399,4 +399,3 @@ void dna_buffer_print(
     }
   }
 }
-

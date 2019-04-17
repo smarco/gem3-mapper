@@ -112,7 +112,7 @@ void mapper_se_cuda_region_profile(mapper_cuda_search_t* const mapper_search) {
     // Prepare archive-search
     search_pipeline_allocate_se(search_pipeline,&archive_search);
     search_pipeline_handlers_prepare_se(
-        archive_search,sequence,search_pipeline->search_pipeline_handlers);
+        archive_search,sequence,no_conversion,search_pipeline->search_pipeline_handlers);
     // Generate Candidates (Search into the archive)
 #ifdef GPU_REGION_PROFILE_ADAPTIVE
     archive_search_se_stepwise_region_profile_adaptive_generate(archive_search);

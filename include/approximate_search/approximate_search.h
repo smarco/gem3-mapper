@@ -82,6 +82,8 @@ typedef struct {
   asearch_stage_t search_stage;                                  // Current Search Stage
   asearch_processing_state_t processing_state;                   // Current Processing State
   uint64_t max_search_error;                                     // Search max-error (can be adjusted on-the-fly by matches found)
+  /* Bisulfite conversion */
+  bisulfite_conversion_t bisulfite_conversion;
   /* Filtering Structures */
   region_profile_t region_profile;                               // Region Profile
   filtering_candidates_t* filtering_candidates;                  // Filtering Candidates
