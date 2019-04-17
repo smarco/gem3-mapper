@@ -96,6 +96,7 @@ option_t gem_mapper_options[] = {
   { 'X', "gap-extension-penalty", REQUIRED, TYPE_INT, 6, VISIBILITY_ADVANCED, "" , "(default=1)" },
   /* MAPQ Score */
   { 700, "mapq-model", REQUIRED, TYPE_STRING, 7, VISIBILITY_ADVANCED, "'none'|'gem'" , "(default=gem)" },
+  { 701, "mapq-ignore-clipping-longer", REQUIRED, TYPE_INT, 7, VISIBILITY_USER, "<number>" , "(default=10)" },
   /* Reporting */
   { 'm', "min-reported-strata", REQUIRED, TYPE_FLOAT, 8, VISIBILITY_ADVANCED, "<number|percentage>|'all'" , "(stratum-wise, default=0)" },
   { 'M', "max-reported-matches", REQUIRED, TYPE_INT,  8, VISIBILITY_USER, "<number>|'all'" , "(default=5)" },
@@ -937,6 +938,12 @@ bool gem_mapper_parse_arguments_mapq_score(
         mapper_error_msg("Option '--mapq-model' must be in {'none'|'gem'}");
       }
       return true;
+	 case 701: { // --mapq-ignore-clipping-longer (default=10)
+		  uint64_t clip_length;
+		  input_text_parse_extended_uint64(optarg,&clip_length);
+		  matches_max_clip_length = clip_length;
+		  return true;
+	   }
     default:
       return false; // Not found
   }
