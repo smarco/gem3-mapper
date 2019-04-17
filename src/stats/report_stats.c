@@ -127,17 +127,24 @@ void update_distance_counts(
 			(*count)++;
 	 }	 
 }
+static const int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
+static const int cnv_end[2][4] = {{-1,0,1,-1},{-1,1,0,-1}};
+	
 void update_conversion_counts(
     sequence_t* const seq_read,
-    mapping_stats_t* mstats,
-    const int end,
+    mapping_stats_t* const mstats,
     const bs_strand_t bs,
+		const strand_t strand,
     const int read_type) {
-	 int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
-	 int idx = cnv_idx[bs][read_type];
-	 if(idx) {
+	
+	 const int bs1 = bs <= 2 ? bs : 3;
+	 const int st1 = strand == Forward ? 0 : 1;
+	 const int idx = cnv_idx[bs1][read_type];
+	 const int end = cnv_end[st1][bs1];
+	 
+	 if(idx && end >=0) {
 			string_t* const read = &seq_read->read;
-			char *p = string_get_buffer(read);
+			const char *p = string_get_buffer(read);
 			while(*p) mstats->base_counts[idx][end][btab[(int)*p++]]++;
 	 }
 }
@@ -166,7 +173,7 @@ void collect_se_mapping_stats(
 			bs = match->bs_strand;
 			read_type = get_read_type(match, archive_search->search_parameters.control_sequences);
 			if(match->mapq_score>0) {
-				 update_conversion_counts(archive_search->sequence, mstats, 0, bs, read_type);
+				 update_conversion_counts(archive_search->sequence, mstats, bs, match->strand, read_type);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -241,8 +248,8 @@ void collect_pe_mapping_stats(
 			read_type1 = read_type2 = get_read_type(match_end1,archive_search1->search_parameters.control_sequences);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>0) {
-				 update_conversion_counts(archive_search1->sequence, mstats, 0, bs1, read_type1);
-				 update_conversion_counts(archive_search2->sequence, mstats, 1, bs2, read_type2);
+				 update_conversion_counts(archive_search1->sequence, mstats, bs1, match_end1->strand, read_type1);
+				 update_conversion_counts(archive_search2->sequence, mstats, bs2, match_end2->strand, read_type2);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;
