@@ -310,14 +310,14 @@ pair_layout_t paired_matches_compute_layout(
     return pair_layout_separate;
   } else if (begin_position_1 <= end_position_2) {
     // End-1 at the left
-    if (begin_position_1 <= begin_position_2 && end_position_2 <= end_position_1) {
+    if (begin_position_1 < begin_position_2 && end_position_2 < end_position_1) {
       return pair_layout_contain;
     } else {
       return pair_layout_overlap;
     }
   } else {
     // End-2 at the left
-    if (begin_position_2 <= begin_position_1 && end_position_1 <= end_position_2) {
+    if (begin_position_2 < begin_position_1 && end_position_1 < end_position_2) {
       return pair_layout_contain;
     } else {
       return pair_layout_overlap;

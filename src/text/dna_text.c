@@ -124,7 +124,7 @@ const char dna_complement_table[256] =
 {
   [0 ... 255] = '~',
   ['A'] = 'T', ['C'] = 'G', ['G'] = 'C',  ['T'] = 'A', ['N'] = 'N',
-  ['a'] = 'T', ['c'] = 'G', ['g'] = 'C',  ['t'] = 'A', ['n'] = 'N',
+  ['a'] = 't', ['c'] = 'g', ['g'] = 'c',  ['t'] = 'a', ['n'] = 'n',
   [DNA_CHAR_SEP] = DNA_CHAR_SEP,
   [DNA_CHAR_JUMP] = DNA_CHAR_JUMP
 };

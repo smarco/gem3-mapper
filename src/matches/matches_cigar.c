@@ -248,6 +248,7 @@ uint64_t matches_cigar_compute_edit_distance(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
+
   // Sum up all cigar elements
   const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_buffer_offset,cigar_element_t);
   uint64_t i, edit_distance = 0;
@@ -272,6 +273,7 @@ uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
     const uint64_t cigar_length) {
+
   // Sum up all cigar elements
   const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_buffer_offset,cigar_element_t);
   uint64_t i, edit_distance = 0;

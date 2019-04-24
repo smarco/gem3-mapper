@@ -113,7 +113,8 @@ void match_align_swg_local_alignment_add_match(
   const uint64_t cigar_offset = match_alignment->cigar_offset;
   const uint64_t cigar_length = match_alignment->cigar_length;
   match_trace.event_distance = matches_cigar_compute_event_distance(cigar_vector,cigar_offset,cigar_length);
-  match_trace.edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length);
+  match_trace.edit_distance = matches_cigar_compute_edit_distance(cigar_vector,cigar_offset,cigar_length)
+  		- pattern->clip_left - pattern->clip_right;
   match_trace.swg_score = align_swg_score_cigar_excluding_clipping(
       &search_parameters->swg_penalties,cigar_vector,cigar_offset,cigar_length);
   match_trace.error_quality =
