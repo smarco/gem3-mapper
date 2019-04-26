@@ -175,7 +175,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   bisulfite_conversion_t bisulfite_conversion = C2T_conversion;
   if(bisulfite_index) {
       switch(mapper_io_handler->bisulfite_read) {
-        case bisulfite_read_2:
+        case bisulfite_G2A:
           bisulfite_conversion = G2A_conversion;
           break;
         case bisulfite_disabled:
@@ -201,8 +201,10 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 
   while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
     if(bisulfite_index) {
-		 if(mapper_io_handler->bisulfite_read == bisulfite_read_inferred)
-			bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
+		 if(mapper_io_handler->bisulfite_read == bisulfite_inferred_C2T_G2A)
+				bisulfite_conversion = sequence->end_info == paired_end1 ? C2T_conversion : G2A_conversion;
+		 else if(mapper_io_handler->bisulfite_read == bisulfite_inferred_G2A_C2T)
+				bisulfite_conversion = sequence->end_info == paired_end2 ? C2T_conversion : G2A_conversion;
 		 else if(non_stranded) {
 			 bisulfite_conversion = sequence_bisulfite_check_cg_depletion_se(sequence) ? G2A_conversion : C2T_conversion;
 		 }
@@ -316,9 +318,13 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   bool non_stranded = bisulfite_index && (mapper_io_handler->bisulfite_read == bisulfite_non_stranded);
   bisulfite_conversion_t bisulfite_conversion1, bisulfite_conversion2;
   if(bisulfite_index) {
-    non_stranded = mapper_io_handler->bisulfite_read == bisulfite_non_stranded;
-    bisulfite_conversion1 = C2T_conversion;
-    bisulfite_conversion2 = G2A_conversion;
+    if(mapper_io_handler->bisulfite_read == bisulfite_inferred_C2T_G2A) {
+			bisulfite_conversion1 = C2T_conversion;
+			bisulfite_conversion2 = G2A_conversion;
+		} else {
+			bisulfite_conversion2 = C2T_conversion;
+			bisulfite_conversion1 = G2A_conversion;
+		}
   } else {
     non_stranded = false;
     bisulfite_conversion1 = bisulfite_conversion2 = no_conversion;

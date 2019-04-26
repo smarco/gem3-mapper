@@ -30,6 +30,11 @@
 #define GEM_ERROR_MATCHES_CIGAR_ZERO_LENGTH "Matches. CIGAR length cannot be zero"
 
 /*
+ * GLOBAL Parameters
+ */
+int matches_max_clip_length = 10;
+
+/*
  * CIGAR Buffer Handling
  */
 void matches_cigar_buffer_add_cigar_element__attr(
@@ -244,6 +249,32 @@ uint64_t matches_cigar_compute_event_distance(
   }
   return event_distance;
 }
+uint64_t matches_cigar_compute_event_distance_excluding_long_clipping(
+    vector_t* const cigar_vector,
+    const uint64_t cigar_buffer_offset,
+    const uint64_t cigar_length) {
+  // Sum up all cigar elements
+  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_buffer_offset,cigar_element_t);
+  uint64_t i, event_distance = 0;
+  for (i=0;i<cigar_length;++i) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match: break;
+      case cigar_mismatch:
+        ++event_distance;
+        break;
+      case cigar_del:
+        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length > matches_max_clip_length) break;
+      // No break
+      case cigar_ins:
+        ++event_distance;
+        break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  return event_distance;
+}
 uint64_t matches_cigar_compute_edit_distance(
     vector_t* const cigar_vector,
     const uint64_t cigar_buffer_offset,
@@ -284,7 +315,33 @@ uint64_t matches_cigar_compute_edit_distance__excluding_clipping(
         edit_distance++;
         break;
       case cigar_del:
-        if (i==0 || i==cigar_length-1) break;
+        if ((i==0 || i==cigar_length-1)) break;
+      // No break
+      case cigar_ins:
+        edit_distance += cigar_buffer[i].length;
+        break;
+      default:
+        GEM_INVALID_CASE();
+        break;
+    }
+  }
+  return edit_distance;
+}
+uint64_t matches_cigar_compute_edit_distance_excluding_long_clipping(
+    vector_t* const cigar_vector,
+    const uint64_t cigar_buffer_offset,
+    const uint64_t cigar_length) {
+  // Sum up all cigar elements
+  const cigar_element_t* const cigar_buffer = vector_get_elm(cigar_vector,cigar_buffer_offset,cigar_element_t);
+  uint64_t i, edit_distance = 0;
+  for (i=0;i<cigar_length;++i) {
+    switch (cigar_buffer[i].type) {
+      case cigar_match: break;
+      case cigar_mismatch:
+        edit_distance++;
+        break;
+      case cigar_del:
+        if ((i==0 || i==cigar_length-1) && cigar_buffer[i].length > matches_max_clip_length) break;
       // No break
       case cigar_ins:
         edit_distance += cigar_buffer[i].length;

@@ -109,7 +109,7 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Mapping strategy
   search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
   // Bisulfite
-  search_parameters->bisulfite_read = bisulfite_read_inferred;
+  search_parameters->bisulfite_read = bisulfite_inferred_C2T_G2A;
 	search_parameters->control_sequences[0] = SEQUENCING_CONTROL;
 	search_parameters->control_sequences[1] = UNDERCONVERSION_CONTROL;
 	search_parameters->control_sequences[2] = OVERCONVERSION_CONTROL;
