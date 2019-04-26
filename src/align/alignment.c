@@ -208,7 +208,8 @@ void alignment_verify_edit_bpm(
       } else {
         const uint64_t tile_end_offset = tile_match_column+1;
         const uint64_t tile_tall = pattern_tile->tile_length;
-        const uint64_t tile_begin_offset = BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
+        const uint64_t tile_begin_offset =
+        	BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
         const uint64_t tile_offset = alignment_tile->text_begin_offset;
         alignment_tile->distance = tile_distance;
         alignment_tile->text_end_offset = tile_offset + tile_end_offset;

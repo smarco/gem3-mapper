@@ -54,7 +54,7 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   gpu_buffers_dto_t* const gpu_buffers_dto = mm_alloc(gpu_buffers_dto_t);
   gpu_buffers_dto->buffer = NULL;
   gpu_buffers_dto->numBuffers = num_buffers;
-  gpu_buffers_dto->maxMbPerBuffer = CONVERT_B_TO_MB(buffer_size);
+  gpu_buffers_dto->maxMbPerBuffer = buffer_size;
   gpu_buffers_dto->activeModules =
       GPU_FMI_ADAPT_SEARCH |
       GPU_FMI_DECODE_POS |
@@ -101,15 +101,14 @@ gpu_buffer_collection_t* gpu_buffer_collection_new(
   buffer_collection->gpu_region_profile_available = gpu_info_dto.activatedModules & GPU_FMI_ADAPT_SEARCH;
   buffer_collection->gpu_decode_sa_available = gpu_info_dto.activatedModules & GPU_FMI_DECODE_POS;
   buffer_collection->gpu_decode_text_available = gpu_info_dto.activatedModules & GPU_SA_DECODE_POS;
-  if (buffer_collection->gpu_decode_sa_available !=
+  /*if (buffer_collection->gpu_decode_sa_available !=
       buffer_collection->gpu_decode_text_available) {
     buffer_collection->gpu_decode_sa_available   = false; // Decode goes all or none
     buffer_collection->gpu_decode_text_available = false; // Decode goes all or none
-  }
+  }*/
   buffer_collection->gpu_kmer_filter_available = gpu_info_dto.activatedModules & GPU_KMER_FILTER;
   buffer_collection->gpu_bpm_distance_available = gpu_info_dto.activatedModules & GPU_BPM_FILTER;
   buffer_collection->gpu_bpm_align_available = gpu_info_dto.activatedModules & GPU_BPM_ALIGN;
-  //buffer_collection->gpu_bpm_align_available = false;
   // Return
   PROFILE_STOP(GP_GPU_BUFFER_COLLECTION_INIT,PROFILE_LEVEL);
   return buffer_collection;

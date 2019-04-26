@@ -101,6 +101,7 @@ gpu_buffer_bpm_distance_t* gpu_buffer_bpm_distance_new(
   COUNTER_RESET(&gpu_buffer_bpm_distance->query_length);
   COUNTER_RESET(&gpu_buffer_bpm_distance->candidates_per_tile);
   gpu_buffer_bpm_distance->query_same_length = 0;
+  gpu_buffer_bpm_distance->query_compose_max_length = 0;
   TIMER_RESET(&gpu_buffer_bpm_distance->timer);
   // Buffer state
   gpu_buffer_bpm_distance->buffer = gpu_buffer_collection_get_buffer(gpu_buffer_collection,buffer_no);
@@ -227,11 +228,17 @@ void gpu_buffer_bpm_distance_add_query_info(
   const uint64_t num_query_entries = gpu_buffer_bpm_distance->num_query_entries;
   // Add Query (Metadata)
   const uint32_t buffer_pattern_query_offset = gpu_buffer_bpm_distance->num_queries;
-  (gpu_buffer_bpm_distance->num_queries) += num_tiles;
+  uint32_t query_id = 0;
+  //Defining internal buffer query and recovering previous id pattern
+  gpu_bpm_filter_qry_info_t* const current_buffer_pattern = gpu_bpm_filter_buffer_get_peq_info_(gpu_buffer_bpm_distance->buffer);
+  if (gpu_buffer_bpm_distance->num_queries > 0){
+    const gpu_bpm_filter_qry_info_t* const prev_pattern_query = current_buffer_pattern + buffer_pattern_query_offset - 1;
+    query_id = prev_pattern_query->idChain + 1;
+  }
+  gpu_buffer_bpm_distance->num_queries += num_tiles;
   gpu_buffer_bpm_distance->current_query_offset = buffer_pattern_query_offset;
   // Add Query Tiles (Metadata)
-  gpu_bpm_filter_qry_info_t* buffer_pattern_query =
-      gpu_bpm_filter_buffer_get_peq_info_(gpu_buffer_bpm_distance->buffer) + buffer_pattern_query_offset;
+  gpu_bpm_filter_qry_info_t* buffer_pattern_query = current_buffer_pattern + buffer_pattern_query_offset;
   uint64_t i, buffer_entries_added = 0;
   for (i=0;i<num_tiles;++i,++buffer_pattern_query) {
     // Compute tile dimensions
@@ -239,7 +246,12 @@ void gpu_buffer_bpm_distance_add_query_info(
     const uint64_t tile_entries = DIV_CEIL(tile_length,GPU_BPM_DISTANCE_ENTRY_LENGTH);
     // Set entry & size
     buffer_pattern_query->posEntry = num_query_entries + buffer_entries_added;
-    buffer_pattern_query->size = tile_length;
+    buffer_pattern_query->tileSize = tile_length;
+    buffer_pattern_query->chainSize = pattern->key_length;
+    buffer_pattern_query->tileMaxError = pattern->pattern_tiled.tiles->max_error;
+    buffer_pattern_query->chainMaxError = pattern->max_effective_filtering_error;
+    buffer_pattern_query->idChain = query_id;
+    buffer_pattern_query->idTile = i;
     buffer_entries_added += tile_entries;
     // Check tile length
     if (gpu_buffer_bpm_distance->query_same_length != UINT32_MAX) {
@@ -252,6 +264,7 @@ void gpu_buffer_bpm_distance_add_query_info(
     // Stats
     gpu_buffer_bpm_distance_record_query_length(gpu_buffer_bpm_distance,tile_length);
   }
+  gpu_buffer_bpm_distance->query_compose_max_length = MAX(pattern->key_length, gpu_buffer_bpm_distance->query_compose_max_length);
 }
 void gpu_buffer_bpm_distance_add_query_entries(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
@@ -272,9 +285,12 @@ void gpu_buffer_bpm_distance_add_pattern(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     pattern_t* const pattern) {
   // Stats
+  const uint64_t num_candidate_tiles = gpu_buffer_bpm_distance->current_candidates_added;
+  const uint64_t num_tiles = pattern->pattern_tiled.num_tiles;
+  const uint64_t num_candidates_per_tile = DIV(num_candidate_tiles, num_tiles);
   if (gpu_buffer_bpm_distance->current_candidates_added != 0) {
     gpu_buffer_bpm_distance_record_candidates_per_tile(
-        gpu_buffer_bpm_distance,gpu_buffer_bpm_distance->current_candidates_added);
+        gpu_buffer_bpm_distance,num_candidates_per_tile);
     gpu_buffer_bpm_distance->current_candidates_added = 0;
   }
   // Add Query (Metadata)
@@ -285,7 +301,7 @@ void gpu_buffer_bpm_distance_add_pattern(
 /*
  * Candidate accessor
  */
-void gpu_buffer_bpm_distance_add_candidate(
+void gpu_buffer_bpm_distance_add_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t tile_offset,
     const uint64_t candidate_text_position,
@@ -297,7 +313,7 @@ void gpu_buffer_bpm_distance_add_candidate(
       (gpu_buffer_bpm_distance->current_query_offset + tile_offset);
   PROF_INC_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_NUM_QUERIES);
   PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CANDIDATES_LENGTH,candidate_length);
-  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CELLS,candidate_length*pattern_query->size);
+  PROF_ADD_COUNTER(GP_GPU_BUFFER_BPM_DISTANCE_CELLS,candidate_length*pattern_query->tileSize);
 #endif
   const uint64_t candidate_offset = gpu_buffer_bpm_distance->num_candidates;
   gpu_bpm_filter_cand_info_t* const candidate =
@@ -308,7 +324,7 @@ void gpu_buffer_bpm_distance_add_candidate(
   ++(gpu_buffer_bpm_distance->num_candidates);
   ++(gpu_buffer_bpm_distance->current_candidates_added);
 }
-void gpu_buffer_bpm_distance_get_candidate(
+void gpu_buffer_bpm_distance_get_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t candidate_offset,
     uint64_t* const candidate_text_position,
@@ -359,6 +375,7 @@ void gpu_buffer_bpm_distance_send(
           gpu_buffer_bpm_distance->num_query_entries,
           gpu_buffer_bpm_distance->num_queries,
           gpu_buffer_bpm_distance->num_candidates,
+          gpu_buffer_bpm_distance->query_compose_max_length,
           (gpu_buffer_bpm_distance->query_same_length==UINT32_MAX) ?
               0 : gpu_buffer_bpm_distance->query_same_length);
     }
@@ -429,12 +446,12 @@ void gpu_buffer_bpm_distance_add_pattern(
 /*
  * Candidate accessor
  */
-void gpu_buffer_bpm_distance_add_candidate(
+void gpu_buffer_bpm_distance_add_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t tile_offset,
     const uint64_t candidate_text_position,
     const uint64_t candidate_length) { GEM_CUDA_NOT_SUPPORTED(); }
-void gpu_buffer_bpm_distance_get_candidate(
+void gpu_buffer_bpm_distance_get_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t candidate_offset,
     uint64_t* const candidate_text_position,

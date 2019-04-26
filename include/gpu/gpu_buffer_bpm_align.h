@@ -37,21 +37,21 @@
  */
 typedef struct {
   /* GPU Buffer */
-  void* buffer;                         // GPU Generic Buffer
+  void* buffer;                                // GPU Generic Buffer
   /* Buffer state */
-  bool bpm_align_enabled;               // Enabled GPU-computing BPM-Distance
-  uint32_t current_query_idx;           // Current query index (Once a pattern is added)
-  uint32_t current_query_buffer_offset; // Current query-buffer offset (Once a pattern is added)
-  uint32_t current_candidates_added;    // Current number of candidates added
+  bool bpm_align_enabled;                      // Enabled GPU-computing BPM-Distance
+  uint32_t current_query_idx;                  // Current query index (Once a pattern is added)
+  uint32_t current_query_buffer_offset;        // Current query-buffer offset (Once a pattern is added)
+  uint32_t current_candidates_added;           // Current number of candidates added
   /* Buffer Queries */
-  uint32_t num_queries;                 // Total queries
-  uint32_t num_query_entries;           // Total query-entries (BPM encoded chunks)
-  uint32_t query_buffer_offset;         // Query-buffer offset (Plain text)
+  uint32_t num_queries;                        // Total queries
+  uint32_t num_query_entries;                  // Total query-entries (BPM encoded chunks)
+  uint32_t query_buffer_offset;                // Query-buffer offset (Plain text)
   /* Buffer Candidates */
-  uint32_t num_candidates;              // Total candidates
-  uint32_t candidate_buffer_offset;     // Candidate-buffer offset (Plain text)
+  uint32_t num_candidates;                     // Total candidates
+  uint32_t candidate_buffer_offset;            // Candidate-buffer offset (Plain text)
   /* Buffer Cigars */
-  uint32_t num_cigar_entries;           // Total cigar-entries
+  uint32_t num_cigar_entries;                  // Total cigar-entries
   /* Stats */
   gem_counter_t query_length;                  // Tracks queries' length
   gem_counter_t candidate_length;              // Tracks candidates' length
@@ -60,6 +60,28 @@ typedef struct {
   uint32_t query_same_length;                  // Tracks same-read-length buffers
   gem_timer_t timer;
 } gpu_buffer_bpm_align_t;
+
+/*
+ *
+ */
+/*
+ * Stats accessors
+ */
+void gpu_buffer_bpm_align_record_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t query_length);
+void gpu_buffer_bpm_align_record_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidates_per_tile);
+void gpu_buffer_bpm_align_record_canonical_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t canonical_candidates_per_tile);
+uint64_t gpu_buffer_bpm_align_get_mean_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
+uint64_t gpu_buffer_bpm_align_get_mean_canonical_candidates_per_tile(
+	gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align);
 
 /*
  * Setup
@@ -99,7 +121,6 @@ void gpu_buffer_bpm_align_compute_dimensions(
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
     pattern_t* const pattern,
     const uint64_t num_candidates,
-    const uint64_t candidates_length,
     uint64_t* const total_queries,
     uint64_t* const total_query_entries,
     uint64_t* const total_query_length,

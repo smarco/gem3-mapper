@@ -59,4 +59,3 @@ $(FOLDER_BUILD)/pattern.o : pattern.c
 # General building rule
 $(FOLDER_BUILD)/%.o : %.c
 	$(CC) $(GEM_FLAGS) $(PATH_INCLUDE) -c $< -o $@
-		

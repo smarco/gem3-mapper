@@ -427,7 +427,7 @@ Copyright (C) 2012 Free Software Foundation, Inc.
 This config.status script is free software; the Free Software Foundation
 gives unlimited permission to copy, distribute and modify it."
 
-ac_pwd='/workspace/gem3-mapper'
+ac_pwd='/scratch/workspace-gem/gem3-mapper'
 srcdir='.'
 test -n "$AWK" || AWK=awk
 # The default lists apply if the user does not specify any file.
@@ -583,13 +583,12 @@ echo 'BEGIN {' >"$ac_tmp/subs1.awk" &&
 cat >>"$ac_tmp/subs1.awk" <<\_ACAWK &&
 S["LTLIBOBJS"]=""
 S["LIBOBJS"]=""
-S["CUDA_INCLUDE_PATH"]="/usr/local/cuda/include"
-S["CUDA_LIB_PATH"]="/usr/local/cuda/lib64"
-S["CUDA_BIN_PATH"]="/usr/local/cuda/bin"
-S["HAVE_CUDA"]="1"
+S["CUDA_INCLUDE_PATH"]=""
+S["CUDA_LIB_PATH"]=""
+S["CUDA_BIN_PATH"]=""
+S["HAVE_CUDA"]="0"
 S["HAVE_GOLD"]="1"
 S["HAVE_LTO"]="1"
-S["HAVE_OPENMP"]="1"
 S["HAVE_BZLIB"]="1"
 S["EGREP"]="/bin/grep -E"
 S["GREP"]="/bin/grep"
@@ -611,8 +610,8 @@ S["ECHO_N"]="-n"
 S["ECHO_C"]=""
 S["DEFS"]="-DPACKAGE_NAME=\\\"GEMMapper\\\" -DPACKAGE_TARNAME=\\\"gemmapper\\\" -DPACKAGE_VERSION=\\\"3.0\\\" -DPACKAGE_STRING=\\\"GEMMapper\\ 3.0\\\" -DPACKAGE_BUGREPORT=\\\"\\\" "\
 "-DPACKAGE_URL=\\\"\\\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H="\
-"1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_BZLIB_H=1 -DHAVE_OMP_H=1 -DHAVE_LIBCUDA=1 -DHAVE_LIBCUDART=1 -DHAVE_CUDA_H=1 -DHAVE"\
-"_CUDA_RUNTIME_H=1"
+"1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_BZLIB_H=1 -DHAVE_LIBCUDA=1 -DHAVE_LIBCUDART=1 -DHAVE_CUDA_H=1 -DHAVE_CUDA_RUNTIME_H"\
+"=1"
 S["mandir"]="${datarootdir}/man"
 S["localedir"]="${datarootdir}/locale"
 S["libdir"]="${exec_prefix}/lib"

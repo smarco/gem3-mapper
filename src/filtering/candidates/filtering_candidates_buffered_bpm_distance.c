@@ -82,7 +82,7 @@ void filtering_candidates_buffered_bpm_distance_add_region(
         filtering_region->text_begin_position + alignment_tile->text_begin_offset;
     const uint64_t candidate_length =
         alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
-    gpu_buffer_bpm_distance_add_candidate(gpu_buffer_bpm_distance,
+    gpu_buffer_bpm_distance_add_candidate_tile(gpu_buffer_bpm_distance,
         tile_pos,candidate_text_position,candidate_length);
   }
   PROF_ADD_COUNTER(GP_ASSW_VERIFY_CANDIDATES_TILES_COPIED,num_tiles);
@@ -172,6 +172,7 @@ void filtering_candidates_buffered_bpm_distance_compute_distance(
 /*
  * BPM-Distance Buffered Retrieve (Candidates Verification)
  */
+
 void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
@@ -182,51 +183,57 @@ void filtering_candidates_buffered_bpm_distance_retrieve_alignment(
     uint64_t* const gpu_buffer_offset) {
   // Parameters
   const uint64_t num_tiles = alignment->num_tiles;
-  alignment_tile_t* const alignment_tiles = alignment->alignment_tiles;
   // Traverse all tiles
-  uint64_t tile_pos;
-  alignment->distance_min_bound = 0;
+  uint64_t tile_pos, distance_min_bound = 0;
   for (tile_pos=0;tile_pos<num_tiles;++tile_pos) {
-    alignment_tile_t* const alignment_tile = alignment_tiles + tile_pos;
+    alignment_tile_t* const alignment_tile = alignment->alignment_tiles + tile_pos;
     pattern_tile_t* const pattern_tile = pattern->pattern_tiled.tiles + tile_pos;
     if (alignment_tile->distance!=ALIGN_DISTANCE_UNKNOWN) {
       if (alignment_tile->distance==ALIGN_DISTANCE_INF) {
-        alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+        distance_min_bound = ALIGN_DISTANCE_INF;
       } else {
-        alignment->distance_min_bound += alignment_tile->distance;
+        distance_min_bound += alignment_tile->distance;
       }
     } else {
       // Retrieve alignment distance/column
       uint32_t tile_distance=0, tile_match_column=0;
       gpu_buffer_bpm_distance_get_distance(gpu_buffer_bpm_distance,
           *gpu_buffer_offset+tile_pos,&tile_distance,&tile_match_column);
+      alignment_tile->distance = tile_distance;
       if (tile_distance > pattern_tile->max_error) { // As CPU version
         alignment_tile->distance = ALIGN_DISTANCE_INF;
-        alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+        distance_min_bound = ALIGN_DISTANCE_INF;
+        break;
+      } else {
+		// Offsets
+		const uint64_t tile_end_offset = tile_match_column+1;
+		const uint64_t tile_tall = pattern_tile->tile_length;
+		const uint64_t tile_begin_offset =
+			BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
+		const uint64_t tile_offset = alignment_tile->text_begin_offset;
+		alignment_tile->distance = tile_distance;
+		alignment_tile->text_end_offset = tile_offset + tile_end_offset;
+		alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
+		// DEBUG
+		#ifdef GPU_CHECK_BPM_DISTANCE
+		  filtering_candidates_buffered_bpm_distance_check_tile_distance(
+		  filtering_candidates,&pattern_tile->bpm_pattern_tile,gpu_buffer_bpm_distance,
+		  *gpu_buffer_offset+tile_pos,tile_distance,tile_match_column);
+		#endif
+	    // Check global distance
+	    distance_min_bound += alignment_tile->distance;
       }
-      // Offsets
-      const uint64_t tile_offset = alignment_tile->text_begin_offset;
-      const uint64_t tile_end_offset = tile_match_column+1;
-      const uint64_t tile_tall = pattern_tile->tile_length;
-      const uint64_t tile_begin_offset =
-          BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
-      alignment_tile->distance = tile_distance;
-      alignment_tile->text_end_offset = tile_offset + tile_end_offset;
-      alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
-      // DEBUG
-      #ifdef GPU_CHECK_BPM_DISTANCE
-      filtering_candidates_buffered_bpm_distance_check_tile_distance(
-          filtering_candidates,&pattern_tile->bpm_pattern_tile,gpu_buffer_bpm_distance,
-          *gpu_buffer_offset+tile_pos,tile_distance,tile_match_column);
-      #endif
-      // Check global distance
-      if (alignment->distance_min_bound != ALIGN_DISTANCE_INF) {
-        alignment->distance_min_bound += alignment_tile->distance;
-      }
+    }
+    // Check global-distance
+    if (distance_min_bound > max_error) {
+      distance_min_bound = ALIGN_DISTANCE_INF;
+      break; // Stop verify
     }
   }
   // Increment offset
   *gpu_buffer_offset += num_tiles;
+  // Setup alignment result
+  alignment->distance_min_bound = distance_min_bound;
   // Check global distance
   if (alignment->distance_min_bound != ALIGN_DISTANCE_INF &&
       alignment->distance_min_bound > max_error) {
@@ -330,7 +337,7 @@ void filtering_candidates_buffered_bpm_distance_check_tile_distance(
   // Get Candidate & Pattern
   uint64_t candidate_text_position;
   uint32_t candidate_length;
-  gpu_buffer_bpm_distance_get_candidate(gpu_buffer_bpm_distance,
+  gpu_buffer_bpm_distance_get_candidate_tile(gpu_buffer_bpm_distance,
       candidate_idx,&candidate_text_position,&candidate_length);
   // Retrieve Candidate Text
   text_trace_t text_trace;
@@ -348,12 +355,13 @@ void filtering_candidates_buffered_bpm_distance_check_tile_distance(
       bpm_pattern_tile,text,candidate_length,&check_tile_distance,
       &check_tile_match_end_column,bpm_pattern_tile->pattern_length,false);
   if (tile_distance!=check_tile_distance || tile_match_column!=check_tile_match_end_column) {
-    if (uncalled_bases_text == 0) {
-      gem_fatal_error_msg("Filtering.Candidates.BPM.Distance.Buffered. Check verify candidate "
-          "(Distance:%d!=%"PRIu64") (MatchPos:%d!=%"PRIu64") (Text.Uncalled.bases=%"PRIu64")",
+    //if (uncalled_bases_text == 0) {
+        //gem_fatal_error_msg
+	     gem_warn_msg("Filtering.Candidates.BPM.Distance.Buffered. Check verify candidate "
+          "(Distance:%d!=%lu) (MatchPos:%d!=%lu) (Text.Uncalled.bases=%lu)",
           tile_distance,check_tile_distance,tile_match_column,
           check_tile_match_end_column,uncalled_bases_text);
-    }
+    //}
   }
   // Pop
   mm_allocator_pop_state(mm_allocator);

@@ -1,6 +1,7 @@
 ###############################################################################
 #  GEM-Mapper v3 (GEM3)
-#  Copyright (c) 2011-2017 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+#  Copyright (c) 2011-2018 by Santiago Marco-Sola  <santiagomsola@gmail.com>
+#  Copyright (c) 2011-2018 by Alejandro Chacon  <alejandro.chacond@gmail.com>
 #
 #  This file is part of GEM-Mapper v3 (GEM3).
 #
@@ -26,6 +27,14 @@
 # System
 ###############################################################################
 PLATFORM=$(shell uname)
+ARCH=$(shell uname -m)
+
+# Knights Landing (KNL) supports AVX512 instructions: AVX-512F (foundation), 
+#                  AVX-512CD (conflict detection), AVX-512ER (exponential and reciprocal) and 
+#                  AVX-512PF (prefetch)
+# Skylake-Server (SKX) supports all AVX512 instructions: we check for avx512vl (since KNL doesn't support it)
+
+CPU_FLAGS=$(shell grep -m 1 flags /proc/cpuinfo) 
 
 # Utilities
 CC=@CC@
@@ -136,15 +145,47 @@ ifeq ($(CC),gcc)
     AR=gcc-ar
     OPT_AR=-fuse-linker-plugin -Wno-ignored-optimization-argument
   endif
-  FLAGS_OPT=-O3 $(OPT_LTO)
+  ifeq ($(ARCH),ppc64le)
+    FLAGS_OPT=-Ofast -mcpu=native -mtune=native $(OPT_LTO)
+  else ifeq ($(ARCH),aarch64)
+    FLAGS_OPT=-Ofast -march=native -mcpu=thunderx2t99 $(OPT_LTO)
+  else ifeq ($(ARCH),x86_64)
+    ifneq (,$(findstring avx512vl, $(CPU_FLAGS)))
+      FLAGS_OPT=-Ofast -march=skylake-avx512 $(OPT_LTO)
+    else ifneq (,$(findstring avx512f, $(CPU_FLAGS)))
+      FLAGS_OPT=-march=knl -O3 -mavx512f -mavx512pf -mavx512er -mavx512cd -mfma -malign-data=cacheline -finline-functions $(OPT_LTO)
+    else
+      FLAGS_OPT=-Ofast -march=native $(OPT_LTO)
+    endif
+  else
+       echo 'unknown arch, run "uname -m" to verify your arch (ppc64le, aarch64, x86_64)'
+       exit -1
+  endif
   FLAGS_LINK=$(OPT_AR)
 endif
 
 ## ICC Compiler
 ifeq ($(CC),icc)
-  FLAGS_OPT=-Ofast -msse4.2 -ipo
+    ifneq (,$(findstring avx512vl, $(CPU_FLAGS)))
+        FLAGS_OPT=-O3 -xCORE-AVX512 -mtune=skylake -ipo
+    else ifneq (,$(findstring avx512f, $(CPU_FLAGS)))
+        FLAGS_OPT=-O3 -xMIC-AVX512 -fma -align -finline-functions -ipo
+    else
+        FLAGS_OPT=-Ofast -march=native -ipo
+    endif
   FLAGS_DEBUG=-g
 endif
+
+## armclang Compiler
+ifeq ($(CC),armclang)
+  ifeq ($(ARCH),aarch64)
+    FLAGS_OPT=-Ofast -march=armv8-a -mcpu=thunderx2t99  $(OPT_LTO)
+  else
+  	echo 'armclang can be used for aarch64 arch, run "uname -m" to verify your arch (aarch64)'
+  	exit -1
+  endif
+endif
+
 
 ###############################################################################
 # Library Flags
@@ -154,7 +195,7 @@ PATH_INCLUDE=-I$(FOLDER_INCLUDE)
 PATH_LIB=-L$(FOLDER_LIB)
 
 # Link Libs
-LIBS=-lpthread -lm
+LIBS=-lpthread -lm $(LIBS_ZLIB) $(LIBS_BZLIB)
 ifeq ($(PLATFORM),Linux)
   LIBS+=-lrt
 endif
@@ -192,10 +233,11 @@ ifeq ($(HAVE_CUDA),1)
 ifeq ($(HAVE_CUTTER),1)
   # Paths
   DEF_CUDA=-DHAVE_CUDA
-  NVCC=/usr/local/cuda/bin/nvcc
+  PATH_CUDA=@CUDA_PATH@
+  NVCC=@CUDA_BIN_PATH@/nvcc
   # CUDA Libs
-  CUDA_PATH_INCLUDE+=-I/usr/local/cuda/include
-  CUDA_PATH_LIB+=-L/usr/local/cuda/lib64
+  CUDA_PATH_INCLUDE+=-I@CUDA_INCLUDE_PATH@
+  CUDA_PATH_LIB+=-L@CUDA_LIB_PATH@ -L@CUDA_LIB_PATH@/stubs
   CUDA_PROFILE_LIB=-lnvToolsExt
   CUDA_LIB=-lcuda -lcudart -lstdc++
 endif

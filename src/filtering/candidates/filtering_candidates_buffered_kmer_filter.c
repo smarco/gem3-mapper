@@ -45,6 +45,14 @@
  */
 #define FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH 250000
 
+#ifdef	GEM_DEBUG
+  #define	FILTERING_CANDIDATES_KMER_FILTER_STAGE_ACTIVE_KEY_LENGTH 1
+#else
+  #define	FILTERING_CANDIDATES_KMER_FILTER_STAGE_ACTIVE_KEY_LENGTH FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH
+#endif
+
+
+
 /*
  * Kmer-Filter Buffered Add
  */
@@ -104,6 +112,34 @@ void filtering_candidates_buffered_kmer_filter_add_filtering_regions(
   // Clear filtering regions (regions buffered)
   filtering_candidates_clear_regions(filtering_candidates,false);
 }
+bool filtering_candidates_buffered_kmer_filter_defer_regions(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    pattern_t* const pattern)
+{
+	// Parameters
+	const pattern_tiled_t* const pattern_tiled = &pattern->pattern_tiled;
+	return(pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_STAGE_ACTIVE_KEY_LENGTH ||
+	       !pattern_tiled->kmer_filter_nway.enabled);
+}
+void filtering_candidates_buffered_kmer_filter_add_deferred_regions(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered,
+    pattern_t* const pattern) {
+  // Parameters
+  const uint64_t num_filtering_regions = filtering_candidates_get_num_regions(filtering_candidates);
+  filtering_region_t** const region_buffered = filtering_candidates_buffered->regions;
+  filtering_region_t** const regions_in = filtering_candidates_get_regions(filtering_candidates);
+  // Add all candidates
+  uint64_t candidate_pos;
+  for (candidate_pos=0;candidate_pos<num_filtering_regions;++candidate_pos) {
+    // Filtering region
+    filtering_region_t* const filtering_region = regions_in[candidate_pos];
+    region_buffered[candidate_pos] = filtering_region;
+  }
+  // Clear filtering regions (regions buffered)
+  filtering_candidates_clear_regions(filtering_candidates,false);
+}
 void filtering_candidates_buffered_kmer_filter_add(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
@@ -118,15 +154,22 @@ void filtering_candidates_buffered_kmer_filter_add(
   }
   // Prepare Buffers
   filtering_candidates_buffered_kmer_filter_prepare_buffers(
-      filtering_candidates,filtering_candidates_buffered,
-      gpu_buffer_kmer_filter,gpu_buffer_kmer_filter_offset);
-  // Add the pattern
-  filtering_candidates_buffered_kmer_filter_add_pattern(
+    filtering_candidates,filtering_candidates_buffered,
+  gpu_buffer_kmer_filter,gpu_buffer_kmer_filter_offset);
+  // Process candidates on this stage or defer candidates to the next
+  if(filtering_candidates_buffered_kmer_filter_defer_regions(
+    filtering_candidates, filtering_candidates_buffered, pattern)){
+	filtering_candidates_buffered_kmer_filter_add_deferred_regions(
+	  filtering_candidates, filtering_candidates_buffered, pattern);
+  }else{
+    // Add the pattern
+    filtering_candidates_buffered_kmer_filter_add_pattern(
       filtering_candidates,pattern,gpu_buffer_kmer_filter);
-  // Add all filtering regions
-  filtering_candidates_buffered_kmer_filter_add_filtering_regions(
-      filtering_candidates,filtering_candidates_buffered,
-      pattern,gpu_buffer_kmer_filter);
+    // Add all filtering regions
+	filtering_candidates_buffered_kmer_filter_add_filtering_regions(
+	  filtering_candidates,filtering_candidates_buffered,
+	  pattern,gpu_buffer_kmer_filter);
+  }
 }
 /*
  * Kmer-Filter Computation (emulation/checker)
@@ -170,17 +213,21 @@ void filtering_candidates_buffered_kmer_filter_retrieve_region(
   alignment_t* const alignment = &filtering_region->alignment;
   pattern_tiled_t* const pattern_tiled = &pattern->pattern_tiled;
   const uint64_t max_error = pattern->max_effective_filtering_error;
-  // Detect exact-matches
-  if (filtering_region->alignment.distance_min_bound == 0) {
+  // Detect trimmed matches
+  if (!pattern_tiled->kmer_filter_nway.enabled){
+	alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
+	vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
+	PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
+	return;
+  }
+  if (filtering_region->key_trimmed || pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH) {
+    alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     return;
-  }
-  // Detect trimmed matches
-  if (filtering_region->key_trimmed ||
-      pattern->key_length < FILTERING_CANDIDATES_KMER_FILTER_MIN_KEY_LENGTH ||
-      !pattern_tiled->kmer_filter_nway.enabled) {
-    alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
+   }
+  // Detect exact-matches
+  if (filtering_region->alignment.distance_min_bound == 0) {
     vector_insert(filtering_candidates->filtering_regions,filtering_region,filtering_region_t*);
     PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
     return;

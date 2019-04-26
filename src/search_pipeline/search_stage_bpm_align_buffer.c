@@ -60,6 +60,20 @@ void search_stage_bpm_align_buffer_delete(
 /*
  * Occupancy
  */
+//TODO: Refactorize and implement proper interfaces
+uint64_t search_stage_bpm_align_buffer_fits_max_candidates(
+         archive_search_t* const archive_search){
+ filtering_candidates_t* const filtering_candidates = archive_search->approximate_search.filtering_candidates;
+ search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+ select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+ const uint64_t id_stats_histo = MIN(archive_search_get_num_bpm_align_canonical_candidates(archive_search), GEM_HIST_CAND_ALIGNED-1);
+ const uint64_t num_samples_realigned = COUNTER_GET_NUM_SAMPLES(&filtering_candidates->candidates_aligned_histo[id_stats_histo]);
+ const uint64_t average_samples_realigned = (uint64_t) ceil(COUNTER_GET_MEAN(&filtering_candidates->candidates_aligned_histo[id_stats_histo]));
+ const uint64_t registered_samples_realigned = (num_samples_realigned==0) ? select_parameters->max_reported_matches : average_samples_realigned;
+ const uint64_t max_buffered_candidates_aligned = MIN(registered_samples_realigned,archive_search_get_num_bpm_align_canonical_candidates(archive_search));
+ return (max_buffered_candidates_aligned);
+}
+
 bool search_stage_bpm_align_buffer_fits(
     search_stage_bpm_align_buffer_t* const bpm_align_buffer,
     archive_search_t* const archive_search_end1,
@@ -76,18 +90,18 @@ bool search_stage_bpm_align_buffer_fits(
   }
   // Calculate the minimum data structures to process the query on the device
   pattern_t* const pattern_end1 = &archive_search_end1->approximate_search.pattern;
+  uint64_t num_canonical_regions = MIN(search_stage_bpm_align_buffer_fits_max_candidates(archive_search_end1), GEM_HIST_CAND_ALIGNED-1);
+	//printf("idThread=%u, HISTO CANDIDATES=%d \n", (uint32_t)pthread_self(), num_canonical_regions);
+	//fflush(stdout);
   gpu_buffer_bpm_align_compute_dimensions(
-      gpu_buffer_bpm_align,pattern_end1,
-      archive_search_get_num_bpm_align_canonical_candidates(archive_search_end1),
-      archive_search_get_num_bpm_align_candidate_tiles_length(archive_search_end1),
+      gpu_buffer_bpm_align,pattern_end1,num_canonical_regions,
       &total_queries,&total_query_entries,&total_query_length,
       &total_candidates);
   if (archive_search_end2!=NULL) {
     pattern_t* const pattern_end2 = &archive_search_end2->approximate_search.pattern;
+    uint64_t num_canonical_regions_end2 = MIN(search_stage_bpm_align_buffer_fits_max_candidates(archive_search_end2), GEM_HIST_CAND_ALIGNED-1);
     gpu_buffer_bpm_align_compute_dimensions(
-        gpu_buffer_bpm_align,pattern_end2,
-        archive_search_get_num_bpm_align_canonical_candidates(archive_search_end2),
-        archive_search_get_num_bpm_align_candidate_tiles_length(archive_search_end2),
+        gpu_buffer_bpm_align,pattern_end2,num_canonical_regions_end2,
         &total_queries,&total_query_entries,&total_query_length,
         &total_candidates);
   }

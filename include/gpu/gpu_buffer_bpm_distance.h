@@ -50,6 +50,7 @@ typedef struct {
   gem_counter_t query_length;         // Tracks queries' length
   gem_counter_t candidates_per_tile;  // Tracks number of candidates per tile
   uint32_t query_same_length;         // Tracks same-read-length buffers
+  uint32_t query_compose_max_length;  // Track aggregated query max tiles length (accumulated tiles size)
   gem_timer_t timer;
 } gpu_buffer_bpm_distance_t;
 
@@ -102,12 +103,12 @@ void gpu_buffer_bpm_distance_add_pattern(
 /*
  * Candidate accessor
  */
-void gpu_buffer_bpm_distance_add_candidate(
+void gpu_buffer_bpm_distance_add_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t tile_offset,
     const uint64_t candidate_text_position,
     const uint64_t candidate_length);
-void gpu_buffer_bpm_distance_get_candidate(
+void gpu_buffer_bpm_distance_get_candidate_tile(
     gpu_buffer_bpm_distance_t* const gpu_buffer_bpm_distance,
     const uint64_t candidate_offset,
     uint64_t* const candidate_text_position,

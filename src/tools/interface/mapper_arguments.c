@@ -958,6 +958,7 @@ bool gem_mapper_parse_arguments_gpu(
     const int option,
     char* optarg) {
   // GPU
+  bool ret_val = false;
   switch (option) {
     case 1100: // --gpu
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
@@ -969,6 +970,7 @@ bool gem_mapper_parse_arguments_gpu(
     case 1101: // --gpu-devices (default=all)
       if (gem_strcaseeq(optarg,"all")) {
         parameters->cuda.gpu_devices = UINT64_MAX;
+        ret_val = true;
       } else {
         char* devices_active[64];
         const int num_devices = input_text_parse_csv_array(optarg,devices_active,64);
@@ -979,10 +981,11 @@ bool gem_mapper_parse_arguments_gpu(
           int64_t device_no;
           if (!input_text_parse_integer((const char ** const)(devices_active + i),&device_no)) {
             parameters->cuda.gpu_devices |= ((uint64_t)1 << device_no);
+            ret_val = true;
           }
         }
       }
-      break;
+      return ret_val;
     case 1102: { // --gpu-buffers-model=2,3,3,3,3,1M
       if (!gpu_supported()) GEM_CUDA_NOT_SUPPORTED();
       char* num_fmi_bsearch_buffers=NULL;

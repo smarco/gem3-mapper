@@ -275,21 +275,32 @@ void filtering_candidates_buffered_bpm_align_set_num_canonical_candidates(
   }
 }
 
+uint64_t filtering_candidates_buffered_bpm_align_get_candidates_max_aligned(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  // Parameters
+  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
+  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
+  const uint64_t num_canonical_regions = filtering_candidates_buffered->num_canonical_regions;
+  //Defining maximum number of realignments on GPU
+  const uint64_t id_stats_histo = MIN(num_canonical_regions, GEM_HIST_CAND_ALIGNED-1);
+  const uint64_t num_samples_realigned = COUNTER_GET_NUM_SAMPLES(&filtering_candidates->candidates_aligned_histo[id_stats_histo]);
+  const uint64_t average_samples_realigned = (uint64_t) ceil(COUNTER_GET_MEAN(&filtering_candidates->candidates_aligned_histo[id_stats_histo]));
+  const uint64_t registered_samples_realigned = (num_samples_realigned==0) ? select_parameters->max_reported_matches : average_samples_realigned;
+  const uint64_t max_buffered_candidates_aligned = MIN(MIN(registered_samples_realigned,GEM_HIST_CAND_ALIGNED-1), num_canonical_regions);
+  return(max_buffered_candidates_aligned);
+}
+
 void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     filtering_candidates_t* const filtering_candidates,
     filtering_candidates_buffered_t* const filtering_candidates_buffered,
     pattern_t* const pattern,
     gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) {
   // Parameters
-  search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
-  select_parameters_t* const select_parameters = &search_parameters->select_parameters;
-  const uint64_t num_canonical_regions = filtering_candidates_buffered->num_canonical_regions;
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
   //Defining maximum number of realignments on GPU
-  const uint64_t id_stats_histo = MIN(num_canonical_regions, GEM_HIST_CAND_ALIGNED-1);
-  const uint64_t num_samples_realigned = COUNTER_GET_NUM_SAMPLES(&filtering_candidates->candidates_aligned_histo[id_stats_histo]);
-  const uint64_t average_samples_realigned = (uint64_t) ceil(COUNTER_GET_MEAN(&filtering_candidates->candidates_aligned_histo[id_stats_histo]));
-  const uint64_t max_buffered_candidates_aligned = (num_samples_realigned==0) ? select_parameters->max_reported_matches : average_samples_realigned;
+  const uint64_t max_buffered_candidates_aligned =
+		  filtering_candidates_buffered_bpm_align_get_candidates_max_aligned(filtering_candidates, filtering_candidates_buffered);
   // Traverse all regions and add those accepted
   uint64_t candidate_pos, candidates_added=0;
   for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
@@ -302,16 +313,34 @@ void filtering_candidates_buffered_bpm_align_add_filtering_regions(
     match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
     if (match_scaffold->scaffold_type==scaffold_levenshtein) continue; // Next
     // Check total number of off-loaded alignments
-    if (candidates_added < max_buffered_candidates_aligned) {
+    if (candidates_added < max_buffered_candidates_aligned && !filtering_region->key_trimmed) {
       // Add filtering-region
       filtering_candidates_buffered_bpm_align_add_region(
           filtering_candidates,filtering_region,
           pattern,gpu_buffer_bpm_align);
+      match_scaffold->scaffold_type = scaffold_region_chain;
       ++candidates_added;
     } else {
       // Avoid GPU scaffolding
       match_scaffold->scaffold_type = scaffold_deferred;
     }
+  }
+}
+void filtering_candidates_buffered_bpm_align_deferring_regions(
+    filtering_candidates_buffered_t* const filtering_candidates_buffered) {
+  const uint64_t num_regions = filtering_candidates_buffered->num_regions;
+  uint64_t candidate_pos;
+  for (candidate_pos=0;candidate_pos<num_regions;++candidate_pos) {
+    // Fetch region
+    filtering_region_t* const filtering_region = filtering_candidates_buffered->regions[candidate_pos];
+    // Filter out exact-matching regions & not-accepted regions
+    if (filtering_region->status != filtering_region_accepted) continue; // Next
+    if (filtering_region->alignment.distance_min_bound==0) continue; // Next
+    // Retrieve Candidate (if needed)
+    match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;
+    if (match_scaffold->scaffold_type==scaffold_levenshtein) continue; // Next
+    // Avoid GPU scaffolding
+    match_scaffold->scaffold_type = scaffold_deferred;
   }
 }
 void filtering_candidates_buffered_bpm_align_add(
@@ -322,6 +351,7 @@ void filtering_candidates_buffered_bpm_align_add(
     uint64_t* const gpu_buffer_align_offset) {
   // Check number of pending filtering-regions
   const uint64_t num_regions = filtering_candidates_buffered->num_regions;
+  const uint64_t max_buffered_candidates_aligned = filtering_candidates_buffered_bpm_align_get_candidates_max_aligned(filtering_candidates, filtering_candidates_buffered);
   search_parameters_t* const search_parameters = filtering_candidates->search_parameters;
   if (num_regions==0 || search_parameters->alignment_force_full_swg) {
     filtering_candidates_buffered->num_regions = 0;
@@ -338,7 +368,11 @@ void filtering_candidates_buffered_bpm_align_add(
   filtering_candidates_buffered_bpm_align_discard_subdominant(
       filtering_candidates,filtering_candidates_buffered,pattern);
   *gpu_buffer_align_offset = gpu_buffer_bpm_align_get_num_candidates(gpu_buffer_bpm_align); // Store buffer offset
-  if (filtering_candidates_buffered->num_canonical_regions != 0) {
+  filtering_candidates_buffered_bpm_align_deferring_regions(filtering_candidates_buffered);
+  if (max_buffered_candidates_aligned != 0) {
+	// Stats
+	gpu_buffer_bpm_align_record_candidates_per_tile(
+	    gpu_buffer_bpm_align,filtering_candidates_buffered->num_canonical_regions);
     // Add the pattern to the buffer (add new queries)
     gpu_buffer_bpm_align_add_pattern(gpu_buffer_bpm_align,pattern);
     // Add all eligible filtering regions
@@ -454,12 +488,12 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
         gpu_buffer_bpm_align,text,*gpu_buffer_offset,
         &match_alignment,matches->cigar_vector);
     // CHECK
-  #ifdef GPU_CHECK_BPM_ALIGN
+   #ifdef GPU_CHECK_BPM_ALIGN
     filtering_candidates_buffered_bpm_align_retrieve_scaffold_check(
         filtering_candidates,filtering_region,
         pattern,pattern_tile,alignment_tile,
         &match_alignment,matches);
-  #endif
+   #endif
     // Store the offset (from the beginning of the text)
     // (accounting for the text-padding offset)
     const uint64_t alignment_offset = match_alignment.match_position - text_trace->position;
@@ -468,12 +502,12 @@ void filtering_candidates_buffered_bpm_align_retrieve_scaffold_tile(
         "Scaffold levenshtein. Negative coordinates because of padding");
     // Offset wrt text (without padding)
     match_alignment.match_text_offset = alignment_offset - text_padded_left;
-//    // DEBUG
-//    match_alignment_print_pretty(stderr,&match_alignment,
-//      pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,
-//      text_trace->text_padded + text_begin + alignment_offset,
-//      alignment_tile->text_end_offset - match_alignment.match_text_offset,
-//      matches->cigar_vector,filtering_candidates->mm_allocator);
+    // DEBUG
+    /*match_alignment_print_pretty(stderr,&match_alignment,
+      pattern->key + key_offset,pattern_tile->bpm_pattern_tile.pattern_length,
+      text_trace->text_padded + text_begin + alignment_offset,
+      alignment_tile->text_end_offset - match_alignment.match_text_offset,
+      matches->cigar_vector,filtering_candidates->mm_allocator);*/
     // Add the alignment to the scaffold
     const uint64_t matching_min_length = search_parameters->alignment_scaffolding_min_matching_length_nominal;
     match_scaffold_t* const match_scaffold = &filtering_region->match_scaffold;

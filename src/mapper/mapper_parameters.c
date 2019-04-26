@@ -74,7 +74,7 @@ void mapper_parameters_set_defaults_cuda(mapper_parameters_cuda_t* const cuda) {
   cuda->output_buffer_size = BUFFER_SIZE_4M;
   cuda->output_num_buffers = 10*num_processors; // Lazy allocation
   /* BPM Buffers */
-  cuda->gpu_buffer_size = BUFFER_SIZE_1M;
+  cuda->gpu_buffer_size = CONVERT_B_TO_MB(BUFFER_SIZE_1M);
   cuda->num_fmi_bsearch_buffers = 2;
   cuda->num_fmi_decode_buffers = 3;
   cuda->num_kmer_filter_buffers = 3;
