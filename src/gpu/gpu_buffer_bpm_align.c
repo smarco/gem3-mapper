@@ -510,6 +510,24 @@ void gpu_buffer_bpm_align_receive(
  */
 #else
 /*
+ * Stats
+ */
+void gpu_buffer_bpm_align_record_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t query_length) { return; }
+void gpu_buffer_bpm_align_record_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t candidates_per_tile) { return; }
+void gpu_buffer_bpm_align_record_canonical_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align,
+    const uint64_t canonical_candidates_per_tile) { return; }
+uint64_t gpu_buffer_bpm_align_get_mean_query_length(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
+uint64_t gpu_buffer_bpm_align_get_mean_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
+uint64_t gpu_buffer_bpm_align_get_mean_canonical_candidates_per_tile(
+    gpu_buffer_bpm_align_t* const gpu_buffer_bpm_align) { return 0; }
+/*
  * Setup
  */
 gpu_buffer_bpm_align_t* gpu_buffer_bpm_align_new(
