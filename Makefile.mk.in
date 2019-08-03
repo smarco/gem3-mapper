@@ -221,16 +221,6 @@ endif
 # CUDA
 ###############################################################################
 ifeq ($(HAVE_CUDA),1)
-  HAVE_CUTTER=$(if $(shell ls -A $(FOLDER_RESOURCES)/gem-cutter 2> /dev/null),1,0)
-else
-  HAVE_CUTTER=0
-endif
-ifeq ($(notdir $(CURDIR)), gem-cutter)
-  HAVE_CUTTER=1
-  HAVE_CUDA=1
-endif
-ifeq ($(HAVE_CUDA),1)
-ifeq ($(HAVE_CUTTER),1)
   # Paths
   DEF_CUDA=-DHAVE_CUDA
   PATH_CUDA=@CUDA_PATH@
@@ -240,7 +230,6 @@ ifeq ($(HAVE_CUTTER),1)
   CUDA_PATH_LIB+=-L@CUDA_LIB_PATH@ -L@CUDA_LIB_PATH@/stubs
   CUDA_PROFILE_LIB=-lnvToolsExt
   CUDA_LIB=-lcuda -lcudart -lstdc++
-endif
 endif
 
 ###############################################################################

@@ -1,3 +1,0 @@
-[submodule "resources/gem-cutter"]
-	path = resources/gem-cutter
-	url = https://github.com/achacond/gem-cutter.git
