@@ -67,7 +67,7 @@ debug: $(SUBDIRS)
 # Subdir rule
 export GEM_FLAGS
 export MODE
-$(SUBDIRS):
+$(SUBDIRS): 
 	$(MAKE) --directory=$@ $(MODE)
 
 .PHONY: $(SUBDIRS)

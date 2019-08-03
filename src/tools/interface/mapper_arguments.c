@@ -160,6 +160,22 @@ void gem_mapper_print_usage(const option_visibility_t visibility_level) {
   options_fprint_menu(stderr,gem_mapper_options,gem_mapper_groups,true,visibility_level);
 }
 /*
+ * Mapper Parameters Presets
+ */
+void gem_mapper_parameters_presets(mapper_parameters_t* const parameters) {
+  // Parameters
+  search_parameters_t* const search = &parameters->search_parameters;
+  // Search mapping exact
+  if (search->mapping_mode == mapping_exact) {
+    search->match_alignment_model = match_alignment_model_hamming;
+    search->complete_search_error = 0;
+    search->alignment_max_error = 0;
+    search->complete_strata_after_best = 0;
+    search->alignment_local = local_alignment_never;
+    search->mapping_mode = mapping_adaptive_filtering_fast; // Presets locked, switch to fast
+  }
+}
+/*
  * Mapper Parameters Checks
  */
 void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
@@ -193,9 +209,6 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
       mapper_cond_error_msg(gem_streq(pindex,poutput),"Index and Output-file must be different");
     }
   }
-  /*
-   * Search Parameters
-   */
   /* Mapping strategy (Mapping mode + properties) */
   if (paired_search->paired_end_search) {
     parameters->mapper_type = mapper_pe;
@@ -362,9 +375,11 @@ bool gem_mapper_parse_arguments_single_end(
   search_parameters_t* const search = &parameters->search_parameters;
   // Single-End
   switch (option) {
-    case 300: // --mapping-mode in {'fast'|'sensitive'|'customed'} (default=fast)
+    case 300: // --mapping-mode in {'exact','fast'|'sensitive'|'customed'} (default=fast)
+      if (gem_strcaseeq(optarg,"exact")) {
+        search->mapping_mode = mapping_exact;
       // Filtering Modes
-      if (gem_strcaseeq(optarg,"fast")) {
+      } else if (gem_strcaseeq(optarg,"fast")) {
         search->mapping_mode = mapping_adaptive_filtering_fast;
       // NS Modes
       } else if (gem_strcaseeq(optarg,"complete-brute-force")) {
@@ -1168,6 +1183,10 @@ void gem_mapper_parse_arguments(
     /* Unrecognized option */
     mapper_error_msg("Option not recognized");
   }
+  /*
+   * Parameters PreSets
+   */
+  gem_mapper_parameters_presets(parameters);
   /*
    * Parameters Check
    */

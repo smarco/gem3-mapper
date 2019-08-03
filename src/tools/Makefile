@@ -79,7 +79,7 @@ debug: $(GEM_TOOLS_BIN)
 
 # GEM-library
 $(LIB_GEM_CORE): $(FOLDER_BUILD)/*.o
-$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
+	$(AR) -rcs $(LIB_GEM_CORE) $(FOLDER_BUILD)/*.o
 	
 # GEM Tools	
 $(FOLDER_BIN)/gem-mapper: $(FOLDER_BUILD)/*.o gem-mapper.c 
