@@ -209,7 +209,7 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
    *       to consume all the free RAM and swap on the system, eventually
    *       triggering the OOM killer (Linux) or causing a SIGSEGV.
    */
-  int flags = MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE;
+  int flags = MAP_PRIVATE | MAP_ANONYMOUS; // MAP_NORESERVE (Seems that MAP_NORESERVE & MAP_HUGETLB gives a problem)
   if (use_huge_pages) flags |= MAP_HUGETLB;
   mem_manager->memory = mmap(0,num_bytes,PROT_READ|PROT_WRITE,flags,-1,0);
   gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_FAIL,num_bytes);
