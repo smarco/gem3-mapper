@@ -1,3 +1,4 @@
 Makefile.mk
 .project
 .cproject
+config.status
