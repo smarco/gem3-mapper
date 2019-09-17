@@ -188,9 +188,9 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
 #ifdef MM_NO_MMAP
-  mem_manager->memory = mm_malloc(num_bytes);
+  mem_manager->memory = mm_malloc_nothrow(num_bytes,1,init_mem,0);
   mem_manager->cursor = mem_manager->memory;
-  mem_manager->mem_type = MM_MMAPPED;
+  mem_manager->mem_type = MM_HEAP;
   mem_manager->mode = MM_READ_WRITE;
   mem_manager->allocated = num_bytes;
   mem_manager->fd = -1;
@@ -276,7 +276,7 @@ void mm_bulk_free(mm_t* const mem_manager) {
 #ifdef MM_NO_MMAP
     mm_free(mem_manager->memory);
 #else
-    gem_cond_fatal_error(munmap(mem_manager->memory,mem_manager->allocated)==-1,SYS_UNMAP);
+    munmap(mem_manager->memory,mem_manager->allocated);
     if (mem_manager->fd!=-1) {
       gem_cond_fatal_error(close(mem_manager->fd),SYS_HANDLE_TMP);
     }

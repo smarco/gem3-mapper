@@ -393,8 +393,8 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
 		 mm_free(mstats);
 	}
   // Clean up
-	MUTEX_DESTROY(mapper_parameters->error_report_mutex);
   mm_free(mapper_search);
+  //MUTEX_DESTROY(mapper_parameters->error_report_mutex);
 }
 void mapper_se_run(mapper_parameters_t* const mapper_parameters) {
   mapper_run(mapper_parameters,false);
