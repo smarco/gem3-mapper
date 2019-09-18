@@ -188,7 +188,7 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   // Allocate handler
   mm_t* const mem_manager = mm_alloc(mm_t);
 #ifdef MM_NO_MMAP
-  mem_manager->memory = mm_malloc_nothrow(num_bytes,1,init_mem,0);
+  mem_manager->memory = mm_malloc_nothrow(num_bytes,1,0,0);
   mem_manager->cursor = mem_manager->memory;
   mem_manager->mem_type = MM_HEAP;
   mem_manager->mode = MM_READ_WRITE;
