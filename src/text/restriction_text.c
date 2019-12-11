@@ -222,9 +222,9 @@ restriction_site_t *restriction_new(char * const rest_char) {
 
 void restriction_create_interaction_junctions(vector_t * const restriction_sites) {
 	const uint64_t num_sites = vector_get_used(restriction_sites);
-  restriction_site_t ** sites = vector_get_mem(restriction_sites, restriction_site_t *);
 	for(uint64_t i = 1; i < num_sites; i++) {
 		for(uint64_t j = 0; j < i; j++) {
+			restriction_site_t **sites = vector_get_mem(restriction_sites, restriction_site_t *);
 			uint64_t len = sites[i]->reference_pattern_len - sites[i]->cut_site_index +
 					sites[j]->reference_pattern_len - sites[j]->cut_site_index;
 			char *const junction = mm_malloc(len);
@@ -240,7 +240,8 @@ void restriction_create_interaction_junctions(vector_t * const restriction_sites
 			for(uint64_t k = sites[j]->cut_site_index; k < sites[j]->reference_pattern_len; k++) junction[l++] = p2[k];
      	restriction_make_search_patterns(rest, junction, len);
      	vector_insert(restriction_sites, rest, restriction_site_t *);
-			// And then junction site[j] : site[i]
+     	sites = vector_get_mem(restriction_sites, restriction_site_t *);
+     	// And then junction site[j] : site[i]
 			rest = mm_calloc(1, restriction_site_t, true);
 			rest->interaction_site = true;
 			rest->search_pattern_len = len;
