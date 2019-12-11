@@ -50,6 +50,8 @@ typedef struct {
   bool bisulfite_output;
   /* GEM compatibility */
   bool print_gem_fields;
+  /* Benchmark mode - use dummy date in SAM header for md5 checks */
+  bool benchmark_mode;
 } output_sam_parameters_t;
 
 /*

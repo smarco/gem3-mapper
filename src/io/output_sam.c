@@ -66,6 +66,8 @@ void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_param
   sam_parameters->bisulfite_output = false;
   /* GEM compatibility */
   sam_parameters->print_gem_fields = false;
+  /* Benchmark mode */
+  sam_parameters->benchmark_mode = false;
 }
 /*
  * SAM Headers
@@ -82,105 +84,110 @@ void output_sam_parameters_set_defaults(output_sam_parameters_t* const sam_param
  *
  */
 void output_sam_print_header(
-    output_file_t* const output_file,
-    archive_t* const archive,
-    output_sam_parameters_t* const sam_parameters,
-    int argc,
-    char** argv,
-    char* const gem_version) {
-  /*
-   * TODO
-   *   Other options like BWA/Bowtie2
-   */
-  // Print all @HD lines (Header line)
-  //   @HD  VN:1.0  SO:unsorted
-  ofprintf(output_file,"@HD\tVN:"OUTPUT_SAM_FORMAT_VERSION"\tSO:unsorted\n");
-  // Print all @SQ lines (Reference sequence dictionary)
-  //   @SQ  SN:chr10 LN:135534747 AS:hg19_ncbi37  SP:human
-  locator_t* locator = archive->locator;
-  const uint64_t num_intervals = locator->num_intervals;
-  const locator_interval_t* const intervals = locator->intervals;
-  uint64_t i = 0;
-  while (i<num_intervals) {
-    const int64_t tag_id = intervals[i].tag_id;
-    const strand_t strand = intervals[i].strand;
-    const bs_strand_t bs_strand = intervals[i].bs_strand;
-    // Skip Reverse or G2A contigs
-    if (strand==Reverse || bs_strand==bs_strand_G2A) {
-      ++i; continue;
-    }
-    // Calculate the length of the sequence (compose by several intervals)
-    while (i+1<num_intervals && intervals[i+1].tag_id==tag_id &&
-        intervals[i+1].strand==strand && intervals[i+1].bs_strand==bs_strand) ++i; // Go to the last
-    const uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
-    const char* const tag = locator_interval_get_tag(locator,intervals+i);
-    uint64_t tag_len = gem_strlen(tag);
-    // Print SQ
-    ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%"PRIu64"\n",tag_len,tag,total_length);
-    // Next
-    ++i;
-  }
-  // Print @RG line (Read group)
-  if (sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
-  // Print all @PG lines (Program)
-  //   @PG  ID:GEM PN:gem-2-sam  VN:3.0.0 CL:gem-mapper -I /home/u/hsapiens_v37 -i /h/uu.fastq -e 0.08
-  ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:%s",gem_version);
-	size_t t_len = 256;
-	char *q = mm_malloc(t_len);
-  for (i=0;i<argc;++i) {
-		 // Escape tabs etc. in command line to avoid confusing SAM parsers
-		 char* p = argv[i];
-		 size_t l = strlen(p) * 2 + 1;
-		 if(l>t_len) {
+		output_file_t* const output_file,
+		archive_t* const archive,
+		output_sam_parameters_t* const sam_parameters,
+		int argc,
+		char** argv,
+		char* const gem_version) {
+	/*
+	 * TODO
+	 *   Other options like BWA/Bowtie2
+	 */
+	// Print all @HD lines (Header line)
+	//   @HD  VN:1.0  SO:unsorted
+	ofprintf(output_file,"@HD\tVN:"OUTPUT_SAM_FORMAT_VERSION"\tSO:unsorted\n");
+	// Print all @SQ lines (Reference sequence dictionary)
+	//   @SQ  SN:chr10 LN:135534747 AS:hg19_ncbi37  SP:human
+	locator_t* locator = archive->locator;
+	const uint64_t num_intervals = locator->num_intervals;
+	const locator_interval_t* const intervals = locator->intervals;
+	uint64_t i = 0;
+	while (i<num_intervals) {
+		const int64_t tag_id = intervals[i].tag_id;
+		const strand_t strand = intervals[i].strand;
+		const bs_strand_t bs_strand = intervals[i].bs_strand;
+		// Skip Reverse or G2A contigs
+		if (strand==Reverse || bs_strand==bs_strand_G2A) {
+			++i; continue;
+		}
+		// Calculate the length of the sequence (compose by several intervals)
+		while (i+1<num_intervals && intervals[i+1].tag_id==tag_id &&
+				intervals[i+1].strand==strand && intervals[i+1].bs_strand==bs_strand) ++i; // Go to the last
+		const uint64_t total_length = intervals[i].sequence_offset+intervals[i].sequence_length;
+		const char* const tag = locator_interval_get_tag(locator,intervals+i);
+		uint64_t tag_len = gem_strlen(tag);
+		// Print SQ
+		ofprintf(output_file,"@SQ\tSN:%"PRIs"\tLN:%"PRIu64"\n",tag_len,tag,total_length);
+		// Next
+		++i;
+	}
+	// Print @RG line (Read group)
+	if (sam_parameters->read_group_header) ofprintf(output_file,"%s\n",sam_parameters->read_group_header);
+	if(sam_parameters->benchmark_mode) {
+		ofprintf(output_file,"@CO\tgemBS benchmark mode\n");
+	} else {
+
+		// Print all @PG lines (Program)
+		//   @PG  ID:GEM PN:gem-2-sam  VN:3.0.0 CL:gem-mapper -I /home/u/hsapiens_v37 -i /h/uu.fastq -e 0.08
+		ofprintf(output_file,"@PG\tID:GEM\tPN:gem-mapper\tVN:%s",gem_version);
+		size_t t_len = 256;
+		char *q = mm_malloc(t_len);
+		for (i=0;i<argc;++i) {
+			// Escape tabs etc. in command line to avoid confusing SAM parsers
+			char* p = argv[i];
+			size_t l = strlen(p) * 2 + 1;
+			if(l>t_len) {
 				t_len = l;
 				q = mm_realloc(q , t_len);
-		 }
-		 char* r = q;
-		 while(*p) {
+			}
+			char* r = q;
+			while(*p) {
 				switch(*p) {
-				 case '\t':
-					 *r++ = '\\';
-					 *r++ = 't';
-					 break;
-				 case '\n':
-					 *r++ = '\\';
-					 *r++ = 'n';
-					 break;
-				 case '\r':
-					 *r++ = '\\';
-					 *r++ = 'r';
-					 break;
-				 default:
-					 *r++ = *p;
-					 break;
+				case '\t':
+					*r++ = '\\';
+					*r++ = 't';
+					break;
+				case '\n':
+					*r++ = '\\';
+					*r++ = 'n';
+					break;
+				case '\r':
+					*r++ = '\\';
+					*r++ = 'r';
+					break;
+				default:
+					*r++ = *p;
+					break;
 				}
 				p++;
-		 }
-		 *r=0;
-		 ofprintf(output_file,"%s%s",(i==0)?"\tCL:":" ",q);
+			}
+			*r=0;
+			ofprintf(output_file,"%s%s",(i==0)?"\tCL:":" ",q);
+		}
+		mm_free(q);
+		ofprintf(output_file,"\n");
+		// Print all @CO lines (Comments)
+		//   @CO  TM:Fri, 30 Nov 2012 14:14:13 CET        WD:/home/user/CMD      HN:cn38   UN:user
+		// @CO Print Current Date
+		time_t current_time=time(0);
+		struct tm local_time;
+		localtime_r(&current_time,&local_time);
+		// @CO Print Current year
+		ofprintf(output_file,"@CO\tTM:%4d/%d/%d %02d:%02d:%02d CET",
+				1900+local_time.tm_year,local_time.tm_mon+1,local_time.tm_mday,
+			  local_time.tm_hour,local_time.tm_min,local_time.tm_sec);
+	  char* cwd = system_get_cwd();
+	  ofprintf(output_file,"\tWD:%s",cwd);
+	  free(cwd);
+	  // @CO Print Host
+	  char* hostname = system_get_hostname();
+	  ofprintf(output_file,"\tHN:%s",hostname);
+	  free(hostname);
+	  // @CO Print User
+	  const char* const user_name = system_get_user_name();
+	  ofprintf(output_file,"\tUN:%s\n",user_name);
   }
-	mm_free(q);
-  ofprintf(output_file,"\n");
-  // Print all @CO lines (Comments)
-  //   @CO  TM:Fri, 30 Nov 2012 14:14:13 CET        WD:/home/user/CMD      HN:cn38   UN:user
-  // @CO Print Current Date
-  time_t current_time=time(0);
-  struct tm local_time;
-  localtime_r(&current_time,&local_time);
-  // @CO Print Current year
-  ofprintf(output_file,"@CO\tTM:%4d/%d/%d %02d:%02d:%02d CET",
-      1900+local_time.tm_year,local_time.tm_mon+1,local_time.tm_mday,
-      local_time.tm_hour,local_time.tm_min,local_time.tm_sec);
-  char* cwd = system_get_cwd();
-  ofprintf(output_file,"\tWD:%s",cwd);
-  free(cwd);
-  // @CO Print Host
-  char* hostname = system_get_hostname();
-  ofprintf(output_file,"\tHN:%s",hostname);
-  free(hostname);
-  // @CO Print User
-  const char* const user_name = system_get_user_name();
-  ofprintf(output_file,"\tUN:%s\n",user_name);
 }
 /*
  * SAM CIGAR

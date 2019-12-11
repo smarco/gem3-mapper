@@ -42,6 +42,7 @@ option_t gem_mapper_options[] = {
   { 204, "output-model", REQUIRED, TYPE_STRING, 2, VISIBILITY_DEVELOPER, "<buffer_size,num_buffers>", "(default=4M,5c)" },
   { 205, "report-file", REQUIRED, TYPE_STRING, 2, VISIBILITY_USER, "<file_name>", "(default=disabled)" },
   { 206, "clipping", OPTIONAL, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'none'|'uncalled'|'masked'|'fixed,<left_clip>,<right_clip>'", "(default=uncalled)" },
+  { 207, "benchmark-mode", NO_ARGUMENT, TYPE_NONE, 2, VISIBILITY_ADVANCED, "", "" },
   { 'q', "quality-format", REQUIRED, TYPE_STRING, 2, VISIBILITY_ADVANCED, "'ignore'|'offset-33'|'offset-64'", "(default=offset-33)" },
   /* Single-end Alignment */
   { 300, "mapping-mode", REQUIRED, TYPE_STRING, 3, VISIBILITY_USER, "'fast'|'sensitive'|'customed'" , "(default=fast)" },
@@ -348,6 +349,9 @@ bool gem_mapper_parse_arguments_io(
         }
       }
       return true;
+    case 207: // benchmark-mode
+    	parameters->io.sam_parameters.benchmark_mode = true;
+    	return true;
     case 'q': // --quality-format
       if (gem_strcaseeq(optarg, "ignore")) {
         search->qualities_format = sequence_qualities_ignore;
