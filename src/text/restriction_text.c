@@ -128,6 +128,7 @@ restriction_site_t *restriction_new(char * const rest_char) {
         if(index == -1) index = i - 1;
         else {
           fprintf(stderr,"Multiple cut sites (%s) passed to restriction_new()\n", rest_char);
+
           break;
         }
       } else {
@@ -138,7 +139,8 @@ restriction_site_t *restriction_new(char * const rest_char) {
     if(c) {
       index = -1;
     } else if(index < 0) {
-      fprintf(stderr,"No cut site found in string '%s' passed to restriction_new()\n", rest_char);    } else {
+      fprintf(stderr,"No cut site found in string '%s' passed to restriction_new()\n", rest_char);
+    } else {
       int sz = string_get_length(&rest->restriction_site);
       if(sz == 0) {
         fprintf(stderr,"No sequence found in string '%s' passed to restriction_new()\n", rest_char);
@@ -419,7 +421,7 @@ void *restriction_site_init_sequence(restriction_site_locator_builder_t* const b
 			uint64_t len = text_len - offset;
 			uint64_t pos = 0;
 			uint32_t * const restriction_idx = sequence_locator->restriction_site_block_index;
-			for(uint64_t blk = 0; blk <= num_blocks; blk++) {
+			for(uint64_t blk = 0; blk < num_blocks; blk++) {
 				for(int i = 0; i < 256 && pos < len; i++, pos++) {
 					D = (D >> 1) | search_pattern[(int)*ctext++];
 					if(!(D & 1)) {
@@ -496,6 +498,7 @@ restriction_site_locator_builder_t * const restriction_text_init_locator(
 	const uint64_t num_restriction_sites = vector_get_used(restriction_sites);
 	if(!num_restriction_sites) return NULL;
 	gem_timer_t elapsed_time;
+	memset(&elapsed_time, 0, sizeof(gem_timer_t));
   TIMER_START(&elapsed_time);
 
   restriction_site_locator_builder_t * const builder = mm_alloc(restriction_site_locator_builder_t) ;

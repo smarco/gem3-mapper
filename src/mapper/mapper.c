@@ -245,9 +245,10 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
         const bool run_length_pattern = archive_search->archive->text->run_length;
         archive_search->approximate_search.bisulfite_conversion = bisulfite_conversion == C2T_conversion ? G2A_conversion : C2T_conversion;
         approximate_search_prepare(&archive_search->approximate_search,run_length_pattern,sequence);
-        if(process_restriction_sites)
+        if(process_restriction_sites){
         	find_restriction_site_matches(&archive_search->approximate_search.pattern,restriction_sites,restriction_hits,bisulfite_conversion);
         	archive_search->approximate_search.region_profile.region_split_hints = restriction_hits;
+        }
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
         gem_timer_t timer;
         TIMER_RESTART(&timer); archive_search_se(archive_search,matches); TIMER_STOP(&timer);
