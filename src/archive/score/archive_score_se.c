@@ -132,7 +132,7 @@ void archive_score_matches_se_default(
   	match_trace_t **traces = vector_get_mem(matches->match_traces, match_trace_t *);
   	for(uint64_t k = 0; k < num_matches; k++) traces[k]->primary = false;
   	const region_profile_t * const region_profile = &archive_search->approximate_search.region_profile;
-		const region_search_t* const region_search = region_profile->filtering_region;
+  	const region_search_t* const region_search = region_profile->filtering_region;
   	for(uint64_t i = 0; i < num_match_blocks; i++) {
   		const match_block_t* const block = vector_get_elm(matches->match_blocks,i,match_block_t);
   		// Count filtered regions contained in block

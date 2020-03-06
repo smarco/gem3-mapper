@@ -87,6 +87,20 @@ void paired_matches_limit_maps(const paired_matches_t* const paired_matches,cons
 void paired_matches_recompute_metrics(
     paired_matches_t* const paired_matches);
 
+pair_layout_t paired_matches_compute_layout(
+    const match_trace_t* const match_trace_end1,
+    const match_trace_t* const match_trace_end2);
+
+pair_orientation_t paired_matches_compute_orientation(
+    const match_trace_t* const match_trace_end1,
+    const match_trace_t* const match_trace_end2);
+
+uint64_t paired_matches_compute_template_length(
+    const match_trace_t* const match_trace_end1,
+    const match_trace_t* const match_trace_end2,
+    const pair_orientation_t pair_orientation,
+    const pair_layout_t pair_layout);
+
 /*
  * Adding Paired-Matches
  */

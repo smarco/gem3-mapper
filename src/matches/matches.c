@@ -202,12 +202,12 @@ void matches_traces_sort_by_genomic_position(
   qsort(match_traces,num_match_traces,sizeof(match_trace_t*),
         (int (*)(const void *,const void *))match_trace_cmp_genomic_position);
 }
-void matches_traces_sort_by_primary_and_genomic_position(
+void matches_traces_sort_by_primary_and_read_position(
     match_trace_t** const match_traces,
     const uint64_t num_match_traces) {
   // Sort local matches (match_trace_t) wrt primality and distance
   qsort(match_traces,num_match_traces,sizeof(match_trace_t*),
-        (int (*)(const void *,const void *))match_trace_cmp_primary_and_genomic_position);
+        (int (*)(const void *,const void *))match_trace_cmp_primary_and_read_position);
 }
 void matches_add_match_trace_insert_sorted(
     matches_t* const matches,

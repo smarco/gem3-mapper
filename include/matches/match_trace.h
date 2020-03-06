@@ -92,7 +92,7 @@ int match_trace_cmp_swg_score(
 int match_trace_cmp_genomic_position(
     const match_trace_t** const _a,
     const match_trace_t** const _b);
-int match_trace_cmp_primary_and_genomic_position(
+int match_trace_cmp_primary_and_read_position(
     const match_trace_t** const _a,
     const match_trace_t** const _b);
 int matche_trace_cigar_cmp(

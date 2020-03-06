@@ -67,11 +67,13 @@ int match_trace_cmp_genomic_position(const match_trace_t** const _a,const match_
   if (a->text_position > b->text_position) return  1;
   return 0;
 }
-int match_trace_cmp_primary_and_genomic_position(const match_trace_t** const _a,const match_trace_t** const _b) {
+int match_trace_cmp_primary_and_read_position(const match_trace_t** const _a,const match_trace_t** const _b) {
   const match_trace_t* const a = *_a;
   const match_trace_t* const b = *_b;
   if(a->primary != b->primary) return a->primary ? -1 : 1;
-  return match_trace_cmp_genomic_position(_a,_b);
+  if(a->match_block_index < b->match_block_index) return -1;
+  if(a->match_block_index > b->match_block_index) return 1;
+  return 0;
 }
 int matche_trace_cigar_cmp(
     vector_t* const cigar_vector_match0,

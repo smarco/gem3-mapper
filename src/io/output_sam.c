@@ -1350,8 +1350,8 @@ void output_sam_single_end_matches(
 		// Traverse all matches (Position-matches)
 	  uint64_t num_match_traces = matches_get_num_match_traces(matches);
 		match_trace_t** const match_traces = matches_get_match_traces(matches);
-		if(split_map_score && archive_search->search_parameters.split_map_sort_pos) {
-			 matches_traces_sort_by_primary_and_genomic_position(match_traces,num_match_traces);
+		if(split_map && archive_search->search_parameters.split_map_sort_pos && num_match_traces > 1) {
+			 matches_traces_sort_by_primary_and_read_position(match_traces,num_match_traces);
 		}
 		uint64_t i;
 		if(!split_map && output_sam_parameters->compact_xa) num_match_traces=1;
@@ -1497,166 +1497,208 @@ void output_sam_paired_end_matches_paired(
     paired_matches_t* const paired_matches,
     const output_sam_parameters_t* const output_sam_parameters) {
   // Parameters
-  const bool supplementary_alignment = false; // TODO
-  const bool not_passing_QC = false; // TODO
-  const bool PCR_duplicate = false; // TODO
-  matches_t* const matches_end1 = paired_matches->matches_end1;
-  matches_t* const matches_end2 = paired_matches->matches_end2;
-  // Traverse all matches (Position-matches)
-  const uint64_t num_paired_matches = paired_matches_get_num_maps(paired_matches);
-  paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
-  uint64_t match_number;
+	const bool not_passing_QC = false; // TODO
+	const bool PCR_duplicate = false; // TODO
+	matches_t* const matches_end1 = paired_matches->matches_end1;
+	matches_t* const matches_end2 = paired_matches->matches_end2;
+	// Traverse all matches (Position-matches)
+	const uint64_t num_paired_matches = paired_matches_get_num_maps(paired_matches);
+	paired_map_t** const paired_maps = paired_matches_get_maps(paired_matches);
+	uint64_t match_number;
 	const bool split_map = archive_search_end1->search_parameters.split_map;
 	const bool split_map_score = archive_search_end1->search_parameters.split_map_score;
+	const bool sort_pos = archive_search_end1->search_parameters.split_map_sort_pos;
 	const bool ccc = archive_search_end1->search_parameters.ccc;
 	const uint64_t max_reported_matches = archive_search_end1->search_parameters.select_parameters.max_reported_matches;
 	for (match_number=0;match_number<num_paired_matches;++match_number) {
+		const bool secondary_alignment = match_number > 0;
+		const uint64_t num_match_traces_end1 = matches_get_num_match_traces(matches_end1);
+		match_trace_t** const match_traces_end1 = matches_get_match_traces(matches_end1);
+		const uint64_t num_match_traces_end2 = matches_get_num_match_traces(matches_end2);
+		match_trace_t** const match_traces_end2 = matches_get_match_traces(matches_end2);
+		paired_map_t* const paired_map = paired_maps[match_number];
+		uint64_t primary_end1 = 0, primary_end2 = 0;
+		match_trace_t *match_end1, *match_end2;
+		if(sort_pos) {
+			primary_end1 = 0;
+			for(uint64_t i = 1; i < num_match_traces_end1; i++) {
+				if(match_trace_cmp_primary_and_read_position((const match_trace_t ** const)(match_traces_end1 + primary_end1), (const match_trace_t ** const)(match_traces_end1 + i)) > 0)
+					primary_end1 = i;
+			}
+			match_end1 = match_traces_end1[primary_end1];
+			primary_end2 = 0;
+			for(uint64_t i = 1; i < num_match_traces_end2; i++) {
+				if(match_trace_cmp_primary_and_read_position((const match_trace_t ** const)(match_traces_end2 + primary_end2), (const match_trace_t ** const)(match_traces_end2 + i)) > 0)
+					primary_end2 = i;
+			}
+			match_end2 = match_traces_end2[primary_end2];
+		} else {
+			match_end1 = paired_map->match_trace_end1;
+			match_end2 = paired_map->match_trace_end2;
+			for(uint64_t i = 0; i < num_match_traces_end1; i++) if(match_end1 == match_traces_end1[i]) {
+				primary_end1 = i;
+				break;
+			}
+			for(uint64_t i = 0; i < num_match_traces_end2; i++) if(match_end2 == match_traces_end2[i]) {
+				primary_end2 = i;
+				break;
+			}
+		}
+		match_trace_t * mat_end2 = paired_map->match_trace_end2;
 
-    const bool secondary_alignment = (match_number>0);
-    paired_map_t* const paired_map = paired_maps[match_number];
-    match_trace_t* const match_end1 = paired_map->match_trace_end1;
-    match_trace_t* const match_end2 = paired_map->match_trace_end2;
+		/*
+		 * End/1
+		 */
 
-    /*
-     * End/1
-     */
-    // Print Core Fields
-    uint8_t mapq_score = ccc && match_end1->mapq_score > paired_map->mapq_score ? match_end1->mapq_score : paired_map->mapq_score;
-    output_sam_print_core_fields_pe(
-        buffered_output_file,archive_search_end1->sequence,
-        matches_end1,match_end1,match_end2,mapq_score,
-        paired_map->template_length,true,true,secondary_alignment,
-        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-    // Print Optional Fields
-    output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end1,paired_matches,
-        paired_end1,match_end1,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
-  	uint64_t matches_block_idx = match_end1->match_block_index;
-  	if (!secondary_alignment) {
-  		if(!string_is_null(&archive_search_end1->sequence->read)) {
-  			uint64_t seq_length = string_get_length(&archive_search_end1->sequence->read);
-  			output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end1, match_end1->strand == Reverse, seq_length);
-  		}
-  		if(match_end1->first_restriction_site > 0) {
-  			output_sam_print_opt_field_tag_XR(buffered_output_file, match_end1);
-  		}
-  		if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,paired_matches->matches_end1,output_sam_parameters,matches_block_idx);
-  		// GEM compatibility
-  		if (output_sam_parameters->print_gem_fields) {
-  			output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
-  			output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end1);
-      } else if (output_sam_parameters->compact_xa) {
-        output_sam_print_opt_field_tag_XA_pe_end1(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
-      }
-   }
-    // EOL
-    buffered_output_file_reserve(buffered_output_file,1);
-    bofprintf_char(buffered_output_file,'\n');
-    // Supplementary alignments
-    if(split_map && match_number == 0) {
-    	const uint64_t num_match_traces = matches_get_num_match_traces(matches_end1);
-    	match_trace_t** const match_traces_end1 = matches_get_match_traces(matches_end1);
-    	if(split_map_score && archive_search_end1->search_parameters.split_map_sort_pos) {
-    		matches_traces_sort_by_primary_and_genomic_position(match_traces_end1,num_match_traces);
-    	}
-    	for(uint64_t i = 0; i < num_match_traces; i++) {
-    		if(match_traces_end1[i]->primary && match_traces_end1[i]->match_block_index != matches_block_idx) {
-    	    // Print Core Fields
-    	    output_sam_print_core_fields_pe(
-    	        buffered_output_file,archive_search_end1->sequence,
-    	        matches_end1,match_traces_end1[i],match_end2,match_traces_end1[i]->mapq_score,
-    	        0,true,false,false,
-    	        true,not_passing_QC,PCR_duplicate,output_sam_parameters);
-    	    // Print Optional Fields
-    	  	output_sam_print_optional_fields_se(buffered_output_file,archive_search_end1,
-    	  						matches_end1,match_traces_end1[i],i,false,output_sam_parameters);
+		// Print Core Fields
+		uint8_t mapq_score = ccc && match_end1->mapq_score > paired_map->mapq_score ? match_end1->mapq_score : paired_map->mapq_score;
+		bool paired = (match_end1 == paired_map->match_trace_end1);
+		uint64_t template_length = paired ? paired_matches_compute_template_length(match_end1,mat_end2,
+				paired_matches_compute_orientation(match_end1, mat_end2),
+				paired_matches_compute_layout(match_end1, mat_end2)) : 0;
+		output_sam_print_core_fields_pe(
+				buffered_output_file,archive_search_end1->sequence,
+				matches_end1,match_end1,mat_end2,mapq_score,
+				template_length,true,paired,secondary_alignment,
+				match_end1 != match_traces_end1[primary_end1],not_passing_QC,PCR_duplicate,output_sam_parameters);
+		// Print Optional Fields
+		output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end1,paired_matches,
+				paired_end1,match_end1,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
+		uint64_t matches_block_idx = match_end1->match_block_index;
+		if (!secondary_alignment) {
+			if(!string_is_null(&archive_search_end1->sequence->read)) {
+				uint64_t seq_length = string_get_length(&archive_search_end1->sequence->read);
+				output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end1, match_end1->strand == Reverse, seq_length);
+			}
+			if(match_end1->first_restriction_site > 0) {
+				output_sam_print_opt_field_tag_XR(buffered_output_file, match_end1);
+			}
+			if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,paired_matches->matches_end1,output_sam_parameters,matches_block_idx);
+			// GEM compatibility
+			if (output_sam_parameters->print_gem_fields) {
+				output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
+				output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end1);
+			} else if (output_sam_parameters->compact_xa) {
+				output_sam_print_opt_field_tag_XA_pe_end1(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
+			}
+		}
+		// EOL
+		buffered_output_file_reserve(buffered_output_file,1);
+		bofprintf_char(buffered_output_file,'\n');
+		// Supplementary alignments
+		if(split_map) {
+			for(uint64_t i = 0; i < num_match_traces_end1; i++) {
+				if(match_traces_end1[i]->primary && match_traces_end1[i]->match_block_index != matches_block_idx) {
+					// Print Core Fields
+					match_trace_t * const mat_end1 = match_traces_end1[i];
+					paired = mat_end1 == paired_map->match_trace_end1;
+					uint64_t template_length = paired ? paired_matches_compute_template_length(mat_end1, mat_end2,
+							paired_matches_compute_orientation(mat_end1, mat_end2),
+							paired_matches_compute_layout(mat_end1, mat_end2)) : 0;
+					output_sam_print_core_fields_pe(
+							buffered_output_file,archive_search_end1->sequence,
+							matches_end1,mat_end1,mat_end2,mat_end1->mapq_score,
+							template_length,true,paired,false,
+							primary_end1 != i,not_passing_QC,PCR_duplicate,output_sam_parameters);
+					// Print Optional Fields
+					output_sam_print_optional_fields_se(buffered_output_file,archive_search_end1,
+							matches_end1,match_traces_end1[i],i,false,output_sam_parameters);
 
-    	  	const uint64_t block_idx = match_traces_end1[i]->match_block_index;
-      		if(!string_is_null(&archive_search_end1->sequence->read)) {
-      			uint64_t seq_length = string_get_length(&archive_search_end1->sequence->read);
-      			output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end1, match_traces_end1[i]->strand == Reverse, seq_length);
-      		}
-		      if(match_traces_end1[i]->first_restriction_site > 0) {
-		      	output_sam_print_opt_field_tag_XR(buffered_output_file, match_traces_end1[i]);
-		      }
-    	    if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,matches_end1,output_sam_parameters,block_idx);
-    	    // GEM compatibility
+					const uint64_t block_idx = match_traces_end1[i]->match_block_index;
+					if(!string_is_null(&archive_search_end1->sequence->read)) {
+						uint64_t seq_length = string_get_length(&archive_search_end1->sequence->read);
+						output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end1, match_traces_end1[i]->strand == Reverse, seq_length);
+					}
+					if(match_traces_end1[i]->first_restriction_site > 0) {
+						output_sam_print_opt_field_tag_XR(buffered_output_file, match_traces_end1[i]);
+					}
+					if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,matches_end1,output_sam_parameters,block_idx);
+					// GEM compatibility
 					if (output_sam_parameters->print_gem_fields) {
 						output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end1);
 						output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end1);
 					} else if (output_sam_parameters->compact_xa) {
 						output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches_end1,output_sam_parameters,split_map_score,block_idx,max_reported_matches); // Print XA
 					}
-			    // EOL
-			    buffered_output_file_reserve(buffered_output_file,1);
-			    bofprintf_char(buffered_output_file,'\n');
-    		}
-    	}
-    }
-    /*
-     * End/2
-     */
-    // Print Core Fields
-    mapq_score = ccc && match_end2->mapq_score > paired_map->mapq_score ? match_end2->mapq_score : paired_map->mapq_score;
-    output_sam_print_core_fields_pe(
-        buffered_output_file,archive_search_end2->sequence,
-        matches_end2,match_end2,match_end1,mapq_score,
-        paired_map->template_length,false,true,secondary_alignment,
-        supplementary_alignment,not_passing_QC,PCR_duplicate,output_sam_parameters);
-    // Print Optional Fields
-    output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end2,paired_matches,
-        paired_end2,match_end2,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
-    matches_block_idx = match_end2->match_block_index;
+					// EOL
+					buffered_output_file_reserve(buffered_output_file,1);
+					bofprintf_char(buffered_output_file,'\n');
+				}
+			}
+		}
+		/*
+		 * End/2
+		 */
+
+		match_trace_t * mat_end1 = paired_map->match_trace_end1;
+
+		// Print Core Fields
+		mapq_score = ccc && match_end2->mapq_score > paired_map->mapq_score ? match_end2->mapq_score : paired_map->mapq_score;
+		paired = (match_end2 == paired_map->match_trace_end2);
+		template_length = paired ? paired_matches_compute_template_length(mat_end1,match_end2,
+				paired_matches_compute_orientation(mat_end1, match_end2),
+				paired_matches_compute_layout(mat_end1, match_end2)) : 0;
+		output_sam_print_core_fields_pe(
+				buffered_output_file,archive_search_end2->sequence,
+				matches_end2,match_end2,mat_end1,mapq_score,
+				template_length,false,paired,secondary_alignment,
+				match_end2 != match_traces_end2[primary_end2],not_passing_QC,PCR_duplicate,output_sam_parameters);
+		// Print Optional Fields
+		output_sam_print_optional_fields_pe(buffered_output_file,archive_search_end2,paired_matches,
+				paired_end2,match_end2,match_number,!output_sam_parameters->compact_xa,output_sam_parameters);
+		matches_block_idx = match_end2->match_block_index;
 
 		if(!string_is_null(&archive_search_end1->sequence->read)) {
 			uint64_t seq_length = string_get_length(&archive_search_end2->sequence->read);
 			output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end2, match_end2->strand == Reverse, seq_length);
 		}
-    // GEM compatibility
-    if (!secondary_alignment) {
-      if(match_end2->first_restriction_site > 0) {
-      	output_sam_print_opt_field_tag_XR(buffered_output_file, match_end2);
-      }
-    	if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,paired_matches->matches_end2,output_sam_parameters,matches_block_idx);
-    	if (output_sam_parameters->print_gem_fields) {
-    		output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
-    		output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end2);
-    	} else if (output_sam_parameters->compact_xa) {
-    		output_sam_print_opt_field_tag_XA_pe_end2(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
-    	}
+		// GEM compatibility
+		if (!secondary_alignment) {
+			if(match_end2->first_restriction_site > 0) {
+				output_sam_print_opt_field_tag_XR(buffered_output_file, match_end2);
+			}
+			if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,paired_matches->matches_end2,output_sam_parameters,matches_block_idx);
+			if (output_sam_parameters->print_gem_fields) {
+				output_sam_print_opt_field_tag_X4_pe(buffered_output_file,paired_matches);
+				output_sam_print_opt_field_tag_X5_pe(buffered_output_file,paired_matches,paired_end2);
+			} else if (output_sam_parameters->compact_xa) {
+				output_sam_print_opt_field_tag_XA_pe_end2(buffered_output_file,paired_matches,output_sam_parameters); // Print XA
+			}
 
-    }
-    // EOL
-    buffered_output_file_reserve(buffered_output_file,1);
-    bofprintf_char(buffered_output_file,'\n');
-    // Supplementary alignments
-    if(split_map && match_number==0) {
-    	const uint64_t num_match_traces = matches_get_num_match_traces(matches_end2);
-    	match_trace_t** const match_traces_end2 = matches_get_match_traces(matches_end2);
-    	if(split_map_score && archive_search_end2->search_parameters.split_map_sort_pos) {
-    		matches_traces_sort_by_primary_and_genomic_position(match_traces_end2,num_match_traces);
-    	}
-    	for(uint64_t i = 0; i < num_match_traces; i++) {
-    		if(match_traces_end2[i]->primary && match_traces_end2[i]->match_block_index != matches_block_idx) {
-    	    // Print Core Fields
-    	    output_sam_print_core_fields_pe(
-    	        buffered_output_file,archive_search_end2->sequence,
-    	        matches_end2,match_traces_end2[i],match_end1,match_traces_end2[i]->mapq_score,
-    	        0,false,false,false,
-    	        true,not_passing_QC,PCR_duplicate,output_sam_parameters);
-    	    // Print Optional Fields
-    	  	output_sam_print_optional_fields_se(buffered_output_file,archive_search_end2,
-    	  						matches_end2,match_traces_end2[i],i,false,output_sam_parameters);
+		}
+		// EOL
+		buffered_output_file_reserve(buffered_output_file,1);
+		bofprintf_char(buffered_output_file,'\n');
+		// Supplementary alignments
+		if(split_map) {
+			match_trace_t * const mat_end1 = paired_map->match_trace_end1;
+			for(uint64_t i = 0; i < num_match_traces_end2; i++) {
+				if(match_traces_end2[i]->primary && match_traces_end2[i]->match_block_index != matches_block_idx) {
+					match_trace_t * const mat_end2 = match_traces_end2[i];
 
-    	  	const uint64_t block_idx = match_traces_end2[i]->match_block_index;
-    			if(!string_is_null(&archive_search_end1->sequence->read)) {
-    				uint64_t seq_length = string_get_length(&archive_search_end2->sequence->read);
-    				output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end2, match_traces_end2[i]->strand == Reverse, seq_length);
-    			}
-		      if(match_traces_end2[i]->first_restriction_site > 0) {
-		      	output_sam_print_opt_field_tag_XR(buffered_output_file, match_traces_end2[i]);
-		      }
-    	    if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,matches_end2,output_sam_parameters,block_idx);
-    	    // GEM compatibility
+					paired = mat_end2 == paired_map->match_trace_end2;
+					template_length = paired ? paired_matches_compute_template_length(mat_end1, mat_end2,
+							paired_matches_compute_orientation(mat_end1, mat_end2),
+							paired_matches_compute_layout(mat_end1, mat_end2)) : 0;					// Print Core Fields
+					output_sam_print_core_fields_pe(
+							buffered_output_file,archive_search_end2->sequence,
+							matches_end2,mat_end2,mat_end1,mat_end2->mapq_score,
+							template_length,false,paired,false,
+							primary_end2 != i,not_passing_QC,PCR_duplicate,output_sam_parameters);
+					// Print Optional Fields
+					output_sam_print_optional_fields_se(buffered_output_file,archive_search_end2,
+							matches_end2,match_traces_end2[i],i,false,output_sam_parameters);
+
+					const uint64_t block_idx = match_traces_end2[i]->match_block_index;
+					if(!string_is_null(&archive_search_end1->sequence->read)) {
+						uint64_t seq_length = string_get_length(&archive_search_end2->sequence->read);
+						output_sam_print_opt_field_tag_YR(buffered_output_file, paired_matches->matches_end2, match_traces_end2[i]->strand == Reverse, seq_length);
+					}
+					if(match_traces_end2[i]->first_restriction_site > 0) {
+						output_sam_print_opt_field_tag_XR(buffered_output_file, match_traces_end2[i]);
+					}
+					if(split_map) output_sam_print_opt_field_tag_SA(buffered_output_file,matches_end2,output_sam_parameters,block_idx);
+					// GEM compatibility
 					if (output_sam_parameters->print_gem_fields) {
 						output_sam_print_opt_field_tag_X4(buffered_output_file,matches_end2);
 						output_sam_print_opt_field_tag_X5(buffered_output_file,matches_end2);
@@ -1664,14 +1706,14 @@ void output_sam_paired_end_matches_paired(
 						output_sam_print_opt_field_tag_XA_se(buffered_output_file,matches_end2,output_sam_parameters,split_map_score,block_idx, max_reported_matches); // Print XA
 					}
 
-			    // EOL
-			    buffered_output_file_reserve(buffered_output_file,1);
-			    bofprintf_char(buffered_output_file,'\n');
-    		}
-    	}
-    }
-  	if(output_sam_parameters->compact_xa) break;
-  }
+					// EOL
+					buffered_output_file_reserve(buffered_output_file,1);
+					bofprintf_char(buffered_output_file,'\n');
+				}
+			}
+		}
+		if(output_sam_parameters->compact_xa) break;
+	}
 }
 void output_sam_paired_end_matches(
     buffered_output_file_t* const buffered_output_file,
@@ -1686,6 +1728,12 @@ void output_sam_paired_end_matches(
     matches_t* const matches_end2 = paired_matches->matches_end2;
     const uint64_t num_matches_end1 = matches_get_num_match_traces(matches_end1);
     const uint64_t num_matches_end2 = matches_get_num_match_traces(matches_end2);
+	const bool split_map = archive_search_end1->search_parameters.split_map;
+	const bool sort_pos = archive_search_end1->search_parameters.split_map_sort_pos;
+	if(split_map && sort_pos) {
+		if(num_matches_end1 > 1) matches_traces_sort_by_primary_and_read_position(matches_get_match_traces(matches_end1), num_matches_end1);
+		if(num_matches_end2 > 1) matches_traces_sort_by_primary_and_read_position(matches_get_match_traces(matches_end2), num_matches_end2);
+	}
     match_trace_t* const primary_match_end1 = num_matches_end1 ? matches_get_primary_match(matches_end1) : NULL;
     match_trace_t* const primary_match_end2 = num_matches_end2 ? matches_get_primary_match(matches_end2) : NULL;
     // End1

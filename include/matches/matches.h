@@ -131,7 +131,7 @@ match_trace_t** matches_get_match_traces(const matches_t* const matches);
 void matches_traces_sort_by_genomic_position(
     match_trace_t** const match_traces,
     const uint64_t num_match_traces);
-void matches_traces_sort_by_primary_and_genomic_position(
+void matches_traces_sort_by_primary_and_read_position(
     match_trace_t** const match_traces,
     const uint64_t num_match_traces);
 
