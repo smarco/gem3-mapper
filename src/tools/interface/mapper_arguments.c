@@ -92,7 +92,7 @@ option_t gem_mapper_options[] = {
   /* Output Format */
   { 'F',  "output-format", REQUIRED, TYPE_STRING, 9, VISIBILITY_USER, "'MAP'|'SAM'" , "(default=SAM)" },
   { 900, "sam-compact", OPTIONAL, TYPE_STRING, 9, VISIBILITY_USER, "'true'|'false'" , "(default=true)" },
-  { 'r',  "sam-read-group-header", REQUIRED, TYPE_STRING, 9, VISIBILITY_USER, "<read_group_header> (i.e. '@RG\\tID:xx\\tSM:yy')" , "(default=NULL)" },
+  { 'r', "sam-read-group-header", REQUIRED, TYPE_STRING, 9, VISIBILITY_USER, "<read_group_header> (i.e. '@RG\\tID:xx\\tSM:yy')" , "(default=NULL)" },
   { 901, "sam-gem-compatible", OPTIONAL, TYPE_STRING, 9, VISIBILITY_DEVELOPER, "'true'|'false'" , "(default=false)" },
   { 902, "map-format", REQUIRED, TYPE_INT, 9, VISIBILITY_DEVELOPER, "'1'|'2'|'3'" , "(default=2)" },
   /* System */

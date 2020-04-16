@@ -3,3 +3,4 @@ Makefile.mk
 .cproject
 .settings/
 config.status
+config.log
