@@ -34,7 +34,7 @@
 /*
  * Global
  */
-sa_builder_t* global_sa_builder;
+extern sa_builder_t* global_sa_builder;
 
 /*
  * Store all suffixes

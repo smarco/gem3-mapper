@@ -160,7 +160,7 @@ int input_fasta_parse_sequence_tag(
       break;
   }
   // Delimit the tag length
-  uint64_t i = 0;
+  uint64_t i = 1;
   while (i < line_length && line[i]!=TAB && line[i]!=SPACE) ++i; // Read SPACE or TAB
   string_set_buffer(&sequence->tag,line+1,i-1);
   // Chomp sequence-end information
