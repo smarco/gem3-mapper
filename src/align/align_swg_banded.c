@@ -270,9 +270,9 @@ void align_swg_banded_extend(
       band_low_offset,band_high_offset,
       single_gap,gap_extension,mm_allocator);
   // Compute DP-matrix
-  int32_t max_score, max_local_score;
-  uint64_t column, max_local_score_row;
-  uint64_t max_score_column, max_score_row;
+  int32_t max_score = 0, max_local_score = 0;
+  uint64_t max_score_column = 0, max_score_row = 0;
+  uint64_t column, max_local_score_row = 0;
   if (!local_extension) {
     max_score = gap_open + key_length*gap_extension; // Init as full deletion
     max_score_column = 0;

@@ -34,7 +34,7 @@
 /*
  * Global
  */
-sa_builder_t* global_sa_builder;
+sa_builder_t* global_sa_store;
 
 /*
  * Store all suffixes
@@ -164,8 +164,8 @@ void sa_builder_store_sa_pos(
   fm_write_uint64(group->sa_positions_file,sa_pos | SA_COMPACTED_TEXT_MASK_PIGGYBACKING(kmer_idx));
 }
 void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
-  const uint64_t text_length = dna_text_get_length(global_sa_builder->enc_text);
-  const uint8_t* const enc_text = dna_text_get_text(global_sa_builder->enc_text);
+  const uint64_t text_length = dna_text_get_length(global_sa_store->enc_text);
+  const uint8_t* const enc_text = dna_text_get_text(global_sa_store->enc_text);
   uint64_t i, kmer_idx=0, sa_pos=0, tp = 0;
   // Fill k-mer index
   kmer_idx = enc_text[text_length-2];
@@ -174,9 +174,9 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
     kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | enc_text[i];
   }
   // Count suffixes of all text
-  const uint64_t extended_text_length = dna_text_get_length(global_sa_builder->enc_text)+SA_BWT_CYCLIC_LENGTH;
-  const uint64_t* const kmer_count = global_sa_builder->kmer_count;
-  sa_group_t* const sa_groups = global_sa_builder->sa_groups;
+  const uint64_t extended_text_length = dna_text_get_length(global_sa_store->enc_text)+SA_BWT_CYCLIC_LENGTH;
+  const uint64_t* const kmer_count = global_sa_store->kmer_count;
+  sa_group_t* const sa_groups = global_sa_store->sa_groups;
   for (sa_pos=0;i<extended_text_length;++i,++sa_pos,++tp) {
     kmer_idx = (kmer_idx<<DNA_EXT_RANGE_BITS) | enc_text[i];
     sa_group_t* const group = sa_groups + kmer_count[SA_BUILDER_KMER_MASK_INDEX(kmer_idx)];
@@ -185,7 +185,7 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
     }
     // Ticker update
     if (thread_id==0 && tp==SA_BUILDER_STORE_SUFFIXES_TICKER_STEP) {
-      ticker_update(&global_sa_builder->ticker,tp); tp = 0;
+      ticker_update(&global_sa_store->ticker,tp); tp = 0;
     }
   }
   // Return
@@ -194,7 +194,7 @@ void* sa_builder_store_suffixes_thread(const uint8_t thread_id) {
 void sa_builder_store_suffixes(
     sa_builder_t* const sa_builder,
     const bool verbose) {
-  global_sa_builder = sa_builder; // Set global data
+  global_sa_store = sa_builder; // Set global data
   // Launch Writing Threads
   const uint64_t ticker_max = dna_text_get_length(sa_builder->enc_text)+SA_BWT_CYCLIC_LENGTH;
   ticker_percentage_reset(&sa_builder->ticker,

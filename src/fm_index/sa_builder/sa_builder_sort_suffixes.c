@@ -29,7 +29,7 @@
 /*
  * Global
  */
-sa_builder_t* global_sa_builder;
+sa_builder_t* global_sa_sort;
 uint64_t global_enc_text_length;
 const uint8_t* global_enc_text;
 uint8_t* global_enc_bwt;
@@ -295,13 +295,13 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
   const bool sa_sampling_enabled = (sa_sampling_rate_pow2 != SAMPLING_RATE_NONE);
   const bool text_sampling_enabled = (text_sampling_rate_pow2 != SAMPLING_RATE_NONE);
   // Retrieve SA chunks
-  fm_t* const sa_file_reader = global_sa_builder->sa_file_reader[thread_id];
-  vector_t* const buffer = vector_new(global_sa_builder->block_size/8,uint64_t);
+  fm_t* const sa_file_reader = global_sa_sort->sa_file_reader[thread_id];
+  vector_t* const buffer = vector_new(global_sa_sort->block_size/8,uint64_t);
   uint64_t group_id;
-  for (group_id=0;group_id<global_sa_builder->num_sa_groups;++group_id) {
-    if (global_sa_builder->sa_groups[group_id].thread_responsible != thread_id) continue;
+  for (group_id=0;group_id<global_sa_sort->num_sa_groups;++group_id) {
+    if (global_sa_sort->sa_groups[group_id].thread_responsible != thread_id) continue;
     // Sort SA-Block
-    const sa_group_t* const sa_group = global_sa_builder->sa_groups+group_id;
+    const sa_group_t* const sa_group = global_sa_sort->sa_groups+group_id;
     vector_reserve(buffer,sa_group->num_sa_positions,false);
     vector_set_used(buffer,sa_group->num_sa_positions);
     fm_seek(sa_file_reader,sa_group->sa_offset*UINT64_SIZE);
@@ -340,7 +340,7 @@ void* sa_builder_sort_suffixes_thread(uint64_t thread_id) {
       }
     }
     // Ticker update
-    ticker_update_mutex(&global_sa_builder->ticker,1);
+    ticker_update_mutex(&global_sa_sort->ticker,1);
   }
   // Free
   vector_delete(buffer);
@@ -368,7 +368,7 @@ void sa_builder_sort_suffixes(
    * Prepare
    */
   // Store global information to all threads
-  global_sa_builder = sa_builder;
+  global_sa_sort = sa_builder;
   global_enc_text_length = dna_text_get_length(sa_builder->enc_text);
   global_enc_text = dna_text_get_text(sa_builder->enc_text);
   global_enc_bwt = dna_text_get_text(enc_bwt);
