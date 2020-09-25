@@ -42,7 +42,7 @@ archive_search_handlers_t* archive_search_handlers_new(archive_t* const archive)
   // Stats
   handlers->mapper_stats = mapper_stats_new();
   // MM
-  handlers->mm_slab = mm_slab_new_(BUFFER_SIZE_4M,BUFFER_SIZE_8M,MM_UNLIMITED_MEM);
+  handlers->mm_slab = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_8M,MM_UNLIMITED_MEM);
   handlers->mm_allocator = mm_allocator_new(handlers->mm_slab);
   // Return
   return handlers;
@@ -57,7 +57,7 @@ void archive_search_handlers_delete(archive_search_handlers_t* const handlers) {
   filtering_candidates_destroy(&handlers->filtering_candidates_end2,false);
   mapper_stats_delete(handlers->mapper_stats);
   mm_allocator_delete(handlers->mm_allocator);
-  mm_slab_delete(handlers->mm_slab);
+  //mm_slab_delete(handlers->mm_slab);
   mm_free(handlers);
 }
 /*

@@ -43,7 +43,7 @@ search_pipeline_handlers_t* search_pipeline_handlers_new(archive_t* const archiv
   // Stats
   search_pipeline_handlers->mapper_stats = mapper_stats_new();
   // MM
-  search_pipeline_handlers->mm_slab = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_16M,MM_UNLIMITED_MEM);
+  search_pipeline_handlers->mm_slab = mm_slab_new_(BUFFER_SIZE_16M,BUFFER_SIZE_16M,MM_UNLIMITED_MEM);
   search_pipeline_handlers->mm_allocator = mm_allocator_new(search_pipeline_handlers->mm_slab);
   // Return
   return search_pipeline_handlers;

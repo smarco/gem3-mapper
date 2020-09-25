@@ -82,7 +82,7 @@ void mm_allocator_segment_clear(
 void mm_allocator_segment_free(
     mm_allocator_segment_t* const mm_allocator_segment,
     mm_slab_t* const mm_slab) {
-  mm_slab_put(mm_slab,mm_allocator_segment->slab_unit);
+  mm_slab_return(mm_slab,mm_allocator_segment->slab_unit);
   vector_delete(mm_allocator_segment->mem_requests);
 }
 /*

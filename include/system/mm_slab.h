@@ -71,32 +71,24 @@ typedef struct {
 /*
  * Setup
  */
-#define mm_slab_new(slab_size) mm_slab_new_(slab_size,4*slab_size,MM_UNLIMITED_MEM)
+#define mm_slab_new(slab_size) mm_slab_new_(slab_size,slab_size,MM_UNLIMITED_MEM)
 mm_slab_t* mm_slab_new_(
     const uint64_t slab_unit_size,
     const uint64_t slab_group_size,
     const uint64_t max_allocatable_memory);
-void mm_slab_delete(mm_slab_t* const mm_slab);
+void mm_slab_delete(
+    mm_slab_t* const mm_slab);
 
 /*
  *  Accessors
  */
-void mm_slab_lock(mm_slab_t* const mm_slab);
-void mm_slab_unlock(mm_slab_t* const mm_slab);
-mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab);
-void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
-
-/*
- *  Accessors (ThreadSafe)
- */
-mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab);
-void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit);
-uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab);
-
-/*
- * Defragment Slab
- */
-void mm_slab_defragment(mm_slab_t* const mm_slab);
+mm_slab_unit_t* mm_slab_request(
+    mm_slab_t* const mm_slab);
+void mm_slab_return(
+    mm_slab_t* const mm_slab,
+    mm_slab_unit_t* const mm_slab_unit);
+uint64_t mm_slab_get_slab_size(
+    mm_slab_t* const mm_slab);
 
 /*
  * Display/Profile

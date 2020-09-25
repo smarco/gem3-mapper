@@ -54,7 +54,7 @@ svector_t* svector_new_(mm_slab_t* const mm_slab,const uint64_t element_size) {
 void svector_delete(svector_t* const svector) {
   // Return all slabs
   VECTOR_ITERATE(svector->segments,segment,position,vector_segment_t) {
-    mm_slab_put(svector->mm_slab,segment->slab_unit);
+    mm_slab_return(svector->mm_slab,segment->slab_unit);
   }
   // Free segments' vector
   vector_delete(svector->segments);
@@ -69,7 +69,7 @@ void svector_reap(svector_t* const svector) {
   if (svector->segments->used > svector->min_resident_segments) {
     // Reap non-resident segments // TODO Register Number of reaps
     VECTOR_ITERATE_OFFSET(svector->segments,segment,position,svector->min_resident_segments,vector_segment_t) {
-      mm_slab_put(svector->mm_slab,segment->slab_unit);
+      mm_slab_return(svector->mm_slab,segment->slab_unit);
     }
     vector_set_used(svector->segments,svector->min_resident_segments);
   }

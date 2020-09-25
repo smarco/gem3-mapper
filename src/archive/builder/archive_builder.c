@@ -61,8 +61,8 @@ archive_builder_t* archive_builder_new(
    * Archive Components
    */
   // Locator
-  archive_builder->mm_slab_8MB = mm_slab_new_(BUFFER_SIZE_8M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM);
-  archive_builder->mm_slab_32MB = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM);
+  archive_builder->mm_slab_8MB = mm_slab_new_(BUFFER_SIZE_32M,BUFFER_SIZE_32M,MM_UNLIMITED_MEM);
+  archive_builder->mm_slab_32MB = mm_slab_new_(BUFFER_SIZE_256M,BUFFER_SIZE_256M,MM_UNLIMITED_MEM);
   archive_builder->locator = locator_builder_new(archive_builder->mm_slab_8MB);
   // Text
   archive_builder->character_occurrences = mm_calloc(DNA_EXT_RANGE*DNA_EXT_RANGE,uint64_t,true);

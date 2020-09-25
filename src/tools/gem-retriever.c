@@ -283,7 +283,7 @@ int main(int argc,char** argv) {
   gem_cond_log(parameters->verbose,"... done");
 
   // Allocate
-  mm_slab_t* const mm_slab = mm_slab_new_(BUFFER_SIZE_64M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM);
+  mm_slab_t* const mm_slab = mm_slab_new_(BUFFER_SIZE_512M,BUFFER_SIZE_512M,MM_UNLIMITED_MEM);
   retriever_data.mm_allocator = mm_allocator_new(mm_slab);
 
   // Read all retriever queries

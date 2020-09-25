@@ -104,13 +104,14 @@ mm_slab_t* mm_slab_new_(
   //   SLAB_WASTED_MEM,mm_slab->slab_segment_size,mm_slab->slab_unit_size);
   // Allocate vectors
   mm_slab->slabs_segments = vector_new(MM_SLAB_NUM_INITIAL_SEGMENTS,mm_slab_segment_t*);
-  mm_slab->slabs_units_free = vector_new(MM_SLAB_NUM_INITIAL_SEGMENTS,mm_slab_segment_t*);
+  mm_slab->slabs_units_free = vector_new(MM_SLAB_NUM_INITIAL_SEGMENTS,mm_slab_unit_t*);
   // Allocate init segment
   mm_slab_add_new_segment(mm_slab);
   // Return
   return mm_slab;
 }
-void mm_slab_delete(mm_slab_t* const mm_slab) {
+void mm_slab_delete(
+    mm_slab_t* const mm_slab) {
   // Free all slab segments
   VECTOR_ITERATE(mm_slab->slabs_segments,slabs_segment,ss_i,mm_slab_segment_t*) {
     mm_bulk_free((*slabs_segment)->mm); // Free memory
@@ -124,7 +125,8 @@ void mm_slab_delete(mm_slab_t* const mm_slab) {
 /*
  *  Accessors
  */
-mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
+mm_slab_unit_t* mm_slab_request(
+    mm_slab_t* const mm_slab) {
   // Check slabs available (Add new one if required)
   if (gem_expect_false(vector_get_used(mm_slab->slabs_units_free)==0)) {
     mm_slab_add_new_segment(mm_slab);
@@ -135,43 +137,16 @@ mm_slab_unit_t* mm_slab_get(mm_slab_t* const mm_slab) {
   ++(mm_slab_unit->slab_segment->busy_slabs_units); // Decrement free slabs
   return mm_slab_unit;
 }
-void mm_slab_put(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
+void mm_slab_return(
+    mm_slab_t* const mm_slab,
+    mm_slab_unit_t* const mm_slab_unit) {
   // Restore slab as free
   --(mm_slab_unit->slab_segment->busy_slabs_units);
   vector_insert(mm_slab->slabs_units_free,mm_slab_unit,mm_slab_unit_t*);
 }
-
-mm_slab_unit_t* mm_slab_request(mm_slab_t* const mm_slab) {
-  mm_slab_unit_t* mm_slab_unit;
-  mm_slab_unit = mm_slab_get(mm_slab);
-  return mm_slab_unit;
-}
-void mm_slab_return(mm_slab_t* const mm_slab,mm_slab_unit_t* const mm_slab_unit) {
-  mm_slab_put(mm_slab,mm_slab_unit);
-}
-uint64_t mm_slab_get_slab_size(mm_slab_t* const mm_slab) {
+uint64_t mm_slab_get_slab_size(
+    mm_slab_t* const mm_slab) {
   return mm_slab->slab_unit_size;
-}
-/*
- * Defragment Slab
- */
-int mm_slab_cmp_slab_units(mm_slab_unit_t** const mm_slab_unit_a,mm_slab_unit_t** const mm_slab_unit_b) {
-  // Sort by slab segment ID & memory position
-  const int64_t segment_id_a = (*mm_slab_unit_a)->slab_segment->segment_id;
-  const int64_t segment_id_b = (*mm_slab_unit_b)->slab_segment->segment_id;
-  if (segment_id_a == segment_id_b) {
-    if ((*mm_slab_unit_a)->memory == (*mm_slab_unit_b)->memory) return 0;
-    return ((*mm_slab_unit_a)->memory < (*mm_slab_unit_b)->memory) ? 1 : -1;
-  } else {
-    return segment_id_b - segment_id_a;
-  }
-}
-void mm_slab_defragment(mm_slab_t* const mm_slab) {
-  // Sort free slab units to serve them in memory increasing order
-  qsort(vector_get_mem(mm_slab->slabs_units_free,mm_slab_unit_t*),
-        vector_get_used(mm_slab->slabs_units_free),
-        sizeof(mm_slab_unit_t*),
-        (int (*)(const void *,const void *))mm_slab_cmp_slab_units);
 }
 /*
  * Display/Profile
