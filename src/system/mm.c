@@ -176,6 +176,8 @@ mm_t* mm_bulk_malloc(const uint64_t num_bytes,const bool init_mem) {
     mem_manager->mode = MM_READ_WRITE;
     mem_manager->allocated = num_bytes;
     mem_manager->cursor = mem_manager->memory;
+    mem_manager->fd = -1;
+    mem_manager->file_name = NULL;
     // MM_PRINT_MEM_ALIGMENT(mem_manager->memory); // Debug
     return mem_manager;
   } else { // Resort to MMAP in disk
