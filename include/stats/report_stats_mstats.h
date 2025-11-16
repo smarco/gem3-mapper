@@ -42,6 +42,19 @@ typedef struct {
 	 uint64_t BSreads[2][2];
 	 uint64_t unmapped[2];
 	 uint64_t correct_pairs;
+	 /*
+		 * First index: Base counts:
+         *   0 => Overall
+         *   1 => GeneralC2T
+         *   2 => GeneralG2A
+         *   3 => UnderConversionControlC2T
+         *   4 => UnderConversionControlG2A
+         *   5 => OverConversionControlC2T
+         *   6 => OverConversionControlG2A 
+         * 
+         * Second index: Read: Read 1, Read 2
+         * Third index: Base: N, A, C, G, T
+	  */
 	 uint64_t base_counts[7][2][5];
 	 uint64_t hist_mapq[256];
 	 ihash_t *read_length_dist[2];

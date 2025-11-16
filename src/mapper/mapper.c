@@ -30,7 +30,7 @@
 #include "archive/search/archive_search_pe.h"
 #include "text/sequence_bisulfite.h"
 #include "io/output_sam.h"
-#include "profiler/profiler.h"
+// #include "profiler/profiler.h"
 
 /*
  * Profile Level

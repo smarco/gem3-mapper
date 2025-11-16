@@ -99,8 +99,8 @@ void output_file_return_buffer(
 /*
  * Output File Printers
  */
-int vofprintf(output_file_t* const out_file,const char *template,va_list v_args);
-int ofprintf(output_file_t* const out_file,const char *template,...);
+int vofprintf(output_file_t* const out_file,const char *tplate,va_list v_args);
+int ofprintf(output_file_t* const out_file,const char *tplate,...);
 
 /*
  * Error Messages

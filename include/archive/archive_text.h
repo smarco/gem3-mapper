@@ -104,6 +104,6 @@ void archive_text_print(
 /*
  * Errors
  */
-#define GEM_ERROR_ARCHIVE_TEXT_WRONG_MODEL_NO "Archive-Text error. Wrong Archive-Text Model %"PRIu64" (Expected model %"PRIu64")"
+#define GEM_ERROR_ARCHIVE_TEXT_WRONG_MODEL_NO "Archive-Text error. Wrong Archive-Text Model %" PRIu64" (Expected model %" PRIu64")"
 
 #endif /* ARCHIVE_TEXT_H_ */

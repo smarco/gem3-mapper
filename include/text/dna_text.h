@@ -203,7 +203,7 @@ void dna_buffer_print(
 /*
  * Errors
  */
-#define GEM_ERROR_DNA_TEXT_WRONG_MODEL_NO "DNA-text. Wrong DNA-text Model %"PRIu64" (Expected model %"PRIu64")"
-#define GEM_ERROR_DNA_TEXT_OOR "DNA-text. Requested position (%"PRIu64") out of range [0,%"PRIu64")"
+#define GEM_ERROR_DNA_TEXT_WRONG_MODEL_NO "DNA-text. Wrong DNA-text Model %" PRIu64" (Expected model %" PRIu64")"
+#define GEM_ERROR_DNA_TEXT_OOR "DNA-text. Requested position (%" PRIu64") out of range [0,%" PRIu64")"
 
 #endif /* DNA_TEXT_H_ */
