@@ -142,7 +142,7 @@ vector_t* vector_dup(vector_t* const vector_src);
 /*
  * Error Messages
  */
-#define GEM_ERROR_VECTOR_NEW "Could not create new vector (%"PRIu64" bytes requested)"
-#define GEM_ERROR_VECTOR_RESERVE "Could not reserve vector (%"PRIu64" bytes requested)"
+#define GEM_ERROR_VECTOR_NEW "Could not create new vector (%" PRIu64" bytes requested)"
+#define GEM_ERROR_VECTOR_RESERVE "Could not reserve vector (%" PRIu64" bytes requested)"
 
 #endif /* VECTOR_H_ */

@@ -142,7 +142,7 @@ void gem_perror(void);
 #define GEM_ERROR_NOT_SUPPORTED "Function/Feature not supported"
 #define GEM_ERROR_CUDA_NOT_SUPPORTED "No CUDA support detected"
 #define GEM_ERROR_UNREACHABLE_CODE "Unreachable code, please report"
-#define GEM_ERROR_POSITION_OUT_OF_RANGE "Requested position (%"PRIu64") out of range [%"PRIu64",%"PRId64"]"
+#define GEM_ERROR_POSITION_OUT_OF_RANGE "Requested position (%" PRIu64") out of range [%" PRIu64",%" PRId64"]"
 #define GEM_ERROR_ALG_INCONSISNTENCY "Algorithmic inconsistency, please report (Sorry for the inconvenience)"
 #define GEM_ERROR_INTERNAL_CHECK "Internal check failed, please report '%s'"
 // String

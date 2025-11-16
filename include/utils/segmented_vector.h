@@ -147,8 +147,8 @@ void svector_write_iterator_next(svector_iterator_t* const iterator);
 /*
  * Error Messages
  */
-#define GEM_ERROR_SVECTOR_INDEX_OUT_OF_RANGE "SVector. Requested element (%"PRIu64") out of range [0,%"PRIu64")"
-#define GEM_ERROR_SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG "String is too long to fit in one vector-segment (%"PRIu64" characters)"
+#define GEM_ERROR_SVECTOR_INDEX_OUT_OF_RANGE "SVector. Requested element (%" PRIu64") out of range [0,%" PRIu64")"
+#define GEM_ERROR_SVECTOR_INSERT_CHAR_BUFFER_TOO_LONG "String is too long to fit in one vector-segment (%" PRIu64" characters)"
 #define GEM_ERROR_SVECTOR_ITERATOR_WRONG_MODE "SVector-Iterator wrong mode. Iterator is for %s only"
 
 #endif /* SEGMENTED_VECTOR_H_ */

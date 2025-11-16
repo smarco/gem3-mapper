@@ -149,8 +149,8 @@ uint64_t gem_file_size(const char* const file_name);
 /*
  * FileManager Printers
  */
-int vfmprintf(fm_t* const file_manager,const char *template,va_list v_args);
-int fmprintf(fm_t* const file_manager,const char *template,...);
+int vfmprintf(fm_t* const file_manager,const char *tplate,va_list v_args);
+int fmprintf(fm_t* const file_manager,const char *tplate,...);
 
 #endif /* FILE_MANAGEMENT_H_ */
 

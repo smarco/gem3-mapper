@@ -99,11 +99,11 @@ uint64_t RCOUNTER_GET_STDDEV(gem_reference_counter_t* const rcounter);
 /*
  * Display
  */
-#define PRIcounter "lu(#%"PRIu64",m%"PRIu64",M%"PRIu64",{%.2f})"
+#define PRIcounter "lu(#%" PRIu64",m%" PRIu64",M%" PRIu64",{%.2f})"
 #define PRIcounterVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter),COUNTER_GET_MEAN(counter)
-#define PRIcounterX "lu(#%"PRIu64",m%"PRIu64",M%"PRIu64",{%.2f,%.2f,%.2f})"
+#define PRIcounterX "lu(#%" PRIu64",m%" PRIu64",M%" PRIu64",{%.2f,%.2f,%.2f})"
 #define PRIcounterXVal(counter) \
   COUNTER_GET_TOTAL(counter),COUNTER_GET_NUM_SAMPLES(counter), \
   COUNTER_GET_MIN(counter),COUNTER_GET_MAX(counter), \

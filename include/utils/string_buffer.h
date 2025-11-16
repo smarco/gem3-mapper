@@ -149,18 +149,18 @@ void string_copy(
  */
 int sbprintf_v(
     string_t* const string,
-    const char *template,
+    const char *tplate,
     va_list v_args);
 int sbprintf(
     string_t* const string,
-    const char *template,...);
+    const char *tplate,...);
 int sbprintf_append_v(
     string_t* const string,
-    const char *template,
+    const char *tplate,
     va_list v_args);
 int sbprintf_append(
     string_t* const string,
-    const char *template,...);
+    const char *tplate,...);
 
 /*
  * Iterator

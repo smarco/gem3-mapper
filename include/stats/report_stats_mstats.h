@@ -27,6 +27,16 @@
 #include "system/commons.h"
 #include "utils/hash.h"
 
+typedef enum {
+	SequenceControl, UnderConversion, OverConversion
+} control_sequence_type;
+
+typedef struct {
+	char *sequence_name;
+	uint64_t idx;
+	control_sequence_type sequence_type;
+} control_sequence_t;
+
 typedef struct {
 	 uint64_t reads[2][4];
 	 uint64_t BSreads[2][2];

@@ -66,7 +66,7 @@ bool gem_is_mute_log_stream(void);
   do { \
     FILE* const gem_stream=gem_error_get_stream(); \
     if (!gem_is_mute_error_stream()) { \
-      fprintf(gem_stream,gem_label" (%s:%d,%s)\n "GEM_ERROR_##gem_error_name"\n", \
+      fprintf(gem_stream,gem_label" (%s:%d,%s)\n " GEM_ERROR_##gem_error_name"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
       fflush(gem_stream); \
     }
@@ -74,7 +74,7 @@ bool gem_is_mute_log_stream(void);
   do { \
     FILE* const gem_stream=gem_error_get_stream(); \
     if (!gem_is_mute_error_stream()) { \
-      fprintf(gem_stream,gem_label" (%s:%d,%s)\n "gem_report_msg"\n", \
+      fprintf(gem_stream,gem_label" (%s:%d,%s)\n " gem_report_msg"\n", \
         GEM_ERROR_BASENAME(__FILE__),__LINE__,__func__, ##args); \
       fflush(gem_stream); \
     }
@@ -221,7 +221,7 @@ void ticker_mutex_cleanup(ticker_t* const ticker);
 /*
  * Print's template helpers
  */
-uint64_t calculate_memory_required_v(const char *template,va_list v_args);
-uint64_t calculate_memory_required_va(const char *template,...);
+uint64_t calculate_memory_required_v(const char *tplate,va_list v_args);
+uint64_t calculate_memory_required_va(const char *tplate,...);
 
 #endif /* REPORT_H_ */

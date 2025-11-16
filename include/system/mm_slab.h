@@ -109,7 +109,7 @@ void mm_slab_print(
 /*
  * Error Messages
  */
-#define GEM_ERROR_MM_SLAB_WRONG_DIMENSIONS "Wrong Dimensions. Slab-Segment size (%"PRIu64") must be non-zero and (>=) than the size of each Slab-Unit (%"PRIu64")"
-#define GEM_ERROR_MM_SLAB_WASTED_MEM "Slab Allocated Memory is wasted. Slab-Segment size (%"PRIu64") is not a multiple of the size of each Slab-Unit (%"PRIu64")"
+#define GEM_ERROR_MM_SLAB_WRONG_DIMENSIONS "Wrong Dimensions. Slab-Segment size (%" PRIu64") must be non-zero and (>=) than the size of each Slab-Unit (%" PRIu64")"
+#define GEM_ERROR_MM_SLAB_WASTED_MEM "Slab Allocated Memory is wasted. Slab-Segment size (%" PRIu64") is not a multiple of the size of each Slab-Unit (%" PRIu64")"
 
 #endif /* MM_SLAB_H_ */
