@@ -134,9 +134,15 @@ void update_conversion_counts(
     sequence_t* const seq_read,
     mapping_stats_t* const mstats,
     const bs_strand_t bs,
-		const strand_t strand,
+	const strand_t strand,
     const int read_type) {
 	
+     /*
+      * 0 => None
+      * 1 => C2t
+      * 2 => G2A
+      * 3 => mixed
+      */
 	 const int bs1 = bs <= 2 ? bs : 3;
 	 const int st1 = strand == Forward ? 0 : 1;
 	 const int idx = cnv_idx[bs1][read_type];
@@ -148,6 +154,13 @@ void update_conversion_counts(
 			while(*p) mstats->base_counts[idx][end][btab[(int)*p++]]++;
 	 }
 }
+
+/*
+ * 0 => unmatched
+ * 1 => Seqeuncing control
+ * 2 => underconversion control
+ * 3 => overconversion control
+ */
 int get_read_type(match_trace_t* const match, char **control_seqs) {
 	 char* seq = match->sequence_name;
 	 int i = 0;
@@ -247,7 +260,7 @@ void collect_pe_mapping_stats(
 			bs2 = match_end2 -> bs_strand;
 			read_type1 = read_type2 = get_read_type(match_end1,archive_search1->search_parameters.control_sequences);
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
-			if(paired_map->mapq_score>0) {
+			if(paired_map->mapq_score>0 && paired_map->pair_relation == pair_relation_concordant) {
 				 update_conversion_counts(archive_search1->sequence, mstats, bs1, match_end1->strand, read_type1);
 				 update_conversion_counts(archive_search2->sequence, mstats, bs2, match_end2->strand, read_type2);
 			}
@@ -279,7 +292,7 @@ void output_json_uint_array(
 	 if(n<=MAX_JSON_ARRAY_LINE) {
 			fprintf(fp,"%.*s\"%s\": ",indent,indent_str,key);
 			int i;
-			for(i=0;i<n;i++) fprintf(fp,"%s%"PRIu64,i?", ":"[",values[i]);
+			for(i=0;i<n;i++) fprintf(fp,"%s%" PRIu64,i?", ":"[",values[i]);
 			fputs(last?"]\n":"],\n",fp);
 	 } else {
 			fprintf(fp,"%.*s\"%s\": [\n",indent,indent_str,key);
@@ -288,9 +301,9 @@ void output_json_uint_array(
 				 fprintf(fp,"%.*s",indent+1,indent_str);
 				 int j;
 				 for(j=0;j<MAX_JSON_ARRAY_LINE;j++) {
-						if(i+j<n-1) fprintf(fp,"%s%"PRIu64",",j?" ":"",values[i+j]);
+						if(i+j<n-1) fprintf(fp,"%s%" PRIu64",",j?" ":"",values[i+j]);
 						else {
-							 fprintf(fp,"%s%"PRIu64,j?" ":"",values[i+j]);
+							 fprintf(fp,"%s%" PRIu64,j?" ":"",values[i+j]);
 							 break;
 						}
 				 }
@@ -389,7 +402,7 @@ void output_mapping_stats(
 						fprintf(fp,"%.*s\"%s\": {\n",indent++,indent_str,bc_type[i]);
 						for(k=0;k<5;k++) {
 							 int k1 = (k+1)%5;
-							 fprintf(fp,"%.*s\"%c\": [%"PRIu64", %"PRIu64"]%s",indent,indent_str,base[k1],mstats->base_counts[i][0][k1],mstats->base_counts[i][1][k1],k==4?"\n":",\n");
+							 fprintf(fp,"%.*s\"%c\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,base[k1],mstats->base_counts[i][0][k1],mstats->base_counts[i][1][k1],k==4?"\n":",\n");
 						}
 						fprintf(fp,"%.*s}%s",--indent,indent_str,last?"\n":",\n");
 				 }
