@@ -236,15 +236,15 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   }
   /* No control sequence */
   if(!(i&1)) {
-      vector_insert(search->control_sequences, control_sequence_new(SequenceControl, SEQUENCING_CONTROL, NULL), control_sequence_t *);
+      add_control_sequence(search->control_sequences, SequenceControl, SEQUENCING_CONTROL);
   }
   /* No under conversion sequence */
   if(!(i&2)) {
-      vector_insert(search->control_sequences, control_sequence_new(UnderConversion, UNDERCONVERSION_CONTROL, NULL), control_sequence_t *);
+      add_control_sequence(search->control_sequences, UnderConversion, UNDERCONVERSION_CONTROL);
   }
   /* No under conversion sequence */
   if(!(i&4)) {
-      vector_insert(search->control_sequences, control_sequence_new(OverConversion, OVERCONVERSION_CONTROL, NULL), control_sequence_t *);
+      add_control_sequence(search->control_sequences, OverConversion, OVERCONVERSION_CONTROL);
   }
   /* RRBS */
   if(search->rrbs) {

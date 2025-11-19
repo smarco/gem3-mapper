@@ -393,7 +393,7 @@ void output_mapping_stats(
 	 int jmax = bisulfite_index ? 4 : 1;
 	 for(int j=0;j<jmax;j++) {
         for(int i=0;i<nc;i++) {
-            control_sequence_t *cs = vector_get_elm(control_sequences, i - 1, control_sequence_t);
+            control_sequence_t *cs = vector_get_elm(control_sequences, i, control_sequence_t);
             if(cs->sequence_type==j) {
                 if(!first) fprintf(fp,",\n");
                 else first=false;
@@ -418,7 +418,7 @@ void output_mapping_stats(
             int jmax = bisulfite_index ? 4 : 1;
             for(j=0;j<jmax;j++) {
                 for(i=0;i<nc;i++) {
-                    control_sequence_t *cs = vector_get_elm(control_sequences, i - 1, control_sequence_t);
+                    control_sequence_t *cs = vector_get_elm(control_sequences, i, control_sequence_t);
                     if(cs->sequence_type==j) {
                         output_read_counts_pe(fp, parameters, mstats, i+1, indent);
                     }
@@ -458,10 +458,10 @@ void output_mapping_stats(
 				    } else {
 						s=string_get_buffer(&(vector_get_elm(control_sequences, i-1, control_sequence_t)->sequence_name));
 					}
-					fprintf(fp,",\n%.*s\"%sC2T\": {\n",indent,indent_str,s);
+					fprintf(fp,",\n%.*s\"%s_C2T\": {\n",indent,indent_str,s);
 					output_base_counts_pe(fp, c2t, indent+1);
 					fprintf(fp,"%.*s}",indent,indent_str);
-					fprintf(fp,",\n%.*s\"%sG2A\": {\n",indent,indent_str,s);
+					fprintf(fp,",\n%.*s\"%s_G2A\": {\n",indent,indent_str,s);
 					output_base_counts_pe(fp, g2a, indent+1);
 					fprintf(fp,"%.*s}",indent,indent_str);
 				 }
@@ -503,7 +503,7 @@ void output_mapping_stats(
 			int jmax = bisulfite_index ? 4 : 1;
             for(j=0;j<jmax;j++) {
                 for(i=0;i<nc;i++) {
-                    control_sequence_t *cs = vector_get_elm(parameters->search_parameters.control_sequences, i - 1, control_sequence_t);
+                    control_sequence_t *cs = vector_get_elm(parameters->search_parameters.control_sequences, i, control_sequence_t);
                     if(cs->sequence_type==j) {
                         output_read_counts_se(fp, parameters, mstats, i+1, indent);
                     }

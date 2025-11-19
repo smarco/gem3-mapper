@@ -10,5 +10,6 @@ typedef struct {
 	control_sequence_type sequence_type;
 } control_sequence_t;
 
-control_sequence_t *control_sequence_new(control_sequence_type, char const *, char const **);
+char const *add_control_sequence(vector_t *v, control_sequence_type ct, char const *s);
+int control_sequence_init(control_sequence_t *,control_sequence_type, char const *, char const **);
 void get_control_sequences(vector_t *v, control_sequence_type ct, char *emsg, char *s);
