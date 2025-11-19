@@ -10,15 +10,13 @@ int control_sequence_init(control_sequence_t *cs, control_sequence_type ctype, c
         
         // Copy sequence name
         while((c = *s)) {
-            if(c == ':' || c == ',') {
-                s++;
-                break;
-            }
+            if(c == ':' || c == ',') break;
             string_append_char(&cs->sequence_name, c);
             s++;
         }
         string_append_eos(&cs->sequence_name);
         // If there is additional text, store as the alt_name
+        if(c==':') s++;
         if(*s != 0 && c==':') {
             cs->alt_name=mm_alloc(string_t);
             string_init(cs->alt_name, l - cs->sequence_name.length, NULL);
