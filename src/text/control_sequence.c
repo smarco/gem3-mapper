@@ -22,13 +22,14 @@ int control_sequence_init(control_sequence_t *cs, control_sequence_type ctype, c
         if(*s != 0 && c==':') {
             cs->alt_name=mm_alloc(string_t);
             string_init(cs->alt_name, l - cs->sequence_name.length, NULL);
-            while((c = *s++) && c!=',') {
+            while((c = *s) && c!=',') {
                 string_append_char(cs->alt_name, c);
+                s++;
             }
             string_append_eos(cs->alt_name);
-            if(c==',') s++;
         }
         if(p) {
+            if(c==',') s++;
             *p = s;
         }
         return 0;
