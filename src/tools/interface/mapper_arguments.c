@@ -22,7 +22,9 @@
  */
 
 #include "tools/interface/mapper_arguments.h"
+#include "archive/search/archive_search_se_parameters.h"
 #include "stats/report_stats.h"
+#include "utils/vector.h"
 
 /*
  * Mapper options Menu
@@ -77,9 +79,10 @@ option_t gem_mapper_options[] = {
   { 500, "bisulfite-conversion", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "'inferred-C2T-G2A','inferred-G2A-C2T','C2T','G2A','non-stranded'",  "(default=inferred-C2T-G2A)" },
   { 501, "underconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" UNDERCONVERSION_CONTROL ")" },
   { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
-  { 503, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
-  { 504, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
-  { 505, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
+  { 503, "conversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "" },
+  { 504, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
+  { 505, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
+  { 506, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -222,6 +225,27 @@ void gem_mapper_parameters_check(mapper_parameters_t* const parameters) {
   mapper_cond_error_msg(
       search->select_parameters.max_reported_matches == 0,
       "Option '--max-reported-matches' must be greater than zero'");
+  
+  /* Control sequences */
+  int i = 0;
+  int nc = vector_get_used(search->control_sequences);
+  /* Check if we have at least one of each type */
+  for(int j = 0; j < nc; j++) {
+      int ct = vector_get_elm(search->control_sequences, j, control_sequence_t)->sequence_type;
+      i |= 1 << ct;
+  }
+  /* No control sequence */
+  if(!(i&1)) {
+      vector_insert(search->control_sequences, control_sequence_new(SequenceControl, SEQUENCING_CONTROL, NULL), control_sequence_t *);
+  }
+  /* No under conversion sequence */
+  if(!(i&2)) {
+      vector_insert(search->control_sequences, control_sequence_new(UnderConversion, UNDERCONVERSION_CONTROL, NULL), control_sequence_t *);
+  }
+  /* No under conversion sequence */
+  if(!(i&4)) {
+      vector_insert(search->control_sequences, control_sequence_new(OverConversion, OVERCONVERSION_CONTROL, NULL), control_sequence_t *);
+  }
   /* RRBS */
   if(search->rrbs) {
     if(search->restriction_sites == NULL) {
@@ -743,6 +767,7 @@ bool gem_mapper_parse_arguments_bisulfite(
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
   restriction_t *rest = NULL;
+  
   // Bisulfite
   switch (option) {
     case 500: // --bisulfite_read
@@ -769,15 +794,18 @@ bool gem_mapper_parse_arguments_bisulfite(
       gem_fatal_error_msg("Option '--bisulfite-conversion' must be 'inferred_C2T_G2A'|'inferred_G2A_C2T'|'C2T'|'G2A'|'non-stranded'");
       return true;
     case 501: // --underconversion_sequence
-      search->control_sequences[1] = strdup(optarg);
+      get_control_sequences(search->control_sequences, UnderConversion, "underconversion_sequence", optarg);
       return true;
     case 502: // --overconversion_sequence
-      search->control_sequences[2] = strdup(optarg);
+      get_control_sequences(search->control_sequences, OverConversion, "overconversion_sequence", optarg);
       return true;
-    case 503: // --control_sequence
-      search->control_sequences[0] = strdup(optarg);
+    case 503: // --conversion_sequence
+      get_control_sequences(search->control_sequences, Conversion, "conversion_sequence", optarg);
       return true;
-    case 504: // -- restriction-site
+    case 504: // --control_sequence
+      get_control_sequences(search->control_sequences, SequenceControl, "control_sequence", optarg);
+      return true;
+    case 505: // -- restriction-site
       rest = restriction_new(optarg);
       if(rest != NULL) {
         if(search->restriction_sites == NULL) {
@@ -788,7 +816,7 @@ bool gem_mapper_parse_arguments_bisulfite(
         gem_fatal_error_msg("Error setting --restriction-site option");
       }
     return true;
-    case 505: // --rrbs
+    case 506: // --rrbs
       search->rrbs = true;
       return true;
     default:

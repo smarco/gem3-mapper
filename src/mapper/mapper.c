@@ -448,8 +448,15 @@ void mapper_run(mapper_parameters_t* const mapper_parameters,const bool paired_e
   ticker_add_finish_label(&ticker,"Total","sequences processed");
   ticker_mutex_enable(&ticker);
 	// Allocate per thread mapping stats
-  mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
-      mm_calloc(num_threads,mapping_stats_t,false) : NULL;
+  mapping_stats_t *ms = NULL;
+  if(mapper_parameters->global_mapping_stats) {
+      ms = mm_calloc(num_threads,mapping_stats_t,false);
+      int nc = vector_get_used(mapper_parameters->search_parameters.control_sequences);
+      for(int i=0;i<num_threads;i++) {
+          setup_mapping_stats(&ms[i], nc);
+      }
+  }
+  mapping_stats_t* const mstats = ms;
   // Launch threads
   PROF_START(GP_MAPPER_MAPPING);
   pthread_handler_t mapper_thread;

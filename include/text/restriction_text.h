@@ -36,7 +36,7 @@ typedef struct {
   int cut_site_index;
 } restriction_t;
 
-restriction_t *restriction_new(char * const);
+restriction_t *restriction_new(char const *);
 void restriction_delete(restriction_t * const);
 
 #endif

@@ -31,6 +31,7 @@ include $(ROOT_PATH)/Makefile.mk
 # Modules
 ###############################################################################
 MODULES=report_stats \
+	 	report_stats_mstats \
         stats_counter \
         stats_matrix \
         stats_vector

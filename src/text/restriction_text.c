@@ -39,16 +39,15 @@ static char iupac[256] = {
 
 static char iupac_compl[16] = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
 
-restriction_t *restriction_new(char * const rest_char) {
+restriction_t *restriction_new(char const *rest_char) {
   restriction_t *rest = NULL;
   if(rest_char != NULL) {
     rest = mm_alloc(restriction_t);
     string_init(&rest->restriction_site, 0, NULL);
-    char * const tp = rest_char;
     char c;
     int index = -1;
     int i = 0;
-    while((c = tp[i++])) {
+    while((c = rest_char[i++])) {
       if(iupac[(int)c]) string_append_char(&rest->restriction_site, c);
       else if(c == '.' || c == ':' || c == '_' || c == '-' || c == '|' || isspace((int)c)) {
         if(index == -1) index = i - 1;

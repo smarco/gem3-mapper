@@ -25,6 +25,8 @@
 
 #include "archive/search/archive_search_se_parameters.h"
 #include "stats/report_stats.h"
+#include "stats/report_stats_mstats.h"
+#include "utils/vector.h"
 
 /*
  * Macro Utils
@@ -110,9 +112,8 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   search_parameters->mapping_mode = mapping_adaptive_filtering_fast;
   // Bisulfite
   search_parameters->bisulfite_read = bisulfite_inferred_C2T_G2A;
-	search_parameters->control_sequences[0] = SEQUENCING_CONTROL;
-	search_parameters->control_sequences[1] = UNDERCONVERSION_CONTROL;
-	search_parameters->control_sequences[2] = OVERCONVERSION_CONTROL;
+  search_parameters->control_sequences = vector_new(8, control_sequence_t);
+
   search_parameters->rrbs = false;
   // Restriction restriction_sites
   search_parameters->restriction_sites = NULL;

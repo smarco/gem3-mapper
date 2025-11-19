@@ -27,39 +27,50 @@
 #include "system/commons.h"
 #include "utils/hash.h"
 
-typedef enum {
-	SequenceControl, UnderConversion, OverConversion
-} control_sequence_type;
+#define N_BASE_COUNTS 5
+
+/*
+ * Index 1: read end
+ * Index 2: base (N, A, C, G, T) 
+ */
+typedef struct {
+    uint64_t counts[2][N_BASE_COUNTS];
+} base_counts_t;
+
+void clear_base_counts(base_counts_t *p);
+void add_base_counts(base_counts_t *p, base_counts_t const *p1);
 
 typedef struct {
-	char *sequence_name;
-	uint64_t idx;
-	control_sequence_type sequence_type;
-} control_sequence_t;
-
-typedef struct {
-	 uint64_t reads[2][4];
+     int n_control_seq;
+	 uint64_t *reads;
 	 uint64_t BSreads[2][2];
 	 uint64_t unmapped[2];
 	 uint64_t correct_pairs;
+	
+	 /* Base counts */
+	 base_counts_t overall_counts;
 	 /*
-		 * First index: Base counts:
-         *   0 => Overall
-         *   1 => GeneralC2T
-         *   2 => GeneralG2A
-         *   3 => UnderConversionControlC2T
-         *   4 => UnderConversionControlG2A
-         *   5 => OverConversionControlC2T
-         *   6 => OverConversionControlG2A 
-         * 
-         * Second index: Read: Read 1, Read 2
-         * Third index: Base: N, A, C, G, T
+	  * Base counts for different categories
+	  * Index: C2T, G2A
+	  *
+	  * First entries are for general, followed by the conversion controls  
 	  */
-	 uint64_t base_counts[7][2][5];
+	 base_counts_t* base_counts[2];
+
+	 // uint64_t base_counts[7][2][5];
 	 uint64_t hist_mapq[256];
 	 ihash_t *read_length_dist[2];
 	 ihash_t *insert_size_dist;
 	 ihash_t *distance_dist[2];
 } mapping_stats_t;
+
+#define mapping_stats_reads_get(mstats, read, rix) (mstats->reads + (rix * 2 + read))
+#define mapping_stats_reads_add(mstats, read, rix, x) ((*mapping_stats_reads_get(mstats, read, rix)) += x)
+#define mapping_stats_reads_inc(mstats, read, rix) ((*mapping_stats_reads_get(mstats, read, rix))++)
+
+#define mapping_stats_base_counts(mstats, bs_strand, idx) (mstats->base_counts[bs_strand] + idx)
+
+mapping_stats_t *new_mapping_stats(int n_control_seq);
+void setup_mapping_stats(mapping_stats_t *ms, int n_control_seq);
 
 #endif

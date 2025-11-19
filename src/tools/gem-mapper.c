@@ -21,6 +21,8 @@
  * AUTHOR(S): Santiago Marco-Sola <santiagomsola@gmail.com>
  */
 
+#include "stats/report_stats_mstats.h"
+#include "utils/vector.h"
 #define REPORT_STATS
 
 #include "utils/essentials.h"
@@ -199,7 +201,8 @@ int main(int argc,char** argv) {
 
   // Initialize Statistics Report
   if (parameters.io.report_file_name) {
-    parameters.global_mapping_stats = mm_alloc(mapping_stats_t);
+    int n_cs = vector_get_used(parameters.search_parameters.control_sequences);
+    parameters.global_mapping_stats = new_mapping_stats(n_cs);
   }
 
   // Launch mapper

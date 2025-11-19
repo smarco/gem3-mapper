@@ -28,6 +28,7 @@
 
 #include "utils/essentials.h"
 #include "text/sequence_qualities_model.h"
+#include "text/control_sequence.h"
 #include "align/align_swg_score.h"
 #include "archive/search/archive_search_pe_parameters.h"
 #include "archive/search/archive_select_parameters.h"
@@ -108,7 +109,8 @@ typedef struct {
   mapping_mode_t mapping_mode;                         // Mapping mode
   bisulfite_read_t bisulfite_read;                     // Bisulfite mode
   bool rrbs;
-	char* control_sequences[3];
+
+  vector_t *control_sequences;
   vector_t *restriction_sites;
 
   /* Clipping */

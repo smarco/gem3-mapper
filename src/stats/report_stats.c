@@ -22,68 +22,14 @@
  */
 
 #include "stats/report_stats.h"
+#include "archive/archive.h"
+#include "archive/search/archive_search_se_parameters.h"
 #include "matches/matches.h"
+#include "stats/report_stats_mstats.h"
+#include "text/dna_text.h"
+#include "utils/string_buffer.h"
+#include "utils/vector.h"
 
-/*
- * Initialize mapping stats
- */
-void init_mapping_stats(
-    mapping_stats_t* const mstats) {
-	 int i,read;
-	 for(read=0;read<2;read++) {
-			mstats->unmapped[read]=0;
-			mstats->read_length_dist[read]=ihash_new(NULL);
-			mstats->distance_dist[read]=ihash_new(NULL);
-			int j;
-			for(j=0;j<7;j++) for(i=0;i<5;i++) mstats->base_counts[j][read][i]=0;
-			for(j=0;j<4;j++) mstats->reads[read][j]=0;
-			for(j=0;j<2;j++) mstats->BSreads[read][j]=0;
-	 }
-	 for(i=0;i<256;i++) mstats->hist_mapq[i]=0;
-	 mstats->correct_pairs=0;
-	 mstats->insert_size_dist=ihash_new(NULL);
-}
-void merge_ihash(
-    ihash_t* ihash1,
-    ihash_t* ihash2) {
-	 ihash_element_t* ih;
-	 for(ih=ihash2->head;ih;ih=ih->hh.next) {
-			uint64_t* count;
-			ihash_element_t* ih1 = ihash_get_ihash_element(ihash1,ih->key);
-			if(ih1 == NULL) {
-				 count = mm_alloc(uint64_t);
-				 *count = *((uint64_t*)ih->element);
-				 ihash_insert_element(ihash1,ih->key,count);
-			} else {
-				 count = ih1->element;
-				 *count += *((uint64_t*)ih->element);
-			}
-	 }
-}
-void merge_mapping_stats(
-    mapping_stats_t* const global_mstats,
-    mapping_stats_t* const mstats,
-    const uint64_t num_threads) {
-	 init_mapping_stats(global_mstats);
-	 uint64_t i;
-	 for(i=0;i<num_threads;i++) {
-			global_mstats->correct_pairs+=mstats[i].correct_pairs;
-			int rd,j;
-			for(rd=0;rd<2;rd++) {
-				 for(j=0;j<4;j++) global_mstats->reads[rd][j]+=mstats[i].reads[rd][j];
-				 for(j=0;j<2;j++) global_mstats->BSreads[rd][j]+=mstats[i].BSreads[rd][j];
-				 global_mstats->unmapped[rd]+=mstats[i].unmapped[rd];
-				 int k;
-				 for(k=0;k<7;k++) for(j=0;j<5;j++) global_mstats->base_counts[k][rd][j]+=mstats[i].base_counts[k][rd][j];
-			}
-			for(j=0;j<256;j++) global_mstats->hist_mapq[j]+=mstats[i].hist_mapq[j];
-			for(j=0;j<2;j++) {
-				 merge_ihash(global_mstats->read_length_dist[j],mstats[i].read_length_dist[j]);
-				 merge_ihash(global_mstats->distance_dist[j],mstats[i].distance_dist[j]);
-			}
-			merge_ihash(global_mstats->insert_size_dist,mstats[i].insert_size_dist);
-	 }
-}
 int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
 void update_counts(
     sequence_t* const seq_read,
@@ -102,7 +48,8 @@ void update_counts(
 			(*count)++;
 	 }
 	 char *p = string_get_buffer(read);
-	 while(*p) mstats->base_counts[0][end][btab[(int)*p++]]++;
+	 uint64_t *q = mstats->overall_counts.counts[end];
+	 while(*p) q[btab[(int)*p++]]++;
 }
 void update_distance_counts(
     matches_t* const matches,
@@ -135,47 +82,52 @@ void update_conversion_counts(
     mapping_stats_t* const mstats,
     const bs_strand_t bs,
 	const strand_t strand,
-    const int read_type) {
+    const int read_idx) {
 	
      /*
+      * bs strand
+      * 
       * 0 => None
       * 1 => C2t
       * 2 => G2A
       * 3 => mixed
       */
-	 const int bs1 = bs <= 2 ? bs : 3;
-	 const int st1 = strand == Forward ? 0 : 1;
-	 const int idx = cnv_idx[bs1][read_type];
-	 const int end = cnv_end[st1][bs1];
-	 
-	 if(idx && end >=0) {
-			string_t* const read = &seq_read->read;
-			const char *p = string_get_buffer(read);
-			while(*p) mstats->base_counts[idx][end][btab[(int)*p++]]++;
+      
+	 if(bs > 0 && bs <= 2) {
+	    const int end = strand == Forward ? bs - 1 : 2 - bs;
+		
+		uint64_t *ct = mapping_stats_base_counts(mstats, bs - 1, read_idx)->counts[end];
+		string_t* const read = &seq_read->read;
+		const char *p = string_get_buffer(read);
+		while(*p) ct[btab[(int)*p++]]++;
 	 }
 }
 
 /*
- * 0 => unmatched
- * 1 => Seqeuncing control
- * 2 => underconversion control
- * 3 => overconversion control
+ * Returns index + 1 to control_sequence_t in control_seq_vector or 0 if not found
  */
-int get_read_type(match_trace_t* const match, char **control_seqs) {
+int get_read_control_index(match_trace_t* const match, const vector_t *v, bool bisulfite_mode) {
 	 char* seq = match->sequence_name;
-	 int i = 0;
-	 for(i = 0; i < 3; i++) {
-		 if(strstr(seq, control_seqs[i])) break;
-	 }
-	 return (i + 1) %4;
+	 int ix = -1;
+	 int nc = vector_get_used(v);
+	 for(int i = 0; i < nc; i++) {
+		control_sequence_t *cs = vector_get_elm(v, i, control_sequence_t);
+		if((bisulfite_mode || cs->sequence_type == SequenceControl) && !strcmp(seq, string_get_buffer(&(cs->sequence_name)))) {
+		    ix = i;
+			break;
+		}
+	 } 
+	 return ix + 1;
 }
+
 void collect_se_mapping_stats(
     archive_search_t* const archive_search,
     matches_t* const matches,
     mapping_stats_t* mstats) {
 	 update_counts(archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
-	 int read_type = -1;
+	 bool bisulfite_mode = archive_search->archive->type == archive_dna_bisulfite;
+	 int read_idx = -1;
 	 const uint64_t num_match_traces = matches_get_num_match_traces(matches);
 	 if (gem_expect_false(num_match_traces==0)) { // Unmapped
 			mstats->unmapped[0]++;
@@ -184,14 +136,14 @@ void collect_se_mapping_stats(
 			match_trace_t* match = matches_get_primary_match(matches);
 			update_distance_counts(matches, match, mstats, 0);
 			bs = match->bs_strand;
-			read_type = get_read_type(match, archive_search->search_parameters.control_sequences);
-			if(match->mapq_score>0) {
-				 update_conversion_counts(archive_search->sequence, mstats, bs, match->strand, read_type);
+			read_idx = get_read_control_index(match, archive_search->search_parameters.control_sequences, bisulfite_mode);
+			if(match->mapq_score>20) {
+				 update_conversion_counts(archive_search->sequence, mstats, bs, match->strand, read_idx);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
 			else if(bs == bs_strand_G2A) mstats->BSreads[0][1]++;
-			if(read_type>=0) mstats->reads[0][read_type]++;
+			mapping_stats_reads_inc(mstats, 0, read_idx);
 	 }
 }
 void collect_pe_mapping_stats(
@@ -199,13 +151,15 @@ void collect_pe_mapping_stats(
     archive_search_t* const archive_search2,
  	  paired_matches_t* const paired_matches,
  	  mapping_stats_t* mstats) {
+     bool bisulfite_mode = archive_search1->archive->type == archive_dna_bisulfite;
 	 update_counts(archive_search1->sequence,mstats,0);
 	 update_counts(archive_search2->sequence,mstats,1);
 	 matches_t* const matches_end1 = paired_matches->matches_end1;
 	 matches_t* const matches_end2 = paired_matches->matches_end2;	 
+	 vector_t const *control_sequences = archive_search1->search_parameters.control_sequences;
 	 bs_strand_t bs1,bs2;
 	 bs1 = bs2 = bs_strand_none;
-	 int read_type1 = -1, read_type2 = -1;
+	 int read_idx1 = -1, read_idx2 = -1;
 	 if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Non paired
 			const uint64_t vector_match_trace_used_end1 = matches_get_num_match_traces(matches_end1);
 			const uint64_t vector_match_trace_used_end2 = matches_get_num_match_traces(matches_end2);
@@ -216,20 +170,20 @@ void collect_pe_mapping_stats(
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
 				 bs2 = prim_match_end2 -> bs_strand;
-				 read_type1 = get_read_type(prim_match_end1,archive_search1->search_parameters.control_sequences);
-				 read_type2 = get_read_type(prim_match_end2,archive_search2->search_parameters.control_sequences);
+				 read_idx1 = get_read_control_index(prim_match_end1,archive_search1->search_parameters.control_sequences, bisulfite_mode);
+				 read_idx2 = get_read_control_index(prim_match_end2,archive_search2->search_parameters.control_sequences, bisulfite_mode);
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
 				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
-				 read_type1 = get_read_type(prim_match_end1,archive_search1->search_parameters.control_sequences);
+				 read_idx1 = get_read_control_index(prim_match_end1,archive_search1->search_parameters.control_sequences, bisulfite_mode);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
 				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
-				 read_type2 = get_read_type(prim_match_end2,archive_search2->search_parameters.control_sequences);
+				 read_idx2 = get_read_control_index(prim_match_end2,archive_search2->search_parameters.control_sequences, bisulfite_mode);
 			} else {
 				 mstats->unmapped[0]++;
 				 mstats->unmapped[1]++;
@@ -258,19 +212,21 @@ void collect_pe_mapping_stats(
 			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;
 			bs2 = match_end2 -> bs_strand;
-			read_type1 = read_type2 = get_read_type(match_end1,archive_search1->search_parameters.control_sequences);
+			
+			read_idx1 = read_idx2 = get_read_control_index(match_end1,control_sequences, bisulfite_mode);
+			// Get read type from index
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
-			if(paired_map->mapq_score>0 && paired_map->pair_relation == pair_relation_concordant) {
-				 update_conversion_counts(archive_search1->sequence, mstats, bs1, match_end1->strand, read_type1);
-				 update_conversion_counts(archive_search2->sequence, mstats, bs2, match_end2->strand, read_type2);
+			if(paired_map->mapq_score>20 && paired_map->pair_relation == pair_relation_concordant) {
+				 update_conversion_counts(archive_search1->sequence, mstats, bs1, match_end1->strand, read_idx1);
+				 update_conversion_counts(archive_search2->sequence, mstats, bs2, match_end2->strand, read_idx2);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;
 	 else if(bs1 == bs_strand_G2A) mstats->BSreads[0][1]++;
 	 if(bs2 == bs_strand_C2T) mstats->BSreads[1][0]++;
 	 else if(bs2 == bs_strand_G2A) mstats->BSreads[1][1]++;
-	 if(read_type1>=0) mstats->reads[0][read_type1]++;
-	 if(read_type2>=0) mstats->reads[1][read_type2]++;
+	 if(read_idx1>=0) mapping_stats_reads_inc(mstats, 0, read_idx1);
+	 if(read_idx2>=0) mapping_stats_reads_inc(mstats, 1, read_idx2);
 }
 char *indent_str="\t\t\t\t\t\t\t\t";
 #define MAX_JSON_ARRAY_LINE 8
@@ -312,10 +268,76 @@ void output_json_uint_array(
 			fprintf(fp,"%.*s%s",indent,indent_str,last?"]\n":"],\n");
 	 }
 }
+
+void output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent) {
+    char* base = "NACGT";
+    for(int k=0;k<N_BASE_COUNTS;k++) {
+		int k1 = (k+1)%N_BASE_COUNTS;
+		fprintf(fp,"%.*s\"%c\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,base[k1],ct->counts[0][k1],ct->counts[1][k1],k==N_BASE_COUNTS-1?"\n":",\n");
+	}
+}
+
+void output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent) {
+    char* base = "NACGT";
+    for(int k=0;k<N_BASE_COUNTS;k++) {
+		int k1 = (k+1)%N_BASE_COUNTS;
+		fprintf(fp,"%.*s\"%c\": [%" PRIu64"]%s",indent,indent_str,base[k1],ct->counts[0][k1],k==N_BASE_COUNTS-1?"\n":",\n");
+	}
+}
+
+char * read_type[4] = {"SequencingControl", "UnderConversionControl", "OverConversionControl", "ConversionControl"};
+void output_read_counts_pe(FILE *fp, mapper_parameters_t* const parameters, mapping_stats_t* const mstats, int i, int indent) {
+    uint64_t n1, n2;
+    if(i<0) {
+        n1 = mstats->unmapped[0];
+        n2 = mstats->unmapped[1];
+    } else {
+        n1 = *mapping_stats_reads_get(mstats, 0, i);
+        n2 = *mapping_stats_reads_get(mstats, 1, i);
+    } 
+	if(i<=0 || (n1 + n2) > 0) {
+	    char *s = NULL;
+		control_sequence_t *cs = NULL;
+		if(i<0) {
+		    s = "Unmapped";
+		} else if(!i) {
+		    s = "General";
+		} else {
+		    cs = vector_get_elm(parameters->search_parameters.control_sequences, i - 1, control_sequence_t);
+			s = string_get_buffer(&cs->sequence_name);
+		}
+		fprintf(fp,"%.*s\"%s\": [%" PRIu64", %" PRIu64"]%s\n",indent,indent_str,s,n1,n2,i<0?"":",");
+	}
+}
+
+void output_read_counts_se(FILE *fp, mapper_parameters_t* const parameters, mapping_stats_t* const mstats, int i, int indent) {
+    uint64_t n;
+    if(i<0) {
+        n = mstats->unmapped[0];
+    } else {
+        n = *mapping_stats_reads_get(mstats, 0, i);
+    } 
+	
+	if(i<=0 || n > 0) {
+	    char *s = NULL;
+		control_sequence_t *cs = NULL;
+		if(i<0) {
+		    s = "Unmapped";
+		} else if(!i) {
+		    s = "General";
+		} else {
+		    cs = vector_get_elm(parameters->search_parameters.control_sequences, i - 1, control_sequence_t);
+			s = string_get_buffer(&cs->sequence_name);
+		}
+		fprintf(fp,"%.*s\"%s\": [%" PRIu64"]%s\n",indent,indent_str,s,n,i<0?"":",");
+	}
+}
+
 void output_mapping_stats(
     mapper_parameters_t* const parameters,
     mapping_stats_t* const mstats) {
 	 char *output_file = parameters->io.report_file_name;
+	 const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
 	 FILE *fp = fopen(output_file,"w");
 	 if(!fp) return;
 	 fputs("{\n",fp);
@@ -364,17 +386,46 @@ void output_mapping_stats(
 			fprintf(fp,"%.*s\"ReadGroup\": \"%s\",\n",indent,indent_str,q);
 			mm_free(q);
 	 }
+	 int nc = mstats->n_control_seq;
+	 vector_t const *control_sequences=parameters->search_parameters.control_sequences;
+	 fprintf(fp,"%.*s\"ControlSequences\": {\n",indent++,indent_str);
+	 bool first = true;
+	 int jmax = bisulfite_index ? 4 : 1;
+	 for(int j=0;j<jmax;j++) {
+        for(int i=0;i<nc;i++) {
+            control_sequence_t *cs = vector_get_elm(control_sequences, i - 1, control_sequence_t);
+            if(cs->sequence_type==j) {
+                if(!first) fprintf(fp,",\n");
+                else first=false;
+                fprintf(fp,"%.*s\"%s\": {\n",indent++,indent_str, string_get_buffer(&cs->sequence_name));
+                fprintf(fp,"%.*s\"type\": %s",indent,indent_str, read_type[cs->sequence_type]);
+                if(cs->alt_name) {
+                    fprintf(fp,",\n%.*s\"alt_name\": %s",indent,indent_str, string_get_buffer(cs->alt_name));
+                }
+                fprintf(fp,"\n%.*s}",--indent,indent_str);
+            }
+        }
+     }
+	 fprintf(fp,"\n%.*s}\n",--indent,indent_str);
 	 uint64_t tot_BSreads=0;
-	 char* read_type[]={"General","SequencingControl","UnderConversionControl","OverConversionControl"};
 	 char* conv_type[]={"C2T","G2A"};
 	 int i,j,k;
 	 fprintf(fp,"%.*s\"Reads\": {\n",indent++,indent_str);
+	
 	 if(paired) {
-			for(i=0;i<4;i++) {
-				 if(!i || mstats->reads[0][i] || mstats->reads[1][i])
-					 fprintf(fp,"%.*s\"%s\": [%"PRIu64", %"PRIu64"],\n",indent,indent_str,read_type[i],mstats->reads[0][i],mstats->reads[1][i]);
-			}
-			fprintf(fp,"%.*s\"Unmapped\": [%"PRIu64", %"PRIu64"]\n",indent,indent_str,mstats->unmapped[0],mstats->unmapped[1]);
+		    // General reads
+            output_read_counts_pe(fp, parameters, mstats, 0, indent);
+            int jmax = bisulfite_index ? 4 : 1;
+            for(j=0;j<jmax;j++) {
+                for(i=0;i<nc;i++) {
+                    control_sequence_t *cs = vector_get_elm(control_sequences, i - 1, control_sequence_t);
+                    if(cs->sequence_type==j) {
+                        output_read_counts_pe(fp, parameters, mstats, i+1, indent);
+                    }
+                }
+            }
+            // Unmapped reads
+			output_read_counts_pe(fp, parameters, mstats, -1, indent);
 			fprintf(fp,"%.*s},\n",--indent,indent_str);
 	 
 			for(i=0;i<2;i++) tot_BSreads+=mstats->BSreads[0][i]+mstats->BSreads[1][i];
@@ -387,27 +438,35 @@ void output_mapping_stats(
 			}
 			output_json_uint_element(fp,"CorrectPairs",mstats->correct_pairs,indent,false);
 			fprintf(fp,"%.*s\"BaseCounts\": {\n",indent++,indent_str);
-			char* bc_type[] = {"Overall","GeneralC2T","GeneralG2A","UnderConversionControlC2T","UnderConversionControlG2A","OverConversionControlC2T","OverConversionControlG2A"};
-			char* base = "NACGT";
-			uint64_t tot[6];
-			for(i=1;i<7;i++) {
-				 tot[i-1]=0;
-				 for(j=0;j<2;j++) for(k=0;k<5;k++) tot[i-1]+=mstats->base_counts[i][j][k];
-			}
-			for(i=5;i>=0;i--) if(tot[i]) break;
-			j=i+1;
-			for(i=0;i<=j;i++) {
-				 bool last = (i == j);
-				 if(!i || tot[i-1]) {
-						fprintf(fp,"%.*s\"%s\": {\n",indent++,indent_str,bc_type[i]);
-						for(k=0;k<5;k++) {
-							 int k1 = (k+1)%5;
-							 fprintf(fp,"%.*s\"%c\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,base[k1],mstats->base_counts[i][0][k1],mstats->base_counts[i][1][k1],k==4?"\n":",\n");
-						}
-						fprintf(fp,"%.*s}%s",--indent,indent_str,last?"\n":",\n");
+			
+			fprintf(fp,"%.*s\"Overall\": {\n",indent,indent_str);
+			output_base_counts_pe(fp, &mstats->overall_counts, indent+1);
+			fprintf(fp,"%.*s}",indent,indent_str);
+			
+			for(i=0;i<=nc;i++) {
+				 base_counts_t const *c2t = mstats->base_counts[0] + i; 
+				 base_counts_t const *g2a = mstats->base_counts[1] + i;
+				 uint64_t tot=0;
+				 for(k=0;k<5;k++) {
+					tot+=c2t->counts[0][k]+c2t->counts[1][k]+g2a->counts[0][k]+g2a->counts[1][k];
+				 }
+
+				 if(!i || tot>0) {
+				    char const *s = NULL;
+					if(i==0) {
+					    s="General";
+				    } else {
+						s=string_get_buffer(&(vector_get_elm(control_sequences, i-1, control_sequence_t)->sequence_name));
+					}
+					fprintf(fp,",\n%.*s\"%sC2T\": {\n",indent,indent_str,s);
+					output_base_counts_pe(fp, c2t, indent+1);
+					fprintf(fp,"%.*s}",indent,indent_str);
+					fprintf(fp,",\n%.*s\"%sG2A\": {\n",indent,indent_str,s);
+					output_base_counts_pe(fp, g2a, indent+1);
+					fprintf(fp,"%.*s}",indent,indent_str);
 				 }
 			}
-			fprintf(fp,"%.*s},\n",--indent,indent_str);
+			fprintf(fp,"\n%.*s},\n",--indent,indent_str);
 			for(i=255;i>0;i--) if(mstats->hist_mapq[i]) break;
 			output_json_uint_array(fp,"HistMapq",mstats->hist_mapq,i+1,indent,false);
 			fprintf(fp,"%.*s\"HistReadLen\": [\n",indent++,indent_str);
@@ -440,11 +499,17 @@ void output_mapping_stats(
 			}
 			fprintf(fp,"%.*s}\n",--indent,indent_str);
 	 } else {
-			for(i=0;i<4;i++) {
-				 if(!i || mstats->reads[0][i])
-					 fprintf(fp,"%.*s\"%s\": [%"PRIu64"],\n",indent,indent_str,read_type[i],mstats->reads[0][i]);
-			}
-			fprintf(fp,"%.*s\"Unmapped\": [%"PRIu64"]\n",indent,indent_str,mstats->unmapped[0]);
+		    output_read_counts_se(fp, parameters, mstats, 0, indent);
+			int jmax = bisulfite_index ? 4 : 1;
+            for(j=0;j<jmax;j++) {
+                for(i=0;i<nc;i++) {
+                    control_sequence_t *cs = vector_get_elm(parameters->search_parameters.control_sequences, i - 1, control_sequence_t);
+                    if(cs->sequence_type==j) {
+                        output_read_counts_se(fp, parameters, mstats, i+1, indent);
+                    }
+                }
+            }
+            output_read_counts_se(fp, parameters, mstats, -1, indent);
 			fprintf(fp,"%.*s},\n",--indent,indent_str); 
 			for(i=0;i<2;i++) tot_BSreads+=mstats->BSreads[0][i];
 			if(tot_BSreads) {
@@ -455,24 +520,31 @@ void output_mapping_stats(
 				 fprintf(fp,"%.*s},\n",--indent,indent_str);
 			}
 			fprintf(fp,"%.*s\"BaseCounts\": {\n",indent++,indent_str);
-			char* bc_type[] = {"Overall","GeneralC2T","GeneralG2A","UnderConversionControlC2T","UnderConversionControlG2A","OverConversionControlC2T","OverConversionControlG2A"};
-			char* base = "NACGT";
-			uint64_t tot[6];
-			for(i=1;i<7;i++) {
-				 tot[i-1]=0;
-				 for(k=0;k<5;k++) tot[i-1]+=mstats->base_counts[i][0][k];
-			}
-			for(i=5;i>=0;i--) if(tot[i]) break;
-			j=i+1;
-			for(i=0;i<=j;i++) {
-				 bool last = (i == j);
-				 if(!i || tot[i-1]) {
-						fprintf(fp,"%.*s\"%s\": {\n",indent++,indent_str,bc_type[i]);
-						for(k=0;k<5;k++) {
-							 int k1 = (k+1)%5;
-							 fprintf(fp,"%.*s\"%c\": [%"PRIu64"]%s",indent,indent_str,base[k1],mstats->base_counts[i][0][k1],k==4?"\n":",\n");
-						}
-						fprintf(fp,"%.*s}%s",--indent,indent_str,last?"\n":",\n");
+			
+			fprintf(fp,"%.*s\"Overall\": {\n",indent,indent_str);
+			output_base_counts_se(fp, &mstats->overall_counts, indent+1);
+			fprintf(fp,"%.*s}",indent,indent_str);
+			
+			for(i=0;i<=nc;i++) {
+				 base_counts_t const *c2t = mstats->base_counts[0] + i; 
+				 base_counts_t const *g2a = mstats->base_counts[1] + i;
+				 uint64_t tot=0;
+				 for(k=0;k<5;k++) {
+					tot+=c2t->counts[0][k]+g2a->counts[0][k];
+				 }
+				 if(!i || tot>0) {
+					char const *s = NULL;
+				    if(i==0) {
+						s="General";
+					} else {
+					    s=string_get_buffer(&(vector_get_elm(control_sequences, i-1, control_sequence_t)->sequence_name));
+				    }
+					fprintf(fp,",\n%.*s\"%sC2T\": {\n",indent,indent_str,s);
+					output_base_counts_se(fp, c2t, indent+1);
+					fprintf(fp,"%.*s}",indent,indent_str);
+					fprintf(fp,",\n%.*s\"%sG2A\": {\n",indent,indent_str,s);
+					output_base_counts_se(fp, g2a, indent+1);
+					fprintf(fp,"%.*s}",indent,indent_str);
 				 }
 			}
 			fprintf(fp,"%.*s},\n",--indent,indent_str);

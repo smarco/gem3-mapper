@@ -32,6 +32,7 @@ include $(ROOT_PATH)/Makefile.mk
 ###############################################################################
 MODULES=cdna_bitwise_text \
         cdna_text \
+		control_sequence \
         dna_text \
         sequence \
         sequence_bisulfite \

@@ -29,9 +29,9 @@
 #include "stats/report_stats_mstats.h"
 #include "mapper/mapper.h"
 
-#define UNDERCONVERSION_CONTROL "NC_001416.1"
-#define OVERCONVERSION_CONTROL "NC_001604.1"
-#define SEQUENCING_CONTROL "NC_001422.1"
+#define UNDERCONVERSION_CONTROL "NC_001416.1:Lambda_5C_conversion"
+#define OVERCONVERSION_CONTROL "NC_001604.1:T7_5mC_conversion"
+#define SEQUENCING_CONTROL "NC_001422.1:PhiX"
 
 void init_mapping_stats(
     mapping_stats_t* const mstats);

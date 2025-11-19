@@ -31,6 +31,8 @@
 #include "gpu/gpu_buffer_collection.h"
 #include "stats/report_stats.h"
 #include "profiler/profiler.h"
+#include "stats/report_stats_mstats.h"
+#include "utils/vector.h"
 
 /*
  * Error report
@@ -148,8 +150,15 @@ void mapper_cuda_run(mapper_parameters_t* const mapper_parameters,const bool pai
       &ticker,mapper_parameters->io.mapper_ticker_step,
       paired_end,mapper_parameters->misc.verbose_user);
   // Mapping stats
-  mapping_stats_t* const mstats = mapper_parameters->global_mapping_stats ?
-      mm_calloc(num_threads,mapping_stats_t,false) : NULL;
+  mapping_stats_t *ms = NULL;
+  if(mapper_parameters->global_mapping_stats) {
+      ms = mm_calloc(num_threads,mapping_stats_t,false);
+      int nc = vector_get_used(mapper_parameters->search_parameters.control_sequences);
+      for(int i=0;i<num_threads;i++) {
+          setup_mapping_stats(&ms[i], nc);
+      }
+  }
+  mapping_stats_t* const mstats = ms;
   // Mapper Searches (threads)
   mapper_cuda_search_t* const mapper_search = mm_malloc(num_threads*sizeof(mapper_cuda_search_t));
   // Error-report function
