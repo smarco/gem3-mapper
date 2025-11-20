@@ -27,11 +27,14 @@
 #include "system/commons.h"
 #include "utils/hash.h"
 
-#define N_BASE_COUNTS 5
-
+#define N_BASE_COUNTS 9
+#define N_REDUCED_BASE_COUNTS 5
 /*
  * Index 1: read end
- * Index 2: base (N, A, C, G, T) 
+ * Index 2: base (N, A, C, G, T followed by 4 two-base counts for capturing CpG conversions
+ * 
+ * For C2T reads, the 4 extra counts are: CG, CH, TG, TH
+ * while for G2A reads they are: CG, DG, CA, DA, 
  */
 typedef struct {
     uint64_t counts[2][N_BASE_COUNTS];

@@ -31,7 +31,9 @@
 #include "utils/string_buffer.h"
 #include "utils/vector.h"
 
-int btab[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
+int btab_fwd[256]={ ['A'] = 1, ['C'] = 2, ['G'] = 3, ['T'] = 4 };
+int btab_rev[256]={ ['A'] = 4, ['C'] = 3, ['G'] = 2, ['T'] = 1 };
+
 void update_counts(
     sequence_t* const seq_read,
     mapping_stats_t* const mstats,
@@ -50,7 +52,7 @@ void update_counts(
 	 }
 	 char *p = string_get_buffer(read);
 	 uint64_t *q = mstats->overall_counts.counts[end];
-	 while(*p) q[btab[(int)*p++]]++;
+	 while(*p) q[btab_fwd[(int)*p++]]++;
 }
 void update_distance_counts(
     matches_t const * matches,
@@ -73,9 +75,12 @@ void update_distance_counts(
 	 } else {
 			count = ih->element;
 			(*count)++;
-	 }	 
+	 }
 }
-	
+
+const int cnv_idx_c2t[25]={0,0,0,0,0, 1,1,1,1,1, 0,6,6,5,6, 3,3,3,3,3, 0,8,8,7,8};
+const int cnv_idx_g2a[25]={0,0,2,0,4, 0,8,2,6,4, 0,7,2,5,4, 0,8,2,6,4, 0,8,2,6,4};
+
 void update_conversion_counts(
     const archive_search_t *archive,
     const matches_t* const matches,
@@ -83,51 +88,74 @@ void update_conversion_counts(
     const mapping_stats_t* mstats,
     const bs_strand_t bs,
 	const strand_t strand,
-    const int read_idx) {
-	
+    const int read_idx,
+    const int end) {
+
      /*
       * bs strand
-      * 
+      *
       * 0 => None
-      * 1 => C2t
+      * 1 => C2T
       * 2 => G2A
       * 3 => mixed
       */
-	 if(bs > 0 && bs <= 2) {
-	    const int end = strand == Forward ? bs - 1 : 2 - bs;
+	 if(bs==1 || bs==2) {
         sequence_t * seq_read = archive->sequence;
         const uint64_t cigar_length = match->match_alignment.cigar_length;
-        const cigar_element_t* const cigar_array =
-            vector_get_mem(matches->cigar_vector,cigar_element_t) + match->match_alignment.cigar_offset;
+        const cigar_element_t* const cigar_array=vector_get_mem(matches->cigar_vector,cigar_element_t) + match->match_alignment.cigar_offset;
    		const search_parameters_t *params = &archive->search_parameters;
-        
+        const int (*cnv_idx)[25] = bs==1?&cnv_idx_c2t:&cnv_idx_g2a;
+
         int clip = params->conversion_clip_start;
         string_t *read = &seq_read->read;
-		
 		const char *p = string_get_buffer(read);
-
 		uint64_t *ct = mapping_stats_base_counts(mstats, bs - 1, read_idx)->counts[end];
-		
-		int initial_skip = cigar_array[0].type==cigar_del?cigar_array[0].length : 0; 
+		int initial_skip = cigar_array[0].type==cigar_del?cigar_array[0].length : 0;
 		int final_skip = cigar_array[cigar_length-1].type==cigar_del?cigar_array[cigar_length-1].length : 0;
 		if(clip < initial_skip) clip = initial_skip;
-		
+
 		/* We don't check that l is not negative, but since clip is >=0, if it is negative it
 		 * will be detected in the next line.
 		 */
 		int l = read->length -= final_skip;
 		if(l<=clip) return;
-
-		if(seq_read->has_qualities) {
-		    const uint8_t min_base_qual = params->conversion_min_base_qual + 33;
-		    const char *q = string_get_buffer(&seq_read->qualities);
-			for(int i=clip; i < l; i++) {
-			    if(q[i] >= min_base_qual) {
-					ct[btab[(int)p[i]]]++;
-				} else ct[0]++;	
+		int prev=0;
+		if(strand==Forward) {
+		    if(seq_read->has_qualities) {
+		        const uint8_t min_base_qual = params->conversion_min_base_qual + 33;
+				const char *q = string_get_buffer(&seq_read->qualities);
+				for(int i=clip; i < l; i++) {
+				    const int b=q[i]>=min_base_qual?btab_fwd[(int)p[i]]:0;
+					const int k=(*cnv_idx)[prev*5+b];
+					ct[k]++;
+					prev=b;
+				}
+			} else {
+		        for(int i=clip; i < l; i++) {
+					const int b = btab_fwd[(int)p[i]];
+					const int k=(*cnv_idx)[prev*5+b];
+					ct[k]++;
+					prev=b;
+				}
 			}
 		} else {
-		    for(int i=clip; i < l; i++) ct[btab[(int)p[i]]]++;
+		    if(seq_read->has_qualities) {
+				const uint8_t min_base_qual = params->conversion_min_base_qual + 33;
+				const char *q = string_get_buffer(&seq_read->qualities);
+				for(int i=l-1; i >=clip; i--) {
+                    const int b=q[i]>=min_base_qual?btab_rev[(int)p[i]]:0;
+                    const int k=(*cnv_idx)[prev*5+b];
+                    ct[k]++;
+                    prev=b;
+				}
+			} else {
+				for(int i=l-1; i >=clip; i--) {
+                    const int b=btab_rev[(int)p[i]];
+                    const int k=(*cnv_idx)[prev*5+b];
+                    ct[k]++;
+                    prev=b;
+				}
+			}
 		}
 	 }
 }
@@ -145,7 +173,7 @@ int get_read_control_index(match_trace_t* const match, const vector_t *v, bool b
 		    ix = i;
 			break;
 		}
-	 } 
+	 }
 	 return ix + 1;
 }
 
@@ -168,7 +196,7 @@ void collect_se_mapping_stats(
 			bs = match->bs_strand;
 			read_idx = get_read_control_index(match, archive_search->search_parameters.control_sequences, bisulfite_mode);
 			if(match->mapq_score>=min_mapq) {
-				 update_conversion_counts(archive_search, matches, match, mstats, bs, match->strand, read_idx);
+				 update_conversion_counts(archive_search, matches, match, mstats, bs, match->strand, read_idx, 0);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -185,7 +213,7 @@ void collect_pe_mapping_stats(
 	 update_counts(archive_search1->sequence,mstats,0);
 	 update_counts(archive_search2->sequence,mstats,1);
 	 matches_t* const matches_end1 = paired_matches->matches_end1;
-	 matches_t* const matches_end2 = paired_matches->matches_end2;	 
+	 matches_t* const matches_end2 = paired_matches->matches_end2;
 	 vector_t const *control_sequences = archive_search1->search_parameters.control_sequences;
 	 bs_strand_t bs1,bs2;
 	 bs1 = bs2 = bs_strand_none;
@@ -243,13 +271,13 @@ void collect_pe_mapping_stats(
 			update_distance_counts(paired_matches->matches_end2, match_end2, mstats, 1);
 			bs1 = match_end1 -> bs_strand;
 			bs2 = match_end2 -> bs_strand;
-			
+
 			read_idx1 = read_idx2 = get_read_control_index(match_end1,control_sequences, bisulfite_mode);
 			// Get read type from index
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
 			if(paired_map->mapq_score>=min_mapq && paired_map->pair_relation == pair_relation_concordant) {
-				 update_conversion_counts(archive_search1, matches_end1, paired_map->match_trace_end1, mstats, bs1, match_end1->strand, read_idx1);
-				 update_conversion_counts(archive_search2, matches_end2, paired_map->match_trace_end2, mstats, bs2, match_end2->strand, read_idx2);
+				 update_conversion_counts(archive_search1, matches_end1, paired_map->match_trace_end1, mstats, bs1, match_end1->strand, read_idx1, 0);
+				 update_conversion_counts(archive_search2, matches_end2, paired_map->match_trace_end2, mstats, bs2, match_end2->strand, read_idx2, 1);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -300,20 +328,45 @@ void output_json_uint_array(
 	 }
 }
 
-void output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent) {
-    char* base = "NACGT";
-    for(int k=0;k<N_BASE_COUNTS;k++) {
-		int k1 = (k+1)%N_BASE_COUNTS;
-		fprintf(fp,"%.*s\"%c\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,base[k1],ct->counts[0][k1],ct->counts[1][k1],k==N_BASE_COUNTS-1?"\n":",\n");
+const char *ct_desc_c2t[N_BASE_COUNTS] = {"N", "A", "C", "G", "T", "CG", "CH", "TG", "TH"};
+const char *ct_desc_g2a[N_BASE_COUNTS] = {"N", "A", "C", "G", "T", "CG", "DG", "CA", "DA"};
+
+void _output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent, int n, const char* (*ct_desc)[N_BASE_COUNTS]) {
+    for(int k=0;k<n;k++) {
+        if(ct->counts[0][k]+ct->counts[1][k]>0)
+            fprintf(fp,"%.*s\"%s\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,(*ct_desc)[k],ct->counts[0][k],ct->counts[1][k],k==n-1?"\n":",\n");
 	}
 }
 
-void output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent) {
-    char* base = "NACGT";
-    for(int k=0;k<N_BASE_COUNTS;k++) {
-		int k1 = (k+1)%N_BASE_COUNTS;
-		fprintf(fp,"%.*s\"%c\": [%" PRIu64"]%s",indent,indent_str,base[k1],ct->counts[0][k1],k==N_BASE_COUNTS-1?"\n":",\n");
+const char* (* get_bs_strand_desc(bs_strand_t bs, int *n))[N_BASE_COUNTS]  {
+    const char* (*cp)[N_BASE_COUNTS];
+    *n=N_BASE_COUNTS;
+    if(bs==bs_strand_C2T) cp=&ct_desc_c2t;
+    else if(bs==bs_strand_G2A) cp=&ct_desc_g2a;
+    else {
+        cp=&ct_desc_c2t;
+        *n=N_REDUCED_BASE_COUNTS;
+    }
+    return cp;
+}
+
+void output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent, bs_strand_t bs) {
+    int n;
+    const char* (*cp)[N_BASE_COUNTS]=get_bs_strand_desc(bs, &n);
+    _output_base_counts_pe(fp, ct, indent, n, cp);
+}
+
+void _output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent, int n, const char* (*ct_desc)[N_BASE_COUNTS]) {
+    for(int k=0;k<n;k++) {
+        if(ct->counts[0][k]>0)
+            fprintf(fp,"%.*s\"%s\": [%" PRIu64"]%s",indent,indent_str,(*ct_desc)[k],ct->counts[0][k],k==n-1?"\n":",\n");
 	}
+}
+
+void output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent, bs_strand_t bs) {
+    int n;
+    const char* (*cp)[N_BASE_COUNTS]=get_bs_strand_desc(bs, &n);
+    _output_base_counts_se(fp, ct, indent, n, cp);
 }
 
 char * read_type[4] = {"SequencingControl", "UnderConversionControl", "OverConversionControl", "ConversionControl"};
@@ -325,7 +378,7 @@ void output_read_counts_pe(FILE *fp, mapper_parameters_t const * parameters, map
     } else {
         n1 = *mapping_stats_reads_get(mstats, 0, i);
         n2 = *mapping_stats_reads_get(mstats, 1, i);
-    } 
+    }
 	if(i<=0 || (n1 + n2) > 0) {
 	    char *s = NULL;
 		control_sequence_t *cs = NULL;
@@ -347,8 +400,8 @@ void output_read_counts_se(FILE *fp, mapper_parameters_t const * parameters, map
         n = mstats->unmapped[0];
     } else {
         n = *mapping_stats_reads_get(mstats, 0, i);
-    } 
-	
+    }
+
 	if(i<=0 || n > 0) {
 	    char *s = NULL;
 		control_sequence_t *cs = NULL;
@@ -429,20 +482,19 @@ void output_mapping_stats(
                 if(!first) fprintf(fp,",\n");
                 else first=false;
                 fprintf(fp,"%.*s\"%s\": {\n",indent++,indent_str, string_get_buffer(&cs->sequence_name));
-                fprintf(fp,"%.*s\"type\": %s",indent,indent_str, read_type[cs->sequence_type]);
+                fprintf(fp,"%.*s\"type\": \"%s\"",indent,indent_str, read_type[cs->sequence_type]);
                 if(cs->alt_name) {
-                    fprintf(fp,",\n%.*s\"alt_name\": %s",indent,indent_str, string_get_buffer(cs->alt_name));
                 }
                 fprintf(fp,"\n%.*s}",--indent,indent_str);
             }
         }
      }
-	 fprintf(fp,"\n%.*s}\n",--indent,indent_str);
+	 fprintf(fp,"\n%.*s},\n",--indent,indent_str);
 	 uint64_t tot_BSreads=0;
 	 char* conv_type[]={"C2T","G2A"};
 	 int i,j,k;
 	 fprintf(fp,"%.*s\"Reads\": {\n",indent++,indent_str);
-	
+
 	 if(paired) {
 		    // General reads
             output_read_counts_pe(fp, parameters, mstats, 0, indent);
@@ -458,7 +510,7 @@ void output_mapping_stats(
             // Unmapped reads
 			output_read_counts_pe(fp, parameters, mstats, -1, indent);
 			fprintf(fp,"%.*s},\n",--indent,indent_str);
-	 
+
 			for(i=0;i<2;i++) tot_BSreads+=mstats->BSreads[0][i]+mstats->BSreads[1][i];
 			if(tot_BSreads) {
 				 fprintf(fp,"%.*s\"NumReadsBS\": {\n",indent++,indent_str);
@@ -469,13 +521,13 @@ void output_mapping_stats(
 			}
 			output_json_uint_element(fp,"CorrectPairs",mstats->correct_pairs,indent,false);
 			fprintf(fp,"%.*s\"BaseCounts\": {\n",indent++,indent_str);
-			
+
 			fprintf(fp,"%.*s\"Overall\": {\n",indent,indent_str);
-			output_base_counts_pe(fp, &mstats->overall_counts, indent+1);
+			output_base_counts_pe(fp, &mstats->overall_counts, indent+1, bs_strand_mixed);
 			fprintf(fp,"%.*s}",indent,indent_str);
-			
+
 			for(i=0;i<=nc;i++) {
-				 base_counts_t const *c2t = mstats->base_counts[0] + i; 
+				 base_counts_t const *c2t = mstats->base_counts[0] + i;
 				 base_counts_t const *g2a = mstats->base_counts[1] + i;
 				 uint64_t tot=0;
 				 for(k=0;k<5;k++) {
@@ -490,10 +542,10 @@ void output_mapping_stats(
 						s=string_get_buffer(&(vector_get_elm(control_sequences, i-1, control_sequence_t)->sequence_name));
 					}
 					fprintf(fp,",\n%.*s\"%s_C2T\": {\n",indent,indent_str,s);
-					output_base_counts_pe(fp, c2t, indent+1);
+					output_base_counts_pe(fp, c2t, indent+1, bs_strand_C2T);
 					fprintf(fp,"%.*s}",indent,indent_str);
 					fprintf(fp,",\n%.*s\"%s_G2A\": {\n",indent,indent_str,s);
-					output_base_counts_pe(fp, g2a, indent+1);
+					output_base_counts_pe(fp, g2a, indent+1, bs_strand_G2A);
 					fprintf(fp,"%.*s}",indent,indent_str);
 				 }
 			}
@@ -541,7 +593,7 @@ void output_mapping_stats(
                 }
             }
             output_read_counts_se(fp, parameters, mstats, -1, indent);
-			fprintf(fp,"%.*s},\n",--indent,indent_str); 
+			fprintf(fp,"%.*s},\n",--indent,indent_str);
 			for(i=0;i<2;i++) tot_BSreads+=mstats->BSreads[0][i];
 			if(tot_BSreads) {
 				 fprintf(fp,"%.*s\"NumReadsBS\": {\n",indent++,indent_str);
@@ -551,13 +603,13 @@ void output_mapping_stats(
 				 fprintf(fp,"%.*s},\n",--indent,indent_str);
 			}
 			fprintf(fp,"%.*s\"BaseCounts\": {\n",indent++,indent_str);
-			
+
 			fprintf(fp,"%.*s\"Overall\": {\n",indent,indent_str);
-			output_base_counts_se(fp, &mstats->overall_counts, indent+1);
+			output_base_counts_se(fp, &mstats->overall_counts, indent+1, bs_strand_mixed);
 			fprintf(fp,"%.*s}",indent,indent_str);
-			
+
 			for(i=0;i<=nc;i++) {
-				 base_counts_t const *c2t = mstats->base_counts[0] + i; 
+				 base_counts_t const *c2t = mstats->base_counts[0] + i;
 				 base_counts_t const *g2a = mstats->base_counts[1] + i;
 				 uint64_t tot=0;
 				 for(k=0;k<5;k++) {
@@ -571,10 +623,10 @@ void output_mapping_stats(
 					    s=string_get_buffer(&(vector_get_elm(control_sequences, i-1, control_sequence_t)->sequence_name));
 				    }
 					fprintf(fp,",\n%.*s\"%sC2T\": {\n",indent,indent_str,s);
-					output_base_counts_se(fp, c2t, indent+1);
+					output_base_counts_se(fp, c2t, indent+1, bs_strand_C2T);
 					fprintf(fp,"%.*s}",indent,indent_str);
 					fprintf(fp,",\n%.*s\"%sG2A\": {\n",indent,indent_str,s);
-					output_base_counts_se(fp, g2a, indent+1);
+					output_base_counts_se(fp, g2a, indent+1, bs_strand_G2A);
 					fprintf(fp,"%.*s}",indent,indent_str);
 				 }
 			}
