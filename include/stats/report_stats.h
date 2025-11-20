@@ -34,24 +34,24 @@
 #define SEQUENCING_CONTROL "NC_001422.1:PhiX"
 
 void init_mapping_stats(
-    mapping_stats_t* const mstats);
+    mapping_stats_t *const mstats);
 
 void collect_se_mapping_stats(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
+    const archive_search_t* archive_search,
+    const matches_t* matches,
     mapping_stats_t* mstats);
 void collect_pe_mapping_stats(
-    archive_search_t* const archive_search1,
-    archive_search_t* const archive_search2,
-    paired_matches_t* const paired_matches,
+    const archive_search_t* archive_search1,
+    const archive_search_t* archive_search2,
+    paired_matches_t* paired_matches,
     mapping_stats_t* mstats);
 
 void output_mapping_stats(
-    mapper_parameters_t* const parameters,
-    mapping_stats_t* const mstats);
+    const mapper_parameters_t* parameters,
+    const mapping_stats_t* mstats);
 void merge_mapping_stats(
-    mapping_stats_t* const global_mstats,
-    mapping_stats_t* const mstats,
+    const mapping_stats_t* global_mstats,
+    const mapping_stats_t* mstats,
     const uint64_t num_threads);
 
 #endif

@@ -112,7 +112,13 @@ typedef struct {
 
   vector_t *control_sequences;
   vector_t *restriction_sites;
-
+  
+  /* Bisulfilte conversion */
+  
+  uint8_t conversion_min_mapq;
+  uint8_t conversion_min_base_qual;
+  uint64_t conversion_clip_start;
+  
   /* Clipping */
   clipping_type clipping;
   uint64_t clip_left;

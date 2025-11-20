@@ -113,7 +113,10 @@ void search_parameters_init(search_parameters_t* const search_parameters) {
   // Bisulfite
   search_parameters->bisulfite_read = bisulfite_inferred_C2T_G2A;
   search_parameters->control_sequences = vector_new(8, control_sequence_t);
-
+  search_parameters->conversion_min_mapq = 1;
+  search_parameters->conversion_min_base_qual = 0;
+  search_parameters->conversion_clip_start = 0;
+  
   search_parameters->rrbs = false;
   // Restriction restriction_sites
   search_parameters->restriction_sites = NULL;

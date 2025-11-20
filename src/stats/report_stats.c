@@ -25,6 +25,7 @@
 #include "archive/archive.h"
 #include "archive/search/archive_search_se_parameters.h"
 #include "matches/matches.h"
+#include "matches/matches_cigar.h"
 #include "stats/report_stats_mstats.h"
 #include "text/dna_text.h"
 #include "utils/string_buffer.h"
@@ -52,7 +53,7 @@ void update_counts(
 	 while(*p) q[btab[(int)*p++]]++;
 }
 void update_distance_counts(
-    matches_t* const matches,
+    matches_t const * matches,
     match_trace_t* const match_trace,
     mapping_stats_t* mstats, int end) {
 	 vector_t* const cigar_vector = matches->cigar_vector;
@@ -74,12 +75,12 @@ void update_distance_counts(
 			(*count)++;
 	 }	 
 }
-static const int cnv_idx[4][4] = {{0,0,0,0},{1,0,3,5},{2,0,4,6},{0,0,0,0}};
-static const int cnv_end[2][4] = {{-1,0,1,-1},{-1,1,0,-1}};
 	
 void update_conversion_counts(
-    sequence_t* const seq_read,
-    mapping_stats_t* const mstats,
+    const archive_search_t *archive,
+    const matches_t* const matches,
+    const match_trace_t* const match,
+    const mapping_stats_t* mstats,
     const bs_strand_t bs,
 	const strand_t strand,
     const int read_idx) {
@@ -92,14 +93,42 @@ void update_conversion_counts(
       * 2 => G2A
       * 3 => mixed
       */
-      
 	 if(bs > 0 && bs <= 2) {
 	    const int end = strand == Forward ? bs - 1 : 2 - bs;
+        sequence_t * seq_read = archive->sequence;
+        const uint64_t cigar_length = match->match_alignment.cigar_length;
+        const cigar_element_t* const cigar_array =
+            vector_get_mem(matches->cigar_vector,cigar_element_t) + match->match_alignment.cigar_offset;
+   		const search_parameters_t *params = &archive->search_parameters;
+        
+        int clip = params->conversion_clip_start;
+        string_t *read = &seq_read->read;
 		
-		uint64_t *ct = mapping_stats_base_counts(mstats, bs - 1, read_idx)->counts[end];
-		string_t* const read = &seq_read->read;
 		const char *p = string_get_buffer(read);
-		while(*p) ct[btab[(int)*p++]]++;
+
+		uint64_t *ct = mapping_stats_base_counts(mstats, bs - 1, read_idx)->counts[end];
+		
+		int initial_skip = cigar_array[0].type==cigar_del?cigar_array[0].length : 0; 
+		int final_skip = cigar_array[cigar_length-1].type==cigar_del?cigar_array[cigar_length-1].length : 0;
+		if(clip < initial_skip) clip = initial_skip;
+		
+		/* We don't check that l is not negative, but since clip is >=0, if it is negative it
+		 * will be detected in the next line.
+		 */
+		int l = read->length -= final_skip;
+		if(l<=clip) return;
+
+		if(seq_read->has_qualities) {
+		    const uint8_t min_base_qual = params->conversion_min_base_qual + 33;
+		    const char *q = string_get_buffer(&seq_read->qualities);
+			for(int i=clip; i < l; i++) {
+			    if(q[i] >= min_base_qual) {
+					ct[btab[(int)p[i]]]++;
+				} else ct[0]++;	
+			}
+		} else {
+		    for(int i=clip; i < l; i++) ct[btab[(int)p[i]]]++;
+		}
 	 }
 }
 
@@ -121,13 +150,14 @@ int get_read_control_index(match_trace_t* const match, const vector_t *v, bool b
 }
 
 void collect_se_mapping_stats(
-    archive_search_t* const archive_search,
-    matches_t* const matches,
+    const archive_search_t* archive_search,
+    const matches_t* matches,
     mapping_stats_t* mstats) {
 	 update_counts(archive_search->sequence,mstats,0);
 	 bs_strand_t bs = bs_strand_none;
 	 bool bisulfite_mode = archive_search->archive->type == archive_dna_bisulfite;
 	 int read_idx = -1;
+	 uint8_t min_mapq = archive_search->search_parameters.conversion_min_mapq;
 	 const uint64_t num_match_traces = matches_get_num_match_traces(matches);
 	 if (gem_expect_false(num_match_traces==0)) { // Unmapped
 			mstats->unmapped[0]++;
@@ -137,8 +167,8 @@ void collect_se_mapping_stats(
 			update_distance_counts(matches, match, mstats, 0);
 			bs = match->bs_strand;
 			read_idx = get_read_control_index(match, archive_search->search_parameters.control_sequences, bisulfite_mode);
-			if(match->mapq_score>20) {
-				 update_conversion_counts(archive_search->sequence, mstats, bs, match->strand, read_idx);
+			if(match->mapq_score>=min_mapq) {
+				 update_conversion_counts(archive_search, matches, match, mstats, bs, match->strand, read_idx);
 			}
 			mstats->hist_mapq[(int)match->mapq_score]++;
 			if(bs == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -147,9 +177,9 @@ void collect_se_mapping_stats(
 	 }
 }
 void collect_pe_mapping_stats(
-    archive_search_t* const archive_search1,
-    archive_search_t* const archive_search2,
- 	  paired_matches_t* const paired_matches,
+    const archive_search_t* archive_search1,
+    const archive_search_t* archive_search2,
+ 	  paired_matches_t* paired_matches,
  	  mapping_stats_t* mstats) {
      bool bisulfite_mode = archive_search1->archive->type == archive_dna_bisulfite;
 	 update_counts(archive_search1->sequence,mstats,0);
@@ -160,6 +190,7 @@ void collect_pe_mapping_stats(
 	 bs_strand_t bs1,bs2;
 	 bs1 = bs2 = bs_strand_none;
 	 int read_idx1 = -1, read_idx2 = -1;
+	 uint8_t min_mapq = archive_search1->search_parameters.conversion_min_mapq;
 	 if (gem_expect_false(!paired_matches_is_mapped(paired_matches))) { // Non paired
 			const uint64_t vector_match_trace_used_end1 = matches_get_num_match_traces(matches_end1);
 			const uint64_t vector_match_trace_used_end2 = matches_get_num_match_traces(matches_end2);
@@ -170,20 +201,20 @@ void collect_pe_mapping_stats(
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs1 = prim_match_end1 -> bs_strand;
 				 bs2 = prim_match_end2 -> bs_strand;
-				 read_idx1 = get_read_control_index(prim_match_end1,archive_search1->search_parameters.control_sequences, bisulfite_mode);
-				 read_idx2 = get_read_control_index(prim_match_end2,archive_search2->search_parameters.control_sequences, bisulfite_mode);
+				 read_idx1 = get_read_control_index(prim_match_end1,control_sequences, bisulfite_mode);
+				 read_idx2 = get_read_control_index(prim_match_end2,control_sequences, bisulfite_mode);
 			} else if(vector_match_trace_used_end1) {
 				 mstats->unmapped[1]++;
 				 match_trace_t* prim_match_end1 = matches_get_primary_match(matches_end1);
 				 update_distance_counts(matches_end1, prim_match_end1, mstats, 0);
 				 bs1 = prim_match_end1->bs_strand;
-				 read_idx1 = get_read_control_index(prim_match_end1,archive_search1->search_parameters.control_sequences, bisulfite_mode);
+				 read_idx1 = get_read_control_index(prim_match_end1,control_sequences, bisulfite_mode);
 			} else if(vector_match_trace_used_end2) {
 				 mstats->unmapped[0]++;
 				 match_trace_t* prim_match_end2 = matches_get_primary_match(matches_end2);
 				 update_distance_counts(matches_end2, prim_match_end2, mstats, 1);
 				 bs2 = prim_match_end2->bs_strand;
-				 read_idx2 = get_read_control_index(prim_match_end2,archive_search2->search_parameters.control_sequences, bisulfite_mode);
+				 read_idx2 = get_read_control_index(prim_match_end2,control_sequences, bisulfite_mode);
 			} else {
 				 mstats->unmapped[0]++;
 				 mstats->unmapped[1]++;
@@ -191,7 +222,7 @@ void collect_pe_mapping_stats(
 			mstats->hist_mapq[0]++;
 	 } else {
 			// We just look at primary alignments
-			paired_map_t* const paired_map = paired_matches_get_primary_map(paired_matches);
+			const paired_map_t * paired_map = paired_matches_get_primary_map(paired_matches);
 			if(paired_map->pair_relation == pair_relation_concordant) { // Only collect template length stats for concordant pairs
 				 mstats->correct_pairs++;
 				 int64_t tlen=paired_map->template_length;
@@ -216,9 +247,9 @@ void collect_pe_mapping_stats(
 			read_idx1 = read_idx2 = get_read_control_index(match_end1,control_sequences, bisulfite_mode);
 			// Get read type from index
 			mstats->hist_mapq[(int)paired_map->mapq_score]++;
-			if(paired_map->mapq_score>20 && paired_map->pair_relation == pair_relation_concordant) {
-				 update_conversion_counts(archive_search1->sequence, mstats, bs1, match_end1->strand, read_idx1);
-				 update_conversion_counts(archive_search2->sequence, mstats, bs2, match_end2->strand, read_idx2);
+			if(paired_map->mapq_score>=min_mapq && paired_map->pair_relation == pair_relation_concordant) {
+				 update_conversion_counts(archive_search1, matches_end1, paired_map->match_trace_end1, mstats, bs1, match_end1->strand, read_idx1);
+				 update_conversion_counts(archive_search2, matches_end2, paired_map->match_trace_end2, mstats, bs2, match_end2->strand, read_idx2);
 			}
 	 }
 	 if(bs1 == bs_strand_C2T) mstats->BSreads[0][0]++;
@@ -241,7 +272,7 @@ void output_json_uint_element(
 void output_json_uint_array(
     FILE *fp,
     char *key,
-    uint64_t *values,
+    uint64_t const *values,
     int n,
     int indent,
     bool last) {
@@ -286,7 +317,7 @@ void output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent) {
 }
 
 char * read_type[4] = {"SequencingControl", "UnderConversionControl", "OverConversionControl", "ConversionControl"};
-void output_read_counts_pe(FILE *fp, mapper_parameters_t* const parameters, mapping_stats_t* const mstats, int i, int indent) {
+void output_read_counts_pe(FILE *fp, mapper_parameters_t const * parameters, mapping_stats_t const * mstats, int i, int indent) {
     uint64_t n1, n2;
     if(i<0) {
         n1 = mstats->unmapped[0];
@@ -310,7 +341,7 @@ void output_read_counts_pe(FILE *fp, mapper_parameters_t* const parameters, mapp
 	}
 }
 
-void output_read_counts_se(FILE *fp, mapper_parameters_t* const parameters, mapping_stats_t* const mstats, int i, int indent) {
+void output_read_counts_se(FILE *fp, mapper_parameters_t const * parameters, mapping_stats_t const * mstats, int i, int indent) {
     uint64_t n;
     if(i<0) {
         n = mstats->unmapped[0];
@@ -334,8 +365,8 @@ void output_read_counts_se(FILE *fp, mapper_parameters_t* const parameters, mapp
 }
 
 void output_mapping_stats(
-    mapper_parameters_t* const parameters,
-    mapping_stats_t* const mstats) {
+    const mapper_parameters_t* parameters,
+    const mapping_stats_t* mstats) {
 	 char *output_file = parameters->io.report_file_name;
 	 const bool bisulfite_index = (parameters->archive->type == archive_dna_bisulfite);
 	 FILE *fp = fopen(output_file,"w");

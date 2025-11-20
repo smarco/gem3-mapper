@@ -24,6 +24,7 @@
 #include "tools/interface/mapper_arguments.h"
 #include "archive/search/archive_search_se_parameters.h"
 #include "stats/report_stats.h"
+#include "system/errors.h"
 #include "utils/vector.h"
 
 /*
@@ -81,8 +82,11 @@ option_t gem_mapper_options[] = {
   { 502, "overconversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" OVERCONVERSION_CONTROL ")" },
   { 503, "conversion-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "" },
   { 504, "control-sequence", REQUIRED, TYPE_STRING, 5, VISIBILITY_USER, "<sequence name>",  "(default=" SEQUENCING_CONTROL ")" },
-  { 505, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
-  { 506, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
+  { 505, "conversion-min-mapq", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number",  "(default=1)" },
+  { 506, "conversion-min-base-qual", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number",  "(default=0)" },
+  { 507, "conversion-clip-start", REQUIRED, TYPE_INT, 5, VISIBILITY_USER, "<number",  "(default=0)" },
+  { 508, "restriction-site", REQUIRED, TYPE_STRING, 5, VISIBILITY_ADVANCED, "<restriction site> (i.e., 'C-CGG')", "(default = NULL)" },
+  { 509, "rrbs", NO_ARGUMENT, TYPE_NONE, 5, VISIBILITY_ADVANCED, "", "" },
   /* Alignment Score */
   { 600, "alignment-model", REQUIRED, TYPE_STRING, 6, VISIBILITY_ADVANCED, "'pseudoalignment'|'hamming'|'edit'|'gap-affine'" , "(default=gap-affine)" },
   { 601, "gap-affine-penalties", REQUIRED, TYPE_STRING, 6, VISIBILITY_USER, "A,B,O,X" , "(default=1,4,6,1)" },
@@ -767,7 +771,7 @@ bool gem_mapper_parse_arguments_bisulfite(
   // Parameters
   search_parameters_t* const search = &parameters->search_parameters;
   restriction_t *rest = NULL;
-  
+  int64_t tmp_int;
   // Bisulfite
   switch (option) {
     case 500: // --bisulfite_read
@@ -805,7 +809,19 @@ bool gem_mapper_parse_arguments_bisulfite(
     case 504: // --control_sequence
       get_control_sequences(search->control_sequences, SequenceControl, "control_sequence", optarg);
       return true;
-    case 505: // -- restriction-site
+    case 505: // --conversion_min_mapq
+      if(input_text_parse_integer((const char** const)&optarg, &tmp_int) || tmp_int < 0 || tmp_int > 255) gem_fatal_error_msg("Error setting --conversion_min_mapq option");
+      search->conversion_min_mapq = tmp_int;
+      return true;
+    case 506: // --conversion_min_base_qual
+      if(input_text_parse_integer((const char** const)&optarg, &tmp_int) || tmp_int < 0 || tmp_int > 255-33) gem_fatal_error_msg("Error setting --conversion_min_mapq option");
+      search->conversion_min_base_qual = tmp_int;
+      return true;
+    case 507: // --conversion_clip_start
+      if(input_text_parse_integer((const char** const)&optarg, &tmp_int) || tmp_int < 0) gem_fatal_error_msg("Error setting --conversion_clip_start option");
+      search->conversion_clip_start = tmp_int;
+      return true;
+    case 508: // -- restriction-site
       rest = restriction_new(optarg);
       if(rest != NULL) {
         if(search->restriction_sites == NULL) {
@@ -816,7 +832,7 @@ bool gem_mapper_parse_arguments_bisulfite(
         gem_fatal_error_msg("Error setting --restriction-site option");
       }
     return true;
-    case 506: // --rrbs
+    case 509: // --rrbs
       search->rrbs = true;
       return true;
     default:
