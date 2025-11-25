@@ -400,10 +400,14 @@ void output_json_uint_array(
 const char *ct_desc[N_BASE_COUNTS] = {"N", "A", "C", "G", "T", "non_conv_C", "conv_C", "non_conv_CG", "conv_CG"};
 
 void _output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent, int n) {
+    bool first=true;
     for(int k=0;k<n;k++) {
-        if(ct->counts[0][k]+ct->counts[1][k]>0)
-            fprintf(fp,"%.*s\"%s\": [%" PRIu64", %" PRIu64"]%s",indent,indent_str,ct_desc[k],ct->counts[0][k],ct->counts[1][k],k==n-1?"\n":",\n");
+        if(ct->counts[0][k]+ct->counts[1][k]>0) {
+            fprintf(fp,"%s%.*s\"%s\": [%" PRIu64", %" PRIu64"]",first?"":",\n",indent,indent_str,ct_desc[k],ct->counts[0][k],ct->counts[1][k]);
+            first=false;
+        }   
 	}
+    fprintf(fp,"\n");
 }
 
 int get_n_counts(bs_strand_t bs) {
@@ -418,10 +422,14 @@ void output_base_counts_pe(FILE *fp, base_counts_t const *ct, int indent, bs_str
 }
 
 void _output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent, int n) {
+    bool first=true;
     for(int k=0;k<n;k++) {
-        if(ct->counts[0][k]>0)
-            fprintf(fp,"%.*s\"%s\": [%" PRIu64"]%s",indent,indent_str,ct_desc[k],ct->counts[0][k],k==n-1?"\n":",\n");
+        if(ct->counts[0][k]>0) {
+            fprintf(fp,"%s%.*s\"%s\": [%" PRIu64"]",first?"":",\n",indent,indent_str,ct_desc[k],ct->counts[0][k]);
+            first=false;
+        }
 	}
+    fprintf(fp,"\n");
 }
 
 void output_base_counts_se(FILE *fp, base_counts_t const *ct, int indent, bs_strand_t bs) {
