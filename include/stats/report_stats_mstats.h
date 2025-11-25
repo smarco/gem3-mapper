@@ -33,8 +33,7 @@
  * Index 1: read end
  * Index 2: base (N, A, C, G, T followed by 4 two-base counts for capturing CpG conversions
  * 
- * For C2T reads, the 4 extra counts are: CG, CH, TG, TH
- * while for G2A reads they are: CG, DG, CA, DA, 
+ * The extra counts are: Non_conv_C, Conv_C, Non_conv_CpG, Conv_CpG
  */
 typedef struct {
     uint64_t counts[2][N_BASE_COUNTS];
