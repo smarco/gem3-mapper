@@ -198,10 +198,10 @@ int retriever_query_parse(
   }
   ++text_line;
   // Parse bs-strand (optional)
-  if (strcmp(text_line,"C2T")==0) {
+  if (strncmp(text_line,"C2T", 3)==0) {
     retriever_query->bs_strand = bs_strand_C2T;
     text_line += 3;
-  } else if (strcmp(text_line,"G2A")==0) {
+  } else if (strncmp(text_line,"G2A", 3)==0) {
     retriever_query->bs_strand = bs_strand_G2A;
     text_line += 3;
   } else {
@@ -294,6 +294,7 @@ int main(int argc,char** argv) {
   while (getline(&input_buffer,&input_buffer_size,retriever_data.input_stream)>=0) {
     // Next query
     ++(retriever_query.id);
+    
     // Parse query
     if (retriever_query_parse(&retriever_query,input_buffer,input_buffer_size)!=-1) {
       // Query & output
