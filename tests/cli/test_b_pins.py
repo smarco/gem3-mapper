@@ -13,11 +13,17 @@ deletion, end mismatches, chimeras (local alignment), N-rich, random, 36 bp
 and 250 bp reads. These tests check no property; the other test_b_* files
 do. A failure here means the bytes changed, which the speed search's gate
 forbids; inspect the difference before updating a digest.
+
+complete-partition and complete-partition-filter compute MAPQ from match
+metrics that mode never sets, so their MAPQ depends on what the memory held
+(known-bugs/r1-complete-partition-mapq-uninitialized.md): those two pins
+leave MAPQ out.
 """
 
 import pytest
 
 from gem3harness import fastq_record, sam_digest, simulate_se
+from area_a import digest_without_mapq
 import area_b
 
 
@@ -71,8 +77,8 @@ PINNED = {
 	"complete-E2-s2": "52e78074c0ea8592d2b4af6549d90187d09f5115310436a4be6330bf41cbde02",
 	"complete-E8-s0": "959cebb117453cdea308081979b62b97a122066406c7c2dd6816aa8b7ac3bba1",
 	"complete-all": "85bf14aa049a7e48af7b49bc036130db13dc448a3a8d742aeb32b7e23a143c67",
-	"complete-partition": "30c23b9074d0fe88220880695c3a272522ad91d40454151a498884fa5a5b27b1",
-	"complete-partition-filter": "0161a3a5b938cf565fb4dbd19d6680c2cb4b7d28afdd6af5a9c33e625fc01b30",
+	"complete-partition": "59f1cd5382993f861d2ab82cc0791025b93a1cc69d77811eef46094e329e2d98",  # without MAPQ
+	"complete-partition-filter": "8221e714e8bef8dcb592512db38cd6cf52a00946147291b41844ac77412224e9",  # without MAPQ
 	"complete-pure": "52e78074c0ea8592d2b4af6549d90187d09f5115310436a4be6330bf41cbde02",
 	"default": "5741d7eff2060689f5b710144d927dc71f5882b06a9af7f5e5a544a7ba60bdee",
 	"e20": "2d64ae2effdc7c6b84fde75e67e75a6a6454eb0f601832cc8a369df829fbeab2",
@@ -122,10 +128,14 @@ CONFIGS = {
 	"penalties": ["-A", "2", "-O", "8", "-X", "2"],
 }
 
+# Pins compared without MAPQ (see the module docstring)
+WITHOUT_MAPQ = ("complete-partition", "complete-partition-filter")
+
 
 @pytest.mark.parametrize("config", sorted(CONFIGS))
 def test_b_output_bytes_are_pinned(gem3, genome_index, threads, pin_fastq, config):
 	"""Pins the current output (see the module docstring)."""
 	res = gem3.run_map(genome_index, args=["-i", "p.fq"] + CONFIGS[config], files={"p.fq": pin_fastq},
 		threads=threads, timeout=120)
-	assert sam_digest(res.stdout) == PINNED[config], config
+	digest = digest_without_mapq(res.stdout) if config in WITHOUT_MAPQ else sam_digest(res.stdout)
+	assert digest == PINNED[config], config

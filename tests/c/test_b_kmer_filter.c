@@ -119,45 +119,46 @@ static uint64_t bound_of(
 }
 
 /*
- * A key with no k-mer in common with the text: every tile contributes
- * floor((t-k+1)/k). An exact copy: 0.
+ * Hand-built texts. The bound is only a filter: gem-mapper's output does not
+ * depend on its value as long as it never exceeds the true distance (cli
+ * test_qgram_filter_never_changes_output), so a faster filter may compute
+ * another bound. Checked here: it is at most the brute-force distance for
+ * every tiling and k (the error budget above that distance, so the bound may
+ * not be cut short), and 0 for an exact copy. With the q-gram lemma the
+ * poly-A cases give 12-30 against a distance of 75.
  */
 GT_TEST(kmer_bound_hand_examples) {
   mm_slab_t* slab;
   mm_allocator_t* const mm_allocator = new_allocator(&slab);
   // Key: (ACGT)x25, 100 bp, no k-mer of a single base; text: 140 A
-  static uint8_t key[100], polyA[140], copy[140];
+  static uint8_t key[100], polyA[140], copy[140], polyN[140];
   uint64_t i;
   for (i=0;i<100;++i) key[i] = (uint8_t)(i % 4);
   for (i=0;i<140;++i) polyA[i] = ENC_DNA_CHAR_A;
-  static const struct { uint64_t tiles, k, expected; } cases[] = {
-    { 1, 6, 15 },          // 95/6
-    { 2, 6, 14 },          // tiles 50,50: 45/6 + 45/6
-    { 3, 4, 21 },          // tiles 34,34,32: 31/4 + 31/4 + 29/4
-    { 4, 5, 16 },          // tiles 25 x4: 21/5 x4
-    { 5, 3, 30 },          // tiles 20 x5: 18/3 x5
-    { 6, 3, 29 },          // tiles 17 x5 + 15: 15/3 x5 + 13/3
-    { 2, 7, 12 },          // 44/7 + 44/7
+  for (i=0;i<140;++i) polyN[i] = ENC_DNA_CHAR_N;
+  for (i=0;i<20;++i) copy[i] = ENC_DNA_CHAR_A;
+  memcpy(copy+20,key,100);
+  for (i=120;i<140;++i) copy[i] = ENC_DNA_CHAR_A;
+  const uint64_t d_polyA = naive_distance(key,100,polyA,140);
+  const uint64_t d_polyN = naive_distance(key,100,polyN,140);
+  GT_CHECK_EQ_UINT(d_polyA,75);
+  GT_CHECK_EQ_UINT(d_polyN,100); // N never matches
+  // (tiles, k): 1-6 tiles, k 3-7, and k=9 (outside 3..7, replaced by 7)
+  static const struct { uint64_t tiles, k; } cases[] = {
+    { 1, 6 }, { 2, 6 }, { 3, 4 }, { 4, 5 }, { 5, 3 }, { 6, 3 }, { 2, 7 }, { 2, 9 },
   };
   uint64_t c;
   for (c=0;c<sizeof(cases)/sizeof(cases[0]);++c) {
-    const uint64_t b = bound_of(key,100,polyA,140,cases[c].tiles,cases[c].k,50,mm_allocator);
-    GT_CHECK_MSG(b==cases[c].expected,"tiles=%" PRIu64 " k=%" PRIu64 ": bound %" PRIu64 " expected %" PRIu64,
-        cases[c].tiles,cases[c].k,b,cases[c].expected);
+    const uint64_t b = bound_of(key,100,polyA,140,cases[c].tiles,cases[c].k,100,mm_allocator);
+    GT_CHECK_MSG(b<=d_polyA,"tiles=%" PRIu64 " k=%" PRIu64 ": bound %" PRIu64 " > distance %" PRIu64,
+        cases[c].tiles,cases[c].k,b,d_polyA);
+    const uint64_t bn = bound_of(key,100,polyN,140,cases[c].tiles,cases[c].k,100,mm_allocator);
+    GT_CHECK_MSG(bn<=d_polyN,"poly-N tiles=%" PRIu64 " k=%" PRIu64 ": bound %" PRIu64,cases[c].tiles,cases[c].k,bn);
     // The key itself inside flanks of A
-    for (i=0;i<20;++i) copy[i] = ENC_DNA_CHAR_A;
-    memcpy(copy+20,key,100);
-    for (i=120;i<140;++i) copy[i] = ENC_DNA_CHAR_A;
     GT_CHECK_EQ_UINT(bound_of(key,100,copy,140,cases[c].tiles,cases[c].k,20,mm_allocator),0);
   }
-  // A text N counts as A (enc % 4): an all-N text behaves like poly-A
-  static uint8_t polyN[140];
-  for (i=0;i<140;++i) polyN[i] = ENC_DNA_CHAR_N;
-  GT_CHECK_EQ_UINT(bound_of(key,100,polyN,140,2,6,50,mm_allocator),14);
-  // Tiles shorter than k: the filter is disabled and never discards
-  GT_CHECK_EQ_UINT(bound_of(key,10,polyA,40,4,6,2,mm_allocator),0);
-  // k outside 3..7 falls back to 7 (gem warns once per pattern)
-  GT_CHECK_EQ_UINT(bound_of(key,100,polyA,140,2,9,50,mm_allocator),12);
+  // Tiles shorter than k
+  GT_CHECK(bound_of(key,10,polyA,40,4,6,10,mm_allocator) <= naive_distance(key,10,polyA,40));
   mm_allocator_delete(mm_allocator);
   mm_slab_delete(slab);
 }

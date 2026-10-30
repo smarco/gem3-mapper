@@ -71,6 +71,17 @@
  *     dna_text_get_length(const dna_text_t*), dna_text_retrieve_sequence(const dna_text_t*,uint64_t)
  *     sampled_sa_get_sa_sampling_rate / sampled_sa_get_text_sampling_rate(const sampled_sa_t*)
  *     sampled_rl_get_sample(sampled_rl_t*,uint64_t)
+ *   and reads these fields: archive_t (text, fm_index, locator), archive_text_t
+ *   (forward_text_length, enc_text, run_length, sampled_rl), fm_index_t (bwt,
+ *   rank_table->min_matching_depth, sampled_sa), archive_builder_t.locator,
+ *   locator_interval_t (begin_position, end_position, rl_begin_position,
+ *   rl_end_position, strand), location_t, fm_2interval_t, text_trace_t
+ *   (text, text_length, strand, rl_text, rl_text_length, rl_runs_acc),
+ *   region_profile_t (filtering_region, num_filtering_regions,
+ *   num_filtered_regions, total_candidates, kmer_frequency, pattern_length),
+ *   region_search_t (begin, end, lo, hi, degree, min, max) and
+ *   region_profile_model_t (region_th, max_steps, dec_factor, num_regions);
+ *   region_profile_helpers writes region_search_t fields to set up its input.
  */
 
 #include "gem3_test.h"
@@ -1405,10 +1416,10 @@ static void check_all(
   indexed_new_sized(&ix,seed,sa_rate,text_rate,large_contig_length);
   if (large_contig_length > 0) GT_REQUIRE(ix.g->text_length > 2*65536);
   const sampled_sa_t* const ssa = ix.fx.archive->fm_index->sampled_sa;
-  // The getters return the rate itself (2^rate); no SA-space sampling is a rate above any index length
-  if (sa_rate == SAMPLING_RATE_NONE) {
-    GT_CHECK(sampled_sa_get_sa_sampling_rate(ssa) > ix.g->text_length);
-  } else {
+  // The getters return the rate itself (2^rate). Without SA-space sampling
+  // the getter shifts by SAMPLING_RATE_NONE (UINT64_MAX-1), which is
+  // undefined (known-bugs/r1-sanitizer-findings.md), so it is not called
+  if (sa_rate != SAMPLING_RATE_NONE) {
     GT_CHECK_EQ_UINT(sampled_sa_get_sa_sampling_rate(ssa),1ull<<sa_rate);
   }
   GT_CHECK_EQ_UINT(sampled_sa_get_text_sampling_rate(ssa),1ull<<text_rate);

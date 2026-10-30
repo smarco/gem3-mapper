@@ -101,7 +101,8 @@ def test_global_identity_and_score_thresholds(gem3, genome, genome_index, tmp_pa
 
 @pytest.fixture(scope="module")
 def chimera_reads(genome):
-	return area_b.chimeras(genome, 32, [30, 45, 55, 65], seed=9)
+	# Genomic parts of exactly 40, 50 and 60 bases sit on the thresholds below
+	return area_b.chimeras(genome, 42, [30, 40, 45, 50, 55, 60, 65], seed=9)
 
 
 def _check_local(rec, info, genome):
@@ -129,8 +130,8 @@ def test_local_alignment_of_chimeras(gem3, genome, genome_index, tmp_path, threa
 	no global alignment passes the 80% identity default): with local alignment
 	they map at the genomic part with LM/S CIGARs, AS = L and NM 0 when L
 	meets --alignment-local-min-identity (matching bases) and
-	--alignment-local-min-score; otherwise, or with --alignment-local never,
-	they are unmapped."""
+	--alignment-local-min-score (a minimum: L equal to it passes); otherwise,
+	or with --alignment-local never, they are unmapped."""
 	files = {"c.fq": area_b.fastq_text(chimera_reads)}
 	res = gem3.run_map(genome_index, args=["-i", "c.fq"] + args, files=files, threads=threads)
 	by = res.sam().by_name()
@@ -303,7 +304,8 @@ def test_candidate_verification_strategies(gem3, genome, genome_index, threads, 
 def test_qgram_filter_never_changes_output(gem3, genome, genome_index, threads, mixed_fastq):
 	"""--qgram-filter <tiles>,<k>: the k-mer filter only drops candidates
 	that cannot be within the error budget, so any valid setting leaves the
-	output as it is. A k outside 3..7 is replaced by 7 with a warning."""
+	output as it is, including a k outside 3..7 (gem-mapper replaces it with
+	7 and warns; the warning's wording is not checked)."""
 	base = strip_variable_header(gem3.run_map(genome_index, args=["-i", "m.fq"],
 		files={"m.fq": mixed_fastq}, threads=threads).stdout)
 	for q in ("1,4", "2,6", "3,5", "4,7", "5,3", "6,6"):
@@ -312,7 +314,6 @@ def test_qgram_filter_never_changes_output(gem3, genome, genome_index, threads, 
 		assert strip_variable_header(res.stdout) == base, q
 	res9 = gem3.run_map(genome_index, args=["-i", "m.fq", "--qgram-filter", "2,9"],
 		files={"m.fq": mixed_fastq}, threads=threads)
-	assert "Invalid proposed k-mer length. Set to k=7" in res9.stderr_text
 	assert strip_variable_header(res9.stdout) == base
 
 

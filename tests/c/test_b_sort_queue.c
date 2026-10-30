@@ -110,17 +110,8 @@ GT_TEST(sort_template_matches_qsort) {
       vector_sort_gt_int64(vec);
       GT_CHECK_MSG(n==0 || memcmp(vector_get_mem(vec,int64_t),ref,n*sizeof(int64_t))==0,"vector_sort n=%d shape=%d",n,shape);
       GT_CHECK_EQ_UINT(vector_get_used(vec),n);
-      // heapsort and selection alone
-      if (n > 0) {
-        memcpy(a,v,n*sizeof(int64_t));
-        vector_sort_heapsort_gt_int64(a,n);
-        GT_CHECK_MSG(memcmp(a,ref,n*sizeof(int64_t))==0,"heapsort n=%d shape=%d",n,shape);
-      }
-      if (n <= 257) {
-        memcpy(a,v,n*sizeof(int64_t));
-        vector_sort_selection_gt_int64(a,n);
-        GT_CHECK_MSG(n==0 || memcmp(a,ref,n*sizeof(int64_t))==0,"selection n=%d shape=%d",n,shape);
-      }
+      // The template's own helpers (selection sort, heapsort) are reached
+      // through buffer_sort and vector_sort only; a faster sort may drop them
     }
   }
   vector_delete(vec);

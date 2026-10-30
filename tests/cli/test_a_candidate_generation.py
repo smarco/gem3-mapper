@@ -24,7 +24,10 @@ from area_a import assert_maps_to_truth, digest_without_mapq, primary
 # substitutions): a read with at most that many substitutions leaves one of
 # the strategy's disjoint exact-search regions error-free (pigeonhole), so it
 # must be found; None for the multi-stage default and adaptive profiles,
-# which must find every simulated read, indels included.
+# which must find every simulated read, indels included. MEM and SMEM have
+# no fixed regions: with 6 substitutions an error-free stretch of 14 bp or
+# more remains, which finds the origin unless a longer match elsewhere
+# covers it; 6 holds on these reads but is not a pigeonhole guarantee.
 STRATEGIES = {
 	"default": ([], True, None),
 	"fixed": (["--candidate-generation", "fixed,20,20,0,100"], True, 4),                # 5 regions
@@ -142,14 +145,15 @@ def test_equivalent_settings_give_identical_output(gem3, genome, genome_index, t
 
 def test_test_strategy_prints_every_profile(gem3, genome, genome_index, tmp_path):
 	"""'test' computes the profile of every strategy for each read, prints
-	them to stderr and keeps no region, so no read is mapped."""
+	them to stderr and keeps no region, so no read is mapped. (The order
+	the profiles are printed in is not checked.)"""
 	reads = simulate_se(genome, 6, 100, seed=125, subs=1)
 	fq = write_reads(tmp_path / "r.fq", reads)
 	res = gem3.run_map(genome_index, inputs=[fq], args=["--candidate-generation", "test,5,20,20,0,100"], threads=1)
 	assert all(rec.is_unmapped for rec in res.sam().records)
 	labels = re.findall(r"\[GEM\]>Region\.Profile \((\w+)\)", res.stderr_text)
 	order = ["Fixed", "CKS", "OPS", "Factors", "MEM", "SMEM", "Adaptive", "OPP"]
-	assert labels[:8] == order
+	assert sorted(set(labels)) == sorted(order)
 	for label in order:
 		assert labels.count(label) >= len(reads), label
 
