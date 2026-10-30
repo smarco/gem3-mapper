@@ -46,12 +46,14 @@ def _map(gem3, index, reads, tmp_path, args, threads, name="r.fq"):
 	return gem3.run_map(index, inputs=[fq], args=args, threads=threads)
 
 
+@pytest.mark.parametrize("model", ["gap-affine", "hamming"])
 @pytest.mark.parametrize("value,nominal", [("0", 0), ("3", 3), ("5", 5), ("8", 8), ("0.05", 5), ("0.08", 8)])
-def test_max_error_bounds_mapped_reads(gem3, genome, genome_index, tmp_path, threads, sub_reads, value, nominal):
+def test_max_error_bounds_mapped_reads(gem3, genome, genome_index, tmp_path, threads, sub_reads, value, nominal, model):
 	"""-e: a read with k substitutions maps (at its origin, NM k) exactly
-	when k <= the error budget; a fraction is of the read length."""
+	when k <= the error budget, under the gap-affine and the Hamming model;
+	a fraction is of the read length."""
 	reads = [r for k in sorted(sub_reads) for r in sub_reads[k]]
-	res = _map(gem3, genome_index, reads, tmp_path, ["-e", value] + NO_LOCAL, threads)
+	res = _map(gem3, genome_index, reads, tmp_path, ["-e", value, "--alignment-model", model] + NO_LOCAL, threads)
 	by = res.sam().by_name()
 	for k in sorted(sub_reads):
 		for read in sub_reads[k]:
