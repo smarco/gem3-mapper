@@ -13,7 +13,7 @@ brute force. ``primary`` and ``assert_maps_to_truth`` check simulated reads.
 
 import bisect
 
-from gem3harness import check_record_against_reference, revcomp
+from gem3harness import check_record_against_reference, revcomp, sam_digest
 
 # Encoded order of the index alphabet: A < C < G < T < N < separator
 _RANK = {"A": 0, "C": 1, "G": 2, "T": 3, "N": 4, "|": 5}
@@ -136,3 +136,17 @@ def records_without_qual(data):
 			f = line.split("\t")
 			out.append(tuple(f[:10] + f[11:]))
 	return out
+
+
+def digest_without_mapq(data):
+	"""sam_digest of the output with every MAPQ replaced by '*' (for pins of
+	outputs whose MAPQ differs between -Ofast and -O3 builds)."""
+	text = data.decode("ascii") if isinstance(data, bytes) else data
+	lines = []
+	for line in text.split("\n"):
+		if line and not line.startswith("@"):
+			f = line.split("\t")
+			f[4] = "*"
+			line = "\t".join(f)
+		lines.append(line)
+	return sam_digest("\n".join(lines).encode("ascii"))

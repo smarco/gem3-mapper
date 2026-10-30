@@ -616,7 +616,7 @@ static void check_bsearch(indexed_t* const ix) {
 static void check_rank_mtable(indexed_t* const ix) {
   const uint64_t n = ix->g->text_length;
   const rank_mtable_t* const mtable = ix->fx.archive->fm_index->rank_table;
-  uint8_t key[RANK_MTABLE_SEARCH_DEPTH];
+  uint8_t key[128];
   uint64_t errors = 0, k, code;
   for (k=1;k<=5;++k) {
     for (code=0;code<(1ull<<(2*k));++code) {

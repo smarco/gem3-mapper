@@ -18,7 +18,7 @@ import re
 import pytest
 
 from gem3harness import check_record_against_reference, sam_digest, simulate_se, write_reads
-from area_a import assert_maps_to_truth, primary
+from area_a import assert_maps_to_truth, digest_without_mapq, primary
 
 # name -> (arguments, reads with indels for the pinned run?, guaranteed
 # substitutions): a read with at most that many substitutions leaves one of
@@ -50,7 +50,7 @@ PINNED = {
 	"CKS": "4a91d2f0a76966724575d5c37297147567c4b6f5beb242a199576737e68f303a",
 	"OPS": "20f73474cbf5821628fbc06c2df6d0576483683aa81c59e9678e01b5f2aff2a2",
 	"factors": "7694d511e18c78f43e62049ae93ea5c8975989135561e2f91a4dd7691bae1b2c",
-	"MEM": "62dc1b3d1695dfac01d21b8328a648fcc447138c14f4a25cb3d67db381ea913c",
+	"MEM": "430fa4cda0f31e9d59472ce099be9a324c17b74c8c9769aa4eba075e1a79c4f2",  # digest_without_mapq
 	"SMEM": "70ff9d9b3b2f04c07435ac5886c0ab51ed98dbe3a96ee5873e08d2d987de6f61",
 	"adaptive_20_4_1": "cf5eb18d5f165645977127d80158e031001de33a8c80d333d416f005920eb1e7",
 	"adaptive_5_2_2": "847b983264d90fe3c19035b5b0708ccf1bcdd184fb054e874b240d50a8d20d37",
@@ -111,7 +111,12 @@ def test_strategy_output_is_pinned(gem3, genome, genome_index, tmp_path, threads
 	for rec in res.sam().records:
 		if not rec.is_unmapped:
 			assert check_record_against_reference(rec, genome[rec.rname]) == [], rec
-	assert sam_digest(res.stdout) == PINNED[name]
+	if name == "MEM":
+		# One read's MAPQ differs between -Ofast and -O3 builds with the same
+		# predictors (floating point, src/archive/score/); MAPQ is left out
+		assert digest_without_mapq(res.stdout) == PINNED[name]
+	else:
+		assert sam_digest(res.stdout) == PINNED[name]
 
 
 @pytest.mark.parametrize("group", [

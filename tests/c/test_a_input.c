@@ -734,12 +734,12 @@ GT_TEST(file_and_memory_managers) {
   unlink(out); unlink(path); unlink(gz); unlink(bz);
   free(copy);
   free(data);
-  // Anonymous and heap bulk memory: writable, mmalloc zero-filled
+  // Bulk memory: writable (mmap'ed, or from malloc in GEM_DEBUG builds);
+  // mm_bulk_malloc with init_mem is zero-filled
   mm_t* const anon = mm_bulk_mmalloc(1<<20,false);
   uint8_t* const am = mm_get_base_mem(anon);
-  GT_CHECK(am[0]==0 && am[(1<<20)-1]==0);
-  am[12345] = 9;
-  GT_CHECK(am[12345]==9);
+  am[0] = 3; am[12345] = 9; am[(1<<20)-1] = 7;
+  GT_CHECK(am[0]==3 && am[12345]==9 && am[(1<<20)-1]==7);
   mm_bulk_free(anon);
   mm_t* const heap = mm_bulk_malloc(1<<16,true);
   uint8_t* const hm = mm_get_base_mem(heap);

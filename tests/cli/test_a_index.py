@@ -53,6 +53,9 @@ def test_verbose_dev_prints_the_loaded_index(gem3, tmp_path):
 	got = [(k, int(b), int(e), name, st, int(tb), int(te)) for k, b, e, name, st, tb, te in printed]
 	assert got == intervals
 	assert re.search(r"Intervals\.Size \d+ MB \(%d intervals" % len(intervals), err)
+	# The DNA text holds the forward text (the reverse strand is projected)
+	assert re.search(r"\[GEM\]>DNA-text\n.*\n +=> Text\.Length %d\n" % fwd_length, err)
+	assert "[GEM]>BWT" in err and "[GEM]>Rank.Table" in err
 	# One SA sample every 4 text positions (gem-indexer's CPU default)
 	assert re.search(r"Text\.Sampling\.Rate 2\^2 \(4\)", err)
 	assert re.search(r"PackedArray\.Length %d\n" % ((len(full) + 3) // 4), err)
