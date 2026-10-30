@@ -18,7 +18,7 @@ import pytest
 import area_d
 from area_d import (body_lines, counter_values, counters_ok, map_cigar, parse_map_line,
 	parse_pe_maps, parse_se_maps, xa_entries)
-from gem3harness import parse_cigar, sam_digest
+from gem3harness import parse_cigar, sam_digest, write_reads
 from gem3harness.sam import READ1, READ2, SECONDARY, UNMAPPED
 
 
@@ -106,6 +106,20 @@ def test_pe_map_matches_sam(genome, pe):
 			n_single += 1
 	assert k == len(lines)
 	assert n_proper > 50 and n_single > 10
+
+
+def test_fasta_input_map_lines_have_no_qualities(gem3, se, tmp_path):
+	"""FASTA reads print MAP lines without the qualities column (name, read,
+	counters, matches) and otherwise the lines of the FASTQ reads mapped
+	with -q ignore, without their qualities."""
+	fa = write_reads(tmp_path / "r.fa", se.reads, fmt="fasta")
+	got = map_lines(gem3.run_map(se.index, inputs=[fa], args=["-F", "MAP"]))
+	ref = map_lines(se.run(["-F", "MAP", "-q", "ignore"]))
+	assert len(got) == len(ref) == len(se.reads)
+	for line, want, read in zip(got, ref, se.reads):
+		m, w = parse_map_line(line), parse_map_line(want)
+		assert m["qual"] is None and w["qual"] == read.qual, line
+		assert (m["tag"], m["read"], m["counters"], m["maps"]) == (w["tag"], w["read"], w["counters"], w["maps"])
 
 
 def test_map_format_3_differs_only_in_homopolymer_marks(se, pe):

@@ -687,14 +687,16 @@ def expected_report_se(reads, sam, genome, read_group=None):
 	return acc.as_json("Single", read_group)
 
 
-def expected_report_pe(pairs, sam, genome, bisulfite=False):
+def expected_report_pe(pairs, sam, genome, bisulfite=False, discordant=()):
 	"""``--report-file`` contents for pairs (N base counts left out).
 
 	A pair printed as a proper pair (0x2) is a paired map: both ends count
 	as mapped under the first end's read type, its template MAPQ goes to
-	HistMapq, and |TLEN| to HistTemplateLen (the inputs hold no discordant
-	pairs). Otherwise each end counts on its own and HistMapq gets one 0.
-	Conversion base counts (bisulfite) come from paired maps with MAPQ > 0.
+	HistMapq, and, when concordant, it counts in CorrectPairs and |TLEN| in
+	HistTemplateLen. ``discordant`` names the pairs the input was built to
+	pair as discordant (SAM does not mark them). Otherwise each end counts
+	on its own and HistMapq gets one 0. Conversion base counts (bisulfite)
+	come from paired maps with MAPQ > 0.
 	"""
 	acc = _Acc(2)
 	prim = primaries_by_name(sam)
@@ -709,8 +711,9 @@ def expected_report_pe(pairs, sam, genome, bisulfite=False):
 			acc.count(acc.readlen[end], len(read.seq))
 		if r1.flag & PROPER_PAIR:
 			rt = read_type(r1.rname)
-			acc.correct += 1
-			acc.count(acc.tlen, abs(r1.tlen))
+			if a.name not in discordant:
+				acc.correct += 1
+				acc.count(acc.tlen, abs(r1.tlen))
 			acc.mapq[r1.mapq] += 1
 			for end, rec, read in ((0, r1, a), (1, r2, b)):
 				acc.reads[rt][end] += 1

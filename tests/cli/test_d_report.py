@@ -19,7 +19,7 @@ import pytest
 
 import area_d
 from area_d import expected_report_pe, expected_report_se, strip_report_n
-from gem3harness import Rng, simulate_pe, simulate_se
+from gem3harness import Rng, simulate_bisulfite, simulate_pe, simulate_se
 
 REPORT = ["--report-file", "report.json"]
 
@@ -81,6 +81,22 @@ def bs(gem3, cgenome, cbs_index):
 	return area_d.bs_dataset(gem3, cgenome, cbs_index, name="report_bs", seed=94, n=150)
 
 
+def _bs_pairs_with_long_templates(genome):
+	"""Directional bisulfite pairs, then pairs with 3,000 bp templates: far
+	beyond the learnt template length, so paired as discordant with MAPQ 0."""
+	pairs = simulate_bisulfite(genome, 150, 100, library="directional", seed=94, insert_mean=260,
+		insert_sd=30)
+	pairs += simulate_bisulfite(genome, 12, 100, library="directional", seed=95, insert_mean=3000,
+		insert_sd=0, contigs=["chrA"], name_prefix="long")
+	return [(p.r1, p.r2) for p in pairs]
+
+
+@pytest.fixture(scope="module")
+def bs_long(gem3, cgenome, cbs_index):
+	return area_d.dataset(gem3, cbs_index, "report_bs_long",
+		lambda: ("pe", _bs_pairs_with_long_templates(cgenome)))
+
+
 def report(res):
 	return json.loads(res.files["report.json"].decode("ascii"))
 
@@ -110,14 +126,20 @@ def test_report_paired_end(cgenome, pe):
 	assert got["CorrectPairs"] > 50 and min(got["Reads"]["Unmapped"]) > 5
 
 
-def test_report_bisulfite_pairs(cgenome, bs):
+def test_report_bisulfite_pairs(cgenome, bs, bs_long):
 	"""Bisulfite pairs: NumReadsBS (ends aligned C-to-T or G-to-A) and the
-	base counts of reads in pairs with MAPQ > 0 by conversion and class."""
-	res = bs.run(REPORT)
-	got = report(res)
-	want = expected_report_pe(bs.pairs, res.sam(), cgenome, bisulfite=True)
-	assert strip_report_n(got) == want
-	assert "NumReadsBS" in got and "UnderConversionControlC2T" in got["BaseCounts"]
+	base counts of reads in pairs with MAPQ > 0 by conversion and class;
+	pairs with MAPQ 0 (here discordant long templates) are left out of the
+	conversion counts."""
+	for ds in (bs, bs_long):
+		res = ds.run(REPORT)
+		got = report(res)
+		long_ = set(a.name for a, b in ds.pairs if a.name.startswith("long"))
+		want = expected_report_pe(ds.pairs, res.sam(), cgenome, bisulfite=True, discordant=long_)
+		assert strip_report_n(got) == want
+		assert "NumReadsBS" in got and "UnderConversionControlC2T" in got["BaseCounts"]
+	prim = [r for r in res.sam().records if r.is_primary and r.qname.startswith("long")]
+	assert len(prim) == 24 and all(r.mapq == 0 and not r.is_unmapped for r in prim)
 
 
 def test_report_read_group(gem3, genome, genome_index):
