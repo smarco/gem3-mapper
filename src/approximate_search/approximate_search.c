@@ -86,6 +86,7 @@ void approximate_search_init(
   // Region Profile
   region_profile_inject_mm(&search->region_profile,mm_allocator);
   search->num_limited_exact_matches = 0;
+  search->region_profile_ahead = NULL;
   // Nsearch
   search->nsearch_schedule = nsearch_schedule;
   nsearch_schedule_inject_mm(search->nsearch_schedule,mm_allocator);
@@ -112,6 +113,7 @@ void approximate_search_prepare(
   // Region profile
   const uint64_t key_length = search->pattern.key_length;
   region_profile_init(&search->region_profile,key_length);
+  search->region_profile_ahead = NULL;
   // Reset Approximate Search State
   search->search_stage = asearch_stage_begin;
   search->processing_state = asearch_processing_state_begin;

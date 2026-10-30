@@ -30,6 +30,8 @@
 #include "archive/search/archive_search_pe.h"
 #include "text/sequence_bisulfite.h"
 #include "io/output_sam.h"
+#include "io/input_fasta.h"
+#include "filtering/region_profile/region_profile_adaptive.h"
 #include "profiler/profiler.h"
 
 /*
@@ -139,6 +141,241 @@ void mapper_error_report(FILE* stream) {
   }
 }
 /*
+ * Region profiles computed ahead of the reads' searches
+ *   The keys of the reads that follow in the current input block are read from the block
+ *   without consuming it, and profiled in lockstep with the current read's key. Each search
+ *   replays its profile only when its own key turns out to be the one profiled.
+ */
+#define MAPPER_AHEAD_KEYS 16 // Keys profiled in lockstep (SE: reads; PE: ends of pairs)
+typedef struct {
+  bool enabled;
+  uint64_t num_aheads;             // Profiles of the last batch, in input order (PE: end1,end2 per pair)
+  uint64_t next_ahead;             // Next profile to hand out
+  region_profile_ahead_t* aheads;  // MAPPER_AHEAD_KEYS profiles
+  string_t line;                   // Peeked line
+  string_t read_end1;              // Peeked reads
+  string_t read_end2;
+} mapper_ahead_t;
+static void mapper_ahead_init(
+    mapper_ahead_t* const ahead,
+    mapper_parameters_t* const parameters,
+    const bool paired_end) {
+  const search_parameters_t* const search_parameters = &parameters->search_parameters;
+  const archive_t* const archive = parameters->archive;
+  ahead->enabled =
+      MAPPER_AHEAD_KEYS >= 2 && MAPPER_AHEAD_KEYS <= REGION_PROFILE_AHEAD_MAX_KEYS &&
+      search_parameters->mapping_mode == mapping_adaptive_filtering_fast &&
+      search_parameters->region_profile_model.strategy == region_profile_adaptive &&
+      !archive->text->run_length &&
+      (paired_end || archive->type != archive_dna_bisulfite);
+  ahead->num_aheads = 0;
+  ahead->next_ahead = 0;
+  if (!ahead->enabled) return;
+  ahead->aheads = mm_calloc(MAPPER_AHEAD_KEYS,region_profile_ahead_t,true);
+  string_init(&ahead->line,256,NULL);
+  string_init(&ahead->read_end1,256,NULL);
+  string_init(&ahead->read_end2,256,NULL);
+}
+static void mapper_ahead_destroy(mapper_ahead_t* const ahead) {
+  if (!ahead->enabled) return;
+  mm_free(ahead->aheads);
+  string_destroy(&ahead->line);
+  string_destroy(&ahead->read_end1);
+  string_destroy(&ahead->read_end2);
+}
+static bool mapper_ahead_peek_read(
+    buffered_input_file_t* const cursor,
+    string_t* const line,
+    string_t* const read) {
+  // One FASTA/FASTQ record (false at the end of the block or on anything unexpected)
+  if (buffered_input_file_eob(cursor)) return false;
+  buffered_input_file_get_line(cursor,line);
+  const char tag_begin = string_get_buffer(line)[0];
+  if (tag_begin != FASTA_TAG_BEGIN && tag_begin != FASTQ_TAG_BEGIN) return false;
+  // Read (normalized as input_fasta_parse_sequence_read does)
+  if (buffered_input_file_eob(cursor)) return false;
+  buffered_input_file_get_line(cursor,read);
+  const uint64_t read_length = string_get_length(read)-1; // No EOL
+  if (read_length == 0) return false;
+  char* const buffer = string_get_buffer(read);
+  uint64_t i;
+  for (i=0;i<read_length-1;++i) {
+    if (!is_dna(buffer[i])) buffer[i] = dna_normalized(buffer[i]);
+  }
+  string_set_length(read,read_length);
+  // Separator & qualities
+  if (tag_begin == FASTQ_TAG_BEGIN) {
+    if (buffered_input_file_eob(cursor)) return false;
+    buffered_input_file_get_line(cursor,line);
+    if (string_get_buffer(line)[0] != FASTQ_SEP) return false;
+    if (buffered_input_file_eob(cursor)) return false;
+    buffered_input_file_get_line(cursor,line);
+  }
+  return true;
+}
+static void mapper_ahead_bisulfite_convert(
+    string_t* const read,
+    const char* const bs_table) {
+  const uint64_t length = string_get_length(read);
+  char* const buffer = string_get_buffer(read);
+  uint64_t pos;
+  for (pos=0;pos<length;pos++) buffer[pos] = bs_table[(int)buffer[pos]];
+}
+static bool mapper_ahead_bisulfite_flip(
+    string_t* const read_end1,
+    string_t* const read_end2) {
+  // As sequence_bisulfite_check_cg_depletion_pe
+  uint64_t counts1[7] = {0, 0, 0, 0, 0, 0, 0};
+  uint64_t counts2[7] = {0, 0, 0, 0, 0, 0, 0};
+  uint64_t length = string_get_length(read_end1);
+  const char* buffer = string_get_buffer(read_end1);
+  uint64_t pos;
+  for (pos=0;pos<length;pos++) counts1[(int)dna_encode_table[(int)buffer[pos]]]++;
+  length = string_get_length(read_end2);
+  buffer = string_get_buffer(read_end2);
+  for (pos=0;pos<length;pos++) counts2[(int)dna_encode_table[(int)buffer[pos]]]++;
+  return (counts1[1] + counts2[2]) > (counts1[2] + counts2[1]);
+}
+static void mapper_ahead_prepare_key(
+    region_profile_ahead_t* const ahead,
+    const search_parameters_t* const parameters,
+    string_t* const read) {
+  // Key as pattern_init_encode computes it
+  const uint64_t sequence_length = string_get_length(read);
+  const char* const buffer = string_get_buffer(read);
+  int64_t clip_left, clip_right, i;
+  switch (parameters->clipping) {
+    case clipping_disabled:
+      clip_left = 0;
+      break;
+    case clipping_uncalled:
+      i = 0;
+      while (i<sequence_length && !is_dna_canonical(buffer[i])) ++i;
+      clip_left = i;
+      break;
+    case clipping_masked:
+      i = 0;
+      while (i<sequence_length && !is_unmasked_dna(buffer[i])) ++i;
+      clip_left = i;
+      break;
+    case clipping_fixed:
+      clip_left = MIN(parameters->clip_left,sequence_length);
+      break;
+    default:
+      ahead->ready = false;
+      return;
+  }
+  switch (parameters->clipping) {
+    case clipping_disabled:
+      clip_right = 0;
+      break;
+    case clipping_uncalled:
+      i = sequence_length-1;
+      while (i>=clip_left && !is_dna_canonical(buffer[i])) --i;
+      clip_right = sequence_length - (i+1);
+      break;
+    case clipping_masked:
+      i = sequence_length-1;
+      while (i>=clip_left && !is_unmasked_dna(buffer[i])) --i;
+      clip_right = sequence_length - (i+1);
+      break;
+    case clipping_fixed:
+      clip_right = MIN(parameters->clip_right,sequence_length - clip_left);
+      break;
+    default:
+      ahead->ready = false;
+      return;
+  }
+  const uint64_t key_length = sequence_length - clip_right - clip_left;
+  if (!region_profile_ahead_prepare(ahead,key_length)) return;
+  const char* const clipped = buffer + clip_left;
+  uint64_t j;
+  for (j=0;j<key_length;++j) ahead->key[j] = dna_encode(clipped[j]);
+}
+static void mapper_ahead_prepare_pattern(
+    region_profile_ahead_t* const ahead,
+    const pattern_t* const pattern) {
+  if (!region_profile_ahead_prepare(ahead,pattern->key_length)) return;
+  memcpy(ahead->key,pattern->key,pattern->key_length);
+}
+static void mapper_ahead_generate(
+    mapper_ahead_t* const ahead,
+    const uint64_t num_aheads,
+    archive_search_t* const archive_search) {
+  // Profile every key prepared, in lockstep
+  region_profile_ahead_t* batch[MAPPER_AHEAD_KEYS];
+  uint64_t i, num_batch = 0;
+  for (i=0;i<num_aheads;++i) {
+    if (ahead->aheads[i].key_length > 0 && ahead->aheads[i].region_profile.filtering_region != NULL) {
+      batch[num_batch++] = ahead->aheads + i;
+    }
+  }
+  region_profile_ahead_generate(batch,num_batch,
+      archive_search->archive->fm_index,&archive_search->search_parameters.region_profile_model);
+  ahead->num_aheads = num_aheads;
+  ahead->next_ahead = 0;
+}
+static void mapper_ahead_batch_se(
+    mapper_ahead_t* const ahead,
+    archive_search_t* const archive_search,
+    mapper_io_handler_t* const mapper_io_handler) {
+  const search_parameters_t* const parameters = &archive_search->search_parameters;
+  uint64_t i;
+  for (i=0;i<MAPPER_AHEAD_KEYS;++i) {
+    ahead->aheads[i].key_length = 0;
+    ahead->aheads[i].ready = false;
+  }
+  // The current read
+  mapper_ahead_prepare_pattern(ahead->aheads,&archive_search->approximate_search.pattern);
+  // The reads that follow in the block
+  buffered_input_file_t cursor = *(mapper_io_handler->buffered_fasta_input_end1);
+  uint64_t num_aheads = 1;
+  while (num_aheads < MAPPER_AHEAD_KEYS) {
+    if (!mapper_ahead_peek_read(&cursor,&ahead->line,&ahead->read_end1)) break;
+    mapper_ahead_prepare_key(ahead->aheads+num_aheads,parameters,&ahead->read_end1);
+    ++num_aheads;
+  }
+  mapper_ahead_generate(ahead,num_aheads,archive_search);
+}
+static void mapper_ahead_batch_pe(
+    mapper_ahead_t* const ahead,
+    archive_search_t* const archive_search_end1,
+    archive_search_t* const archive_search_end2,
+    mapper_io_handler_t* const mapper_io_handler) {
+  uint64_t i;
+  for (i=0;i<MAPPER_AHEAD_KEYS;++i) {
+    ahead->aheads[i].key_length = 0;
+    ahead->aheads[i].ready = false;
+  }
+  // The current pair
+  mapper_ahead_prepare_pattern(ahead->aheads,&archive_search_end1->approximate_search.pattern);
+  mapper_ahead_prepare_pattern(ahead->aheads+1,&archive_search_end2->approximate_search.pattern);
+  // The pairs that follow in the block(s)
+  buffered_input_file_t cursor_end1 = *(mapper_io_handler->buffered_fasta_input_end1);
+  buffered_input_file_t cursor_end2 = *(mapper_io_handler->buffered_fasta_input_end2);
+  buffered_input_file_t* const cursor2 =
+      mapper_io_handler->separated_input_files ? &cursor_end2 : &cursor_end1;
+  uint64_t num_aheads = 2;
+  while (num_aheads+2 <= MAPPER_AHEAD_KEYS) {
+    if (!mapper_ahead_peek_read(&cursor_end1,&ahead->line,&ahead->read_end1)) break;
+    if (!mapper_ahead_peek_read(cursor2,&ahead->line,&ahead->read_end2)) break;
+    if (mapper_io_handler->archive_bisulfite) { // As sequence_bisulfite_process_pe
+      bool flip = false;
+      if (mapper_io_handler->bisulfite_read==bisulfite_non_stranded) {
+        flip = mapper_ahead_bisulfite_flip(&ahead->read_end1,&ahead->read_end2);
+      }
+      mapper_ahead_bisulfite_convert(&ahead->read_end1,flip ? dna_bisulfite_G2A_table : dna_bisulfite_C2T_table);
+      mapper_ahead_bisulfite_convert(&ahead->read_end2,flip ? dna_bisulfite_C2T_table : dna_bisulfite_G2A_table);
+    }
+    mapper_ahead_prepare_key(ahead->aheads+num_aheads,
+        &archive_search_end1->search_parameters,&ahead->read_end1);
+    mapper_ahead_prepare_key(ahead->aheads+num_aheads+1,
+        &archive_search_end2->search_parameters,&ahead->read_end2);
+    num_aheads += 2;
+  }
+  mapper_ahead_generate(ahead,num_aheads,archive_search_end1);
+}
+/*
  * SE Mapper
  */
 void* mapper_se_thread(mapper_search_t* const mapper_search) {
@@ -169,6 +406,10 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   mapper_search->mapper_io_handler = mapper_io_handler;
   mapper_search->sequence_end1 = &sequence;
 
+  // Region profiles computed ahead
+  mapper_ahead_t ahead;
+  mapper_ahead_init(&ahead,parameters,false);
+
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_read_sequence(mapper_io_handler,true,&sequence)) {
@@ -179,6 +420,13 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
 
     // Prepare Search
     archive_search_handlers_prepare_se(archive_search,sequence,archive_search_handlers);
+    if (ahead.enabled) {
+      if (ahead.next_ahead >= ahead.num_aheads) {
+        mapper_ahead_batch_se(&ahead,archive_search,mapper_io_handler);
+      }
+      archive_search->approximate_search.region_profile_ahead = ahead.aheads + ahead.next_ahead;
+      ++(ahead.next_ahead);
+    }
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -209,6 +457,7 @@ void* mapper_se_thread(mapper_search_t* const mapper_search) {
   // Update processed
   ticker_update_mutex(mapper_search->ticker,reads_processed);
   // Clean up
+  mapper_ahead_destroy(&ahead);
   matches_delete(matches);
   archive_search_delete(archive_search);
   archive_search_handlers_delete(archive_search_handlers);
@@ -250,6 +499,10 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   mapper_search->sequence_end1 = &sequence_end1;
   mapper_search->sequence_end2 = &sequence_end2;
 
+  // Region profiles computed ahead
+  mapper_ahead_t ahead;
+  mapper_ahead_init(&ahead,parameters,true);
+
   // FASTA/FASTQ reading loop
   uint64_t reads_processed = 0;
   while (mapper_read_paired_sequence(mapper_io_handler,true,&sequence_end1,&sequence_end2)) {
@@ -263,6 +516,14 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
         archive_search_end1,archive_search_end2,
         sequence_end1,sequence_end2,
         archive_search_handlers);
+    if (ahead.enabled) {
+      if (ahead.next_ahead >= ahead.num_aheads) {
+        mapper_ahead_batch_pe(&ahead,archive_search_end1,archive_search_end2,mapper_io_handler);
+      }
+      archive_search_end1->approximate_search.region_profile_ahead = ahead.aheads + ahead.next_ahead;
+      archive_search_end2->approximate_search.region_profile_ahead = ahead.aheads + ahead.next_ahead + 1;
+      ahead.next_ahead += 2;
+    }
 
     // Search into the archive
 #ifdef DEBUG_MAPPER_DISPLAY_EACH_READ_TIME
@@ -299,6 +560,7 @@ void* mapper_pe_thread(mapper_search_t* const mapper_search) {
   ticker_update_mutex(mapper_search->ticker,reads_processed);
 
   // Clean up
+  mapper_ahead_destroy(&ahead);
   archive_search_delete(archive_search_end1);
   archive_search_delete(archive_search_end2);
   paired_matches_delete(paired_matches);
