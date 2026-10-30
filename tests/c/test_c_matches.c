@@ -60,6 +60,15 @@
  *     archive_score_probability_to_mapq(double), archive_score_logit, archive_score_logit_{unique,mmap}
  *     archive_score_matches_se_get_model, archive_score_matches_se_logit_{unique,mmap}
  *     archive_score_matches_se[_default,_classify](archive_search_t*,matches_t*)
+ *   and builds or reads these structs field by field: cigar_element_t;
+ *   match_trace_t (type, scores and distances, error_quality, sequence_name,
+ *   text_position, strand, bs_strand, mapq_score, match_alignment); matches_t
+ *   (counters, metrics, classification, max_complete_stratum,
+ *   limited_exact_matches, cigar_vector, match_traces_local,
+ *   match_traces_extended); matches_metrics_t; matches_predictors_t;
+ *   select_parameters_t; search_parameters_t (mapping_mode,
+ *   select_parameters, match_alignment_model, mapq_model_se);
+ *   archive_search_t.search_parameters; archive_score_logit_model_t.
  */
 
 #include "gem3_test.h"

@@ -17,7 +17,6 @@ buffer size, so paired comparisons keep --input-model fixed.
 
 import bz2
 import gzip
-import zlib
 
 import pytest
 
@@ -59,8 +58,10 @@ def test_output_file_matches_stdout(gem3, se, tmp_path):
 @pytest.mark.parametrize("mode", ["gzip", "bzip"])
 @pytest.mark.parametrize("to_file", [False, True], ids=["stdout", "file"])
 def test_compressed_output(gem3, se, tmp_path, mode, to_file):
-	"""--gzip-output / --bzip-output write one valid gzip or bzip2 stream
-	(to stdout or the -o file) that decompresses to the plain SAM."""
+	"""--gzip-output / --bzip-output write a valid gzip or bzip2 file (to
+	stdout or the -o file) that decompresses to the plain SAM. Several
+	concatenated members or streams are valid too (gzip and bzip2 tools
+	read them), so their number is not checked."""
 	args = ["--%s-output" % mode] + (["-o", "out.sam.x"] if to_file else []) + SMALL_INPUT
 	res = gem3.run_map(se.index, inputs=se.paths, args=args, cwd=str(tmp_path))
 	data = (tmp_path / "out.sam.x").read_bytes() if to_file else res.stdout
@@ -68,10 +69,7 @@ def test_compressed_output(gem3, se, tmp_path, mode, to_file):
 		assert res.stdout == b""
 	if mode == "gzip":
 		assert data[:3] == b"\x1f\x8b\x08"
-		d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-		text = d.decompress(data) + d.flush()
-		assert d.eof and d.unused_data == b""  # a single, complete member
-		assert gzip.decompress(data) == text
+		text = gzip.decompress(data)  # EOFError on a truncated member
 	else:
 		assert data[:3] == b"BZh"
 		text = bz2.decompress(data)

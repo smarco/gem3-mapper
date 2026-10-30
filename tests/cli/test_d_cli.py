@@ -248,18 +248,18 @@ def log_messages(res):
 
 def test_verbose_user_log(gem3, se, pe):
 	"""--verbose=user logs the steps with a timestamp, and the total number
-	of reads (single end) or pairs (paired end) processed."""
+	of reads (single end) or pairs (paired end) processed; the last line
+	says it terminated. The order of the setup steps is not checked (a
+	change may open files and load the index in another order)."""
 	for ds, label, n in ((se, "SE", len(se.reads or [])), (pe, "PE", len(pe.pairs or []))):
 		res = ds.run(["--verbose=user"], threads=2)
 		msgs = log_messages(res)
-		opened = ["[Opening input file '%s']" % p for p in ds.paths]
-		assert msgs[:len(opened)] == opened
-		rest = msgs[len(opened):]
-		assert rest[:3] == ["[Outputting to stdout]", "[Loading GEM index '%s']" % ds.index,
-			"[%s::Mapping Sequences]" % label]
-		assert rest[3] == "Total %d sequences processed... done" % n
-		assert re.match(r"\A\[GEMMapper terminated successfully in \d+s\. \(\+\d+s\. loading\)\]\Z", rest[4])
-		assert len(rest) == 5
+		steps = ["[Opening input file '%s']" % p for p in ds.paths] + ["[Outputting to stdout]",
+			"[Loading GEM index '%s']" % ds.index, "[%s::Mapping Sequences]" % label,
+			"Total %d sequences processed... done" % n]
+		assert sorted(msgs[:-1]) == sorted(steps), msgs
+		assert msgs.index("[%s::Mapping Sequences]" % label) < msgs.index(steps[-1])
+		assert re.match(r"\A\[GEMMapper terminated successfully in \d+s\. \(\+\d+s\. loading\)\]\Z", msgs[-1])
 	# -v without a value means user; '-v' then 'quiet' leaves 'quiet' unused.
 	assert log_messages(se.run(["-v"], threads=2))[-1].startswith("[GEMMapper terminated")
 

@@ -197,7 +197,17 @@ is compiled with the flags gem3's Makefile used for `gem-mapper` (for the
 default build `-Ofast -march=skylake-avx512 -flto` on this kind of CPU) and
 linked with every object in the build's `build/` directory. A driver that
 calls an internal function says in its header comment which internal
-signatures it uses, since a speed change may change them.
+signatures it uses and which struct fields it reads or sets, since a speed
+change may change them. A change to those signatures or fields may edit a
+driver at those call sites and field accesses only, never its expected
+values or inputs.
+
+Drivers that build gem3's internal structs field by field
+(`test_c_matches.c`, `test_c_paired.c`, `test_d_stats.c`) need more than
+call-site edits if a change reorganises those structs (merges fields,
+splits a struct, changes what a field means); such a change should keep the
+driver's checks and move them to the new layout, or replace them with a CLI
+test of the same behaviour.
 
 ## Rules for expected values
 
@@ -266,10 +276,72 @@ modes).
   debug` (`-Og -g -DGEM_DEBUG -DGEM_PROFILE`), gcc 13.3 with `FLAGS_OPT=-O3`,
   gcc 11.5 with the release flags, gcc 11.5 as `CC=gcc-11` (the Makefile then
   falls back to `-O3`: its optimization flags apply only when `CC` is exactly
-  `gcc`), and clang 18.1 (`-O3`). MAPQ and AS did not differ between `-Ofast`
-  and `-O3` on these inputs, but MAPQ is computed in floating point
-  (`src/archive/score/`), so a MAPQ pin on new inputs should be checked on an
-  `-O3` build too (`GEM3_MAKE_ARGS=FLAGS_OPT=-O3`).
+  `gcc`), and clang 18.1 (`-O3`). Every build writes a byte-identical index.
+  These inputs miss one case where builds disagree
+  (`known-bugs/r2-mapq-infinite-to-integer.md`): a read whose MAPQ logistic
+  probability rounds to exactly 1.0 (linear predictor above about 36.7, e.g.
+  100 bp reads missing 12-18 bp, a 250 bp read under `--alignment-model
+  hamming`, some reads under `--candidate-generation MEM`) has
+  `round(-10*log10(0))` = +inf converted to an integer, which C leaves
+  undefined. It prints MAPQ 59 (classify 170 or 70) from AVX-512 gcc builds
+  and clang, and 0 from gcc builds without AVX-512 (`-O3`, `-Og`,
+  `CC=gcc-11`, `-Ofast -march=native` on a CPU without AVX-512). Under
+  `--mapping-mode complete-partition` and `complete-partition-filter` the
+  probability is NaN and every x86 build here prints 59 (aarch64 converts NaN
+  to 0). It is not floating-point contraction or fast-math: the predictors
+  printed by `--mapq-model dump-predictors` are identical in every build. No
+  test checks MAPQ on a read whose probability rounds to 1.0; do not pin
+  one. The partition-mode pins in `test_b_pins.py` hold NaN-derived MAPQs,
+  59 on every x86 build here. The search's reference is
+  the Makefile's own build (gcc 13 `-Ofast -march=skylake-avx512 -flto` on
+  this machine), with the same flags for the baseline and every candidate.
+- **Uninitialized and stale memory** (checked with valgrind memcheck on a
+  `-O0 -g` build, `MALLOC_PERTURB_`, ASan, and a build that logs the reads in
+  question; 45 option configurations). Output depends on memory gem-mapper
+  never wrote in two cases, which the search's gate cases must avoid:
+  paired-end `--sam-compact=false` at any `-M` (`XS:i` indexes one end's
+  alignments by pair number, so a template with more pairs than that end has
+  alignments prints a stale alignment from an earlier read of the same thread
+  or crashes; `known-bugs/D-pe-sam-compact-false-crash.md`), and paired-end
+  bisulfite mapping whatever `--bisulfite-read` says (the paired-end I/O
+  handler never sets `bisulfite_read`; directional pairs gave the same bytes
+  with the field forced to `non-stranded`, PBAT and non-directional pairs did
+  not; `known-bugs/pe-bisulfite-non-stranded-ignored.md`); the suite's
+  paired bisulfite tests use directional pairs and pass with the field
+  forced to `non-stranded` (an `LD_PRELOAD` malloc fill). The suite's two
+  paired `--sam-compact=false` cases (`test_pair_tie_between_two_copies`, pin
+  `rg-Mall-full`) have as many alignments per end as pairs; a probe build
+  logged no read past an end's alignments. Indexes depend on memory too:
+  gem-indexer ORs the sampled suffix array into slab memory it never zeroes,
+  which is right only because fresh pages are zero
+  (`known-bugs/r2-indexer-sampled-sa-uninitialized.md`). Sanitizer runs must
+  build their indexes with an ordinary gem-indexer, and a change that makes
+  `mm_slab` or `segmented_vector` memory come back non-zero corrupts every
+  index the suite builds.
+- **Tied pairs.** Among concordant pairs that tie on relation, SWG score and
+  whole sigmas of template length, the primary pair (and the order of the
+  secondary records and XA) is the one enumerated first:
+  `paired_matches_cmp_swg_score` returns 0 between pairs whose layouts differ
+  (its layout line compares the relations, equal by then), and pairs that
+  share their leftmost mate tie on `index_position`
+  (`known-bugs/r2-pe-tied-pair-order.md`). Reversing the enumeration moved the
+  primary placement of 9 of 350 tie-prone templates. A speed change must keep
+  the enumeration order of `paired_matches_find_pairs_sorted`, the order of
+  the `qsort` by genomic position before it, and insertion after equal keys.
+  `test_paired_output_follows_input_buffers_not_threads` and
+  `test_tandem_array_pairs_are_pinned` (the latter also at `-M all`, which
+  catches a change to the layout tie-break) pin such templates.
+- **Sanitizers** (gcc 13 `-O1 -fsanitize=address,undefined`, areas C and D
+  and the pilot tests, 2026-10-30): no AddressSanitizer error in gem-mapper
+  or the C drivers. UBSan reports misaligned accesses to index structures
+  used in place (the locator, `locator.c`, `mm.c:522`, `output_sam.c:105-115`;
+  their offset in the file is not a multiple of 8), `1L << 63`
+  (`align_bpm.c:208`) and, in gem-indexer, a shift by -2 when printing the
+  text sampling rate of an index built without text sampling
+  (`sampled_sa.c:153`, only the `.info` file); none changes output on
+  x86-64 (`known-bugs/r2-sanitizer-findings.md`). A sanitizer run of the
+  suite needs `-fno-sanitize=alignment`, `ASAN_OPTIONS=max_malloc_fill_size=0`
+  (so gem-indexer gets zeroed memory) and `detect_leaks=0`.
 - **Possibly platform-dependent, not testable here**: MAPQ under `-ffast-math`
   on aarch64/ppc64le (`-Ofast -mcpu=native`); the SIMD SWG paths
   (`align_swg_simd.c`) selected by `-march`; `long`/`size_t` widths on other
@@ -340,3 +412,11 @@ SAM specification is not tested. Found while writing this suite:
   I/O handler leaves `bisulfite_read` uninitialized), so PBAT pairs do not map.
 - `--input-model` with one input block hangs once the input exceeds a block;
   two blocks hang paired-end at `-t 32`.
+- Paired-end `--sam-compact=false` prints `XS:i` from another read's
+  alignment or crashes when one end has fewer alignments than the template
+  has pairs.
+- MAPQ of a read whose logistic probability rounds to 1.0 depends on the
+  compiler (+inf converted to an integer).
+- Tied concordant pairs are ordered by enumeration order (the layout
+  tie-break compares the wrong field).
+- gem-indexer builds a correct index only from zeroed heap memory.

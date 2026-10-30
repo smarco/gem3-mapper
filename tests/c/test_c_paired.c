@@ -53,6 +53,13 @@
  *     mapper_stats_{new,delete,template_init,template_length_sample,template_length_is_reliable,
  *         template_length_get_mean,template_length_get_stddev,template_length_get_expected_{min,max},
  *         template_length_get_num_samples} (area D; used to set up the distribution)
+ *   and builds or reads these structs field by field: paired_map_t (every
+ *   field); paired_matches_t (matches_end1, matches_end2, metrics,
+ *   classification); matches_t and match_trace_t as in test_c_matches.c;
+ *   matches_predictors_t; search_paired_parameters_t; search_parameters_t
+ *   (search_paired_parameters, match_alignment_model, mapq_model_pe,
+ *   select_parameters); archive_search_t (search_parameters,
+ *   approximate_search.pattern.key_length).
  */
 
 #include "gem3_test.h"
@@ -776,9 +783,11 @@ GT_TEST(score_pe_models) {
   // Ends do not tie, the pair ties: 0 / 2
   GT_CHECK_EQ_UINT(pe_score(mapq_model_gem,2,conc,false,true,5,0.0),0);
   GT_CHECK_EQ_UINT(pe_score(mapq_model_classify,2,conc,false,true,5,0.0),2);
-  // Unique pair well separated (wdelta 3): 60 / 161
+  // Unique pair well separated (wdelta 3, and 2 at the boundary): 60 / 161
   GT_CHECK_EQ_UINT(pe_score(mapq_model_gem,1,conc,false,false,5,0.0),60);
   GT_CHECK_EQ_UINT(pe_score(mapq_model_classify,1,conc,false,false,5,0.0),161);
+  GT_CHECK_EQ_UINT(pe_score(mapq_model_gem,1,conc,false,false,4,0.0),60);
+  GT_CHECK_EQ_UINT(pe_score(mapq_model_classify,1,conc,false,false,4,0.0),161);
   // Unique pair, wdelta <= 1: the mean of the ends' MAPQ (40, 21) / 100 + mean
   GT_CHECK_EQ_UINT(pe_score(mapq_model_gem,1,conc,false,false,3,0.0),30);
   GT_CHECK_EQ_UINT(pe_score(mapq_model_classify,1,conc,false,false,3,0.0),130);

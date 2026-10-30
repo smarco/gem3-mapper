@@ -349,6 +349,50 @@ def test_mate_rescue_in_high_copy_repeat(gem3, tmp_path, threads):
 		check_mates(r1, r2)
 
 
+def tandem_array_pairs():
+	"""A 60 kbp contig with 25 tandem copies of a 60 bp unit at 30,000; 1,000
+	unique pairs (so the template-length estimate is reliable) and then 60
+	pairs whose mates both fall inside the array, where many pairs tie on
+	score and template length but differ in layout and position."""
+	rng = Rng(606)
+	bg = rng.dna(60000)
+	array = rng.dna(60) * 25
+	seq = bg[:30000] + array + bg[30000 + len(array):]
+	g = Genome([("chrT", seq)])
+	pairs = simulate_pe(g, 1000, 100, seed=607, insert_mean=300, insert_sd=30, name_prefix="u")
+	recs1 = [(p.r1.name, p.r1.seq) for p in pairs]
+	recs2 = [(p.r2.name, p.r2.seq) for p in pairs]
+	for i in range(60):
+		frag = rng.randint(180, 420)
+		start = rng.randint(30000, 30000 + len(array) - frag)
+		a, b = seq[start:start + 100], revcomp(seq[start + frag - 100:start + frag])
+		if i % 2:
+			a, b = b, a
+		recs1.append(("tr%d" % i, a))
+		recs2.append(("tr%d" % i, b))
+	return g, recs1, recs2
+
+
+# sha256 of the SAM output without @PG/@CO on base 6e155e3, the same from the
+# five builds README.md lists at -t 1 and 4 (pins the current output). Tied
+# pairs are ordered by the order in which they are enumerated
+# (known-bugs/r2-pe-tied-pair-order.md); "Mall" changes if the layout
+# tie-break of paired_matches_cmp_swg_score changes.
+TANDEM_PINNED = {
+	"default": "4c73924b4d1d8321e1e7fb055461b9fdf5a1b494c737d1f8c2361ca8488a8a3b",
+	"Mall": "110dc9747907afd1652c801c04860e3d3297873a57916c8efa59e8cd569108e3",
+}
+
+
+@pytest.mark.parametrize("case", sorted(TANDEM_PINNED))
+def test_tandem_array_pairs_are_pinned(gem3, tmp_path, threads, case):
+	"""Pins the current output of pairs inside a tandem array (tied pairs)."""
+	g, recs1, recs2 = tandem_array_pairs()
+	args = {"default": [], "Mall": ["-M", "all"]}[case]
+	res = map_records(gem3, gem3.index(g), recs1, recs2, args, threads, tmp_path)
+	assert sam_digest(res.stdout) == TANDEM_PINNED[case]
+
+
 # Unpaired and unmapped mates ------------------------------------------------------
 
 def test_unmapped_and_cross_contig_mates(gem3, genome, genome_index, tmp_path, threads):
@@ -483,6 +527,8 @@ PIN_ARGS = {
 	"Mall": ["-M", "all"],
 	"classify": ["--mapq-model", "classify"],
 	"rg-default": [],
+	# Every end here has as many alignments as its template has pairs, so
+	# XS reads no stale slot (README "Determinism", D-pe-sam-compact-false-crash.md).
 	"rg-Mall-full": ["-M", "all", "--sam-compact=false"],
 	"rg-always": ["--discordant-pair-search", "always", "-M", "all"],
 }

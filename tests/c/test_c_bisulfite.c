@@ -40,6 +40,7 @@
  *     sequence_bisulfite_restore_se(sequence_t*), sequence_bisulfite_restore_pe(sequence_t*,sequence_t*)
  *     sequence_init(sequence_t*,bisulfite_read_t,mm_allocator_t*), sequence_set_read (area A)
  *     dna_bisulfite_C2T_table, dna_bisulfite_G2A_table
+ *   and reads these fields: sequence_t (read, bs_original_sequence, end_info).
  */
 
 #include "gem3_test.h"
