@@ -50,6 +50,8 @@
  *     options_get_num_options, options_adaptor_getopt, options_adaptor_getopt_short,
  *       options_fprint_menu
  *     int parse_integer_system(char* argument,uint64_t* value)   (mapper_arguments.c)
+ *   and reads ihash_t.head and ihash_element_t (key, hh.next) to walk a
+ *   sorted hash, as report_stats.c does.
  */
 
 #include "gem3_test.h"

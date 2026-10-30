@@ -46,6 +46,10 @@
  *     void output_json_uint_element(FILE*,char*,uint64_t,int indent,bool last)
  *     void output_json_uint_array(FILE*,char*,uint64_t*,int n,int indent,bool last)
  *     TIMER_START/STOP/PAUSE/CONTINUE/RESET/RESTART/GET_TOTAL_NS(gem_timer_t*)
+ *   and reads and writes these fields: mapping_stats_t (reads, BSreads,
+ *   unmapped, correct_pairs, base_counts, hist_mapq, read_length_dist,
+ *   distance_dist, insert_size_dist), sequence_t.read and
+ *   match_trace_t.sequence_name.
  */
 
 #include "gem3_test.h"

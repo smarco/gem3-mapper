@@ -138,6 +138,29 @@ def pe_mix(genome, seed=202):
 	return _shuffle(rng, result)
 
 
+def pe_tie_pairs(genome, seed=77, n=150):
+	"""Pairs from fragments overlapping repeats, tandem repeats and
+	homopolymers (placements that tie), mixed with unique pairs. Their output
+	depends on the template-length estimate, which gem-mapper restarts at
+	every input buffer (README, Determinism)."""
+	rng = Rng(seed)
+	feats = [f for f in genome.features if f.kind in ("tandem", "homopolymer", "repeat")]
+	out = []
+	for i in range(n):
+		f = feats[i % len(feats)]
+		frag = rng.randint(200, 450)
+		start = rng.randint(max(0, f.start - frag + 60), min(len(genome[f.contig]) - frag, f.end - 60))
+		s = genome[f.contig][start:start + frag].upper()
+		if "N" in s:
+			continue
+		a, b = s[:100], revcomp(s[-100:])
+		if i % 2:
+			a, b = b, a
+		out.append((Read("t%d" % i, a, _qual(rng, 100)), Read("t%d" % i, b, _qual(rng, 100))))
+	uniq = simulate_pe(genome, 200, 100, seed=seed + 1, insert_mean=300, insert_sd=60, name_prefix="w")
+	return _shuffle(rng, out + [(p.r1, p.r2) for p in uniq])
+
+
 def control_genome(seed=31):
 	"""A small genome whose contigs carry the report's control names."""
 	return synthetic_genome(seed, contigs=(("chrA", 40000), (SEQUENCING_CONTROL, 5000),

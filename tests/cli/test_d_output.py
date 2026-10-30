@@ -124,6 +124,31 @@ def test_thread_count_does_not_change_output(se, pe, bs, kind):
 	assert order == want
 
 
+@pytest.fixture(scope="module")
+def ties(gem3, genome, genome_index):
+	return area_d.dataset(gem3, genome_index, "pe_ties", lambda: ("pe", area_d.pe_tie_pairs(genome)))
+
+
+# sha256 (SAM without @PG/@CO) of the tie-prone pairs on base 6e155e3 with the
+# default input buffers and with 4 KB buffers (pins the current output).
+PINNED_TIES = {
+	"default": "afa18e177b678054ff375b0285a8707e16f60c1cc6875f6c6f761bc29fd9ef49",
+	"4K": "65885315d8f2aaf8d6e57ad04aa7cfa3b279e38c5e1b0a11dcb144a10ffd4d5e",
+}
+
+
+def test_paired_output_follows_input_buffers_not_threads(ties):
+	"""Pairs whose placement ties: the output depends on the input buffer
+	size (the template-length estimate restarts at every buffer, README
+	"Determinism"), never on the thread count. Pins both buffer sizes."""
+	ref = ties.run(SMALL_INPUT, threads=1).stdout
+	for t in (2, 4, 8):
+		assert plain(ties.run(SMALL_INPUT, threads=t).stdout) == plain(ref), t
+	assert sam_digest(ref) == PINNED_TIES["4K"]
+	assert sam_digest(ties.run(threads=1).stdout) == PINNED_TIES["default"]
+	assert plain(ties.run(threads=4).stdout) == plain(ties.run(threads=1).stdout)
+
+
 def test_single_end_output_ignores_input_buffer_size(se):
 	"""Single-end output does not depend on the input buffer size."""
 	ref = plain(se.run().stdout)

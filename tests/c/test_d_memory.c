@@ -39,6 +39,7 @@
  *       (through mm_allocator_malloc/mm_allocator_calloc)
  *     void mm_allocator_free(mm_allocator_t*,void*)
  *     mm_allocator_push_memory_state/mm_allocator_pop_memory_state(mm_allocator_t*)
+ *   and reads mm_slab_unit_t.memory.
  */
 
 #include "gem3_test.h"
