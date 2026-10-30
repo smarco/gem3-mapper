@@ -19,7 +19,7 @@ import re
 import pytest
 
 from gem3harness import (compress_bytes, fastq_record, revcomp, sam_digest, simulate_pe,
-	simulate_se, strip_variable_header, write_interleaved, write_reads, write_split)
+	simulate_se, write_interleaved, write_reads, write_split)
 from area_a import assert_maps_to_truth, primary, records_without_qual
 
 

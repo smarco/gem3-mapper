@@ -17,7 +17,7 @@ import re
 import pytest
 
 from gem3harness import (Rng, check_record_against_reference, revcomp, sam_digest, simulate_pe,
-	simulate_se, synthetic_genome, write_fasta_records, write_reads, write_split)
+	simulate_se, write_fasta_records, write_reads, write_split)
 from area_a import assert_maps_to_truth, indexed_text, kmer_intervals, primary
 
 TINY = [
@@ -127,7 +127,7 @@ def test_run_length_index(gem3, genome, mixed_reads, tmp_path, threads):
 	assert "Archive RL-text not supported for paired-end mode" in res.stderr_text
 
 
-def _edge_reads(genome, rng):
+def _edge_reads(genome):
 	"""Exact reads at the first and last bases of every contig, against both
 	sides of every N run, covering whole short contigs; both strands."""
 	out = []
@@ -165,7 +165,7 @@ def test_reads_at_contig_ends_and_n_runs(gem3, genome, genome_index, tmp_path, t
 	"""Positions next to the ends of the indexed intervals (contig ends,
 	removed N runs, the 90 bp contig) translate back to the right contig,
 	position and strand."""
-	reads = _edge_reads(genome, Rng(5))
+	reads = _edge_reads(genome)
 	assert len(reads) > 40
 	fq = tmp_path / "edge.fq"
 	with open(str(fq), "w") as fh:

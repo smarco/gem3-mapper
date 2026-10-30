@@ -14,7 +14,7 @@ offset, so the same phred values in two encodings must map identically.
 
 import pytest
 
-from gem3harness import Rng, revcomp, sam_digest, simulate_se, write_reads
+from gem3harness import Rng, check_record_against_reference, revcomp, sam_digest, simulate_se, write_reads
 from area_a import primary, records_without_qual
 
 
@@ -116,6 +116,22 @@ def test_clipping_fixed(gem3, genome, genome_index, starts, threads, left, right
 	for name, (contig, pos, cigar, strand) in expected.items():
 		rec = by_name[name]
 		assert (rec.rname, rec.pos, rec.cigar, rec.strand) == (contig, pos, cigar, strand), rec
+
+
+def test_clipping_none(gem3, genome, genome_index, starts, threads):
+	"""--clipping=none: reads without N at their ends are unchanged by
+	uncalled clipping, so both give the same records; reads with terminal N
+	still map to their origin with alignments consistent with the reference."""
+	clean = [("c%d" % i, genome[c][s:s + 100].upper()) for i, (c, s) in enumerate(starts)]
+	none = _run(gem3, genome_index, clean, ["--clipping=none"], threads)
+	default = _run(gem3, genome_index, clean, [], threads)
+	assert sam_digest(none.stdout) == sam_digest(default.stdout)
+	reads = [("n%d" % i, "NNN" + genome[c][s + 3:s + 97].upper() + "NNN") for i, (c, s) in enumerate(starts)]
+	by_name = primary(_run(gem3, genome_index, reads, ["--clipping=none"], threads).sam())
+	for (name, _), (contig, start) in zip(reads, starts):
+		rec = by_name[name]
+		assert rec.rname == contig and start <= rec.pos - 1 <= start + 3, rec
+		assert check_record_against_reference(rec, genome[contig]) == [], rec
 
 
 def test_clipping_fixed_longer_than_read(gem3, genome, genome_index, starts, threads):

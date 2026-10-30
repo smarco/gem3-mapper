@@ -100,7 +100,7 @@
 
 #define NS_THRESHOLD 50
 #define MAX_CONTIGS 8
-#define MAX_TEXT 16384
+#define MAX_TEXT (1<<18)
 
 /*
  * Test genome: contigs given as segments so the expected indexed text is
@@ -215,7 +215,7 @@ static contig_t* genome_add_contig(genome_t* const g,const char* const name) {
  * Genome with repeats, short and long N runs (inside contigs, at contig
  * starts and ends), IUPAC codes, soft-masked bases and a very short contig
  */
-static genome_t* genome_new(const uint64_t seed) {
+static genome_t* genome_new_sized(const uint64_t seed,const uint64_t large_contig_length) {
   genome_t* const g = calloc(1,sizeof(genome_t));
   gt_rng_t rng = gt_rng_new(seed);
   char repeat[160];
@@ -262,8 +262,20 @@ static genome_t* genome_new(const uint64_t seed) {
   contig_append_random(c,&rng,80);
   for (i=0;i<30;++i) contig_append(c,"CAG",3);
   contig_append_random(c,&rng,80);
+  // chrL: long enough for the text to span several 65536-position BWT
+  // blocks (their counters are separate from the 64-position minor blocks')
+  if (large_contig_length > 0) {
+    c = genome_add_contig(g,"chrL");
+    contig_append_random(c,&rng,large_contig_length/2);
+    contig_append_char(c,'N',3);
+    contig_append(c,repeat,sizeof(repeat));
+    contig_append_random(c,&rng,large_contig_length/2);
+  }
   genome_compute_text(g);
   return g;
+}
+static genome_t* genome_new(const uint64_t seed) {
+  return genome_new_sized(seed,0);
 }
 
 /*
@@ -383,15 +395,19 @@ typedef struct {
   uint64_t* sa;
   uint8_t* bwt;      // naive BWT
 } indexed_t;
-static void indexed_new(indexed_t* const ix,const uint64_t seed,
-    const sampling_rate_t sa_rate,const sampling_rate_t text_rate) {
-  ix->g = genome_new(seed);
+static void indexed_new_sized(indexed_t* const ix,const uint64_t seed,
+    const sampling_rate_t sa_rate,const sampling_rate_t text_rate,const uint64_t large_contig_length) {
+  ix->g = genome_new_sized(seed,large_contig_length);
   fixture_build(&ix->fx,ix->g,archive_dna_full,sa_rate,text_rate,false);
   ix->sa = naive_sa(ix->g->text,ix->g->text_length);
   ix->bwt = malloc(ix->g->text_length);
   const uint64_t n = ix->g->text_length;
   uint64_t i;
   for (i=0;i<n;++i) ix->bwt[i] = ix->g->text[(ix->sa[i]+n-1)%n];
+}
+static void indexed_new(indexed_t* const ix,const uint64_t seed,
+    const sampling_rate_t sa_rate,const sampling_rate_t text_rate) {
+  indexed_new_sized(ix,seed,sa_rate,text_rate,0);
 }
 static void indexed_delete(indexed_t* const ix) {
   fixture_destroy(&ix->fx);
@@ -1382,9 +1398,12 @@ GT_TEST(index_run_length) {
 /*
  * Cases
  */
-static void check_all(const uint64_t seed,const sampling_rate_t sa_rate,const sampling_rate_t text_rate) {
+static void check_all(
+    const uint64_t seed,const sampling_rate_t sa_rate,const sampling_rate_t text_rate,
+    const uint64_t large_contig_length) {
   indexed_t ix;
-  indexed_new(&ix,seed,sa_rate,text_rate);
+  indexed_new_sized(&ix,seed,sa_rate,text_rate,large_contig_length);
+  if (large_contig_length > 0) GT_REQUIRE(ix.g->text_length > 2*65536);
   const sampled_sa_t* const ssa = ix.fx.archive->fm_index->sampled_sa;
   // The getters return the rate itself (2^rate); no SA-space sampling is a rate above any index length
   if (sa_rate == SAMPLING_RATE_NONE) {
@@ -1404,19 +1423,24 @@ static void check_all(const uint64_t seed,const sampling_rate_t sa_rate,const sa
 }
 GT_TEST(index_default_sampling) {
   // gem-indexer's CPU defaults: no SA-space sampling, text sampling rate 4
-  check_all(101,SAMPLING_RATE_NONE,SAMPLING_RATE_4);
+  check_all(101,SAMPLING_RATE_NONE,SAMPLING_RATE_4,0);
 }
 GT_TEST(index_sa_and_text_sampling) {
-  check_all(202,SAMPLING_RATE_8,SAMPLING_RATE_8);
+  check_all(202,SAMPLING_RATE_8,SAMPLING_RATE_8,0);
 }
 GT_TEST(index_sparse_text_sampling) {
-  check_all(303,SAMPLING_RATE_NONE,SAMPLING_RATE_64);
+  check_all(303,SAMPLING_RATE_NONE,SAMPLING_RATE_64,0);
+}
+GT_TEST(index_large_text) {
+  // About 150,000 text positions: three BWT counter blocks of 65536
+  check_all(606,SAMPLING_RATE_NONE,SAMPLING_RATE_4,72000);
 }
 
 GT_CASES(
   GT_CASE(index_default_sampling),
   GT_CASE(index_sa_and_text_sampling),
   GT_CASE(index_sparse_text_sampling),
+  GT_CASE(index_large_text),
   GT_CASE(region_profile_strategies),
   GT_CASE(region_profile_helpers),
   GT_CASE(rl_encode),
