@@ -42,7 +42,8 @@
  *     void buffered_output_file_reserve(buffered_output_file_t*,uint64_t num_chars)
  *     void buffered_output_file_dump_buffer(buffered_output_file_t*), buffered_output_file_close(...)
  *     bofprintf_uint64/bofprintf_char/bofprintf_string(buffered_output_file_t*,...)
- *     gem_thread_register_id(uint64_t), PROF_NEW(uint64_t)/PROF_DELETE() (GEM_PROFILE builds)
+ *   Threads start through gt_run_threads (gem3_test.h), which registers gem
+ *   thread ids and profile slots as gem-mapper does.
  */
 
 #include "gem3_test.h"
@@ -53,14 +54,11 @@
 #include <bzlib.h>
 #include "io/output_file.h"
 #include "io/buffered_output_file.h"
-#include "system/gthread.h"
-#include "profiler/profiler_gem.h"
 
 #define NUM_BLOCKS 160
 #define MAX_RECORD 300
 
 typedef struct {
-  uint64_t thread_id;
   buffered_output_file_t* bof;
   pthread_mutex_t* mutex;
   uint64_t* next_block;
@@ -84,9 +82,6 @@ static uint64_t records_in_block(const uint64_t b) {
 
 static void* worker(void* arg) {
   worker_t* const w = arg;
-  // As the mapper threads do: a gem thread id selects the profile slot
-  // that GEM_PROFILE builds count into
-  gem_thread_register_id(w->thread_id);
   gt_rng_t rng = gt_rng_new(w->seed);
   char rec[MAX_RECORD+64];
   while (true) {
@@ -183,28 +178,20 @@ static void run_case(
         output_gzip_stream_new(stream,num_buffers,buffer_size) :
         output_bzip_stream_new(stream,num_buffers,buffer_size);
   }
-  // Profile slots for the master and every worker (GEM_PROFILE builds;
-  // no-ops otherwise), as gem-mapper's gruntime_init(threads+1) sets up
-  PROF_DELETE();
-  PROF_NEW(1+16);
   ofprintf(of,"@HD\tVN:%s\n","test");
   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
   uint64_t next_block = 0;
-  pthread_t threads[16];
   worker_t workers[16];
   int i;
   for (i=0;i<num_threads;++i) {
-    workers[i].thread_id = (uint64_t)(i+1);
     workers[i].bof = buffered_output_file_new(of);
     workers[i].mutex = &mutex;
     workers[i].next_block = &next_block;
     workers[i].seed = (uint64_t)(i+1)*0x9E3779B97F4A7C15ull ^ buffer_size ^ num_buffers;
-    GT_REQUIRE(pthread_create(threads+i,NULL,worker,workers+i)==0);
   }
-  for (i=0;i<num_threads;++i) {
-    pthread_join(threads[i],NULL);
-    buffered_output_file_close(workers[i].bof);
-  }
+  // Gem thread ids 1..n and their profile slots, as the mapper threads have
+  GT_REQUIRE(gt_run_threads((uint64_t)num_threads,worker,workers,sizeof(worker_t))==0);
+  for (i=0;i<num_threads;++i) buffered_output_file_close(workers[i].bof);
   output_file_close(of);
   size_t want_len, got_len;
   char* const want = expected(&want_len);

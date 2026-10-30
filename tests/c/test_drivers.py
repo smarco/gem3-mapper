@@ -16,7 +16,7 @@ DRIVER_TIMEOUT = 120
 
 
 @pytest.mark.parametrize("source", c_driver_sources(), ids=lambda p: os.path.basename(p)[:-2])
-def test_c_driver(gem3_build, source):
+def test_driver(gem3_build, source):
 	if not gem3_build.has_objects:
 		pytest.skip("GEM3_BIN_DIR without GEM3_BUILD_DIR: no objects to link C drivers against")
 	exe = build_c_driver(gem3_build, source)

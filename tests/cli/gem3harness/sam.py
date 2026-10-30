@@ -395,16 +395,27 @@ def check_record_against_reference(rec, ref_seq):
 	Returns a list of strings (empty when consistent): CIGAR valid and its
 	query length equal to len(SEQ); the alignment inside the contig; NM and
 	MD, when present, equal to the values recomputed from the reference.
+
+	When SEQ is ``*`` (secondary records), NM and MD cannot be recomputed:
+	the CIGAR must be valid, the alignment inside the contig, MD well formed
+	with the CIGAR's reference span and its deleted bases equal to the
+	reference, and NM equal to MD's mismatches plus the CIGAR's indel bases.
 	"""
 	problems = []
 	ops = rec.cigar_ops
-	if rec.seq != "*" and not cigar_is_valid(ops, len(rec.seq)):
+	no_seq = rec.seq == "*"
+	if no_seq and not cigar_is_valid(ops):
+		problems.append("CIGAR %s invalid" % rec.cigar)
+		return problems
+	if not no_seq and not cigar_is_valid(ops, len(rec.seq)):
 		problems.append("CIGAR %s invalid for a %d bp SEQ" % (rec.cigar, len(rec.seq)))
 		return problems
 	if rec.ref_start < 0 or rec.ref_end > len(ref_seq):
 		problems.append("alignment %d-%d outside contig of length %d"
 			% (rec.ref_start, rec.ref_end, len(ref_seq)))
 		return problems
+	if no_seq:
+		return problems + _md_nm_without_seq(rec, ref_seq, ops)
 	md, nm = md_nm_from_alignment(ref_seq, rec.ref_start, ops, rec.seq)
 	if "NM" in rec.tags and rec.tags["NM"] != nm:
 		problems.append("NM:%d but recomputed %d" % (rec.tags["NM"], nm))
@@ -413,4 +424,53 @@ def check_record_against_reference(rec, ref_seq):
 			problems.append("MD:%s malformed" % rec.tags["MD"])
 		elif not md_equal(rec.tags["MD"], md):
 			problems.append("MD:%s but recomputed %s" % (rec.tags["MD"], md))
+	return problems
+
+
+def _md_nm_without_seq(rec, ref_seq, ops):
+	"""The NM/MD checks possible on a record whose SEQ is '*'."""
+	problems = []
+	indels = sum(n for op, n in ops if op in ("I", "D"))
+	if "MD" not in rec.tags:
+		if "NM" in rec.tags and rec.tags["NM"] < indels:
+			problems.append("NM:%d below the CIGAR's %d indel bases" % (rec.tags["NM"], indels))
+		return problems
+	md = rec.tags["MD"]
+	if not md_is_wellformed(md):
+		return ["MD:%s malformed" % md]
+	span = sum(n for op, n in ops if op in ("M", "=", "X", "D"))
+	if md_ref_span(md) != span:
+		problems.append("MD:%s spans %d reference bases, CIGAR %s %d"
+			% (md, md_ref_span(md), rec.cigar, span))
+		return problems
+	# Walk MD along the CIGAR's reference positions: mismatches must sit on
+	# M/=/X columns, deleted bases on D columns and equal the reference.
+	cols = []
+	r = rec.ref_start
+	for op, n in ops:
+		if op in ("M", "=", "X", "D"):
+			cols.extend((op, r + k) for k in range(n))
+			r += n
+		elif op == "N":
+			r += n
+	i = 0
+	mismatches = 0
+	for num, dele, mis in _MD_TOKEN_RE.findall(md):
+		if num:
+			i += int(num)
+		elif dele:
+			for k, base in enumerate(dele[1:]):
+				op, p = cols[i + k]
+				if op != "D" or ref_seq[p].upper() != base:
+					problems.append("MD:%s deletion base %s at %d is not a deleted reference base" % (md, base, p))
+			i += len(dele) - 1
+		else:
+			op, p = cols[i]
+			if op == "D" or ref_seq[p].upper() != mis:
+				problems.append("MD:%s mismatch base %s at %d is not the reference base" % (md, mis, p))
+			mismatches += 1
+			i += 1
+	if "NM" in rec.tags and rec.tags["NM"] != mismatches + indels:
+		problems.append("NM:%d but MD's %d mismatches plus %d indel bases"
+			% (rec.tags["NM"], mismatches, indels))
 	return problems

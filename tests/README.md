@@ -26,6 +26,7 @@ python3 -m pytest                       # build gem3-mapper out of tree, run bot
 GEM3_TEST_THREADS=4 python3 -m pytest   # gem-mapper -t 4 where a test does not pin -t
 python3 -m pytest c                     # C drivers only
 python3 -m pytest cli -k pilot          # a subset
+python3 -m pytest -k test_c_            # one area (a-d): its C drivers and CLI tests
 ```
 
 Requirements: Python 3.8 or later with pytest (nothing else from PyPI), and
@@ -93,7 +94,7 @@ tests/
   c/
     gem3_test.h            assert macros, TAP runner, SplitMix64 generator
     test_<name>.c          one driver per file
-    test_c_drivers.py      builds and runs every test_*.c
+    test_drivers.py        builds and runs every test_*.c (item test_driver[test_<name>])
   cli/
     gem3harness/           helpers (standard library only)
       build.py             out-of-tree build, C driver build
@@ -185,7 +186,11 @@ GT_CASES(
 ```
 
 `GT_CHECK`, `GT_CHECK_MSG(cond, fmt, ...)`, `GT_CHECK_EQ_INT/UINT/STR/MEM`
-record a failure and continue; `GT_REQUIRE*` end the case. A driver prints TAP
+record a failure and continue; `GT_REQUIRE*` end the case. A driver that
+starts threads runs them with `gt_run_threads(n, fn, args, arg_size)`, which
+gives them gem thread ids 1..n and the profile slots that `make debug`
+(`GEM_PROFILE`) builds count into, as gem-mapper does for its mapper
+threads; check results after it returns, not inside `fn`. A driver prints TAP
 and exits non-zero on failure; run one by hand with
 `<cache>/c-drivers/test_<name>-<key>` (`-l` lists cases, names select them). It
 is compiled with the flags gem3's Makefile used for `gem-mapper` (for the

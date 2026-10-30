@@ -11,8 +11,8 @@ import os
 
 import pytest
 
-from gem3harness import (Rng, bisulfite_nm, cigar_is_valid, cigar_query_length, cigar_ref_span,
-	md_equal, md_is_wellformed, md_nm_from_alignment, parse_cigar, parse_sam, revcomp,
+from gem3harness import (Rng, bisulfite_nm, check_record_against_reference, cigar_is_valid,
+	cigar_query_length, cigar_ref_span, md_equal, md_is_wellformed, md_nm_from_alignment, parse_cigar, parse_sam, revcomp,
 	simulate_bisulfite, simulate_pe, simulate_se, synthetic_genome, write_interleaved,
 	write_reads, write_split)
 from gem3harness.build import REPO_ROOT, TOOLS
@@ -147,6 +147,30 @@ def test_sam_parser_types():
 	assert r.tags == {"NM": 1, "MD": "2A4", "XB": "C", "ZF": 1.5, "ZB": ("i", [1, -2, 3]),
 		"ZH": "1AE3"}
 	assert r.tag_types["NM"] == "i"
+
+
+def _record(pos, cigar, seq, tags):
+	line = "r\t256\tc1\t%d\t0\t%s\t*\t0\t0\t%s\t*\t%s" % (pos, cigar, seq, tags)
+	return parse_sam("@SQ\tSN:c1\tLN:%d\n%s\n" % (len(REF), line)).records[0]
+
+
+@pytest.mark.parametrize("pos,cigar,tags,ok", [
+	(0, "4M2D4M", "NM:i:3\tMD:Z:4^AC0G3", True),
+	(0, "4M2D4M", "NM:i:3\tMD:Z:4^CA0G3", False),   # deleted bases are not the reference's
+	(0, "4M2D4M", "NM:i:2\tMD:Z:4^AC0G3", False),   # NM short of 1 mismatch + 2 deleted
+	(0, "4M2D4M", "NM:i:3\tMD:Z:4^AC4", False),     # NM counts a mismatch MD does not list
+	(0, "4M2D3M", "NM:i:3\tMD:Z:4^AC0G3", False),   # MD spans 10, CIGAR 9
+	(1, "8M", "NM:i:1\tMD:Z:2T5", True),
+	(1, "8M", "NM:i:1\tMD:Z:2C5", False),           # MD's mismatch base is not the reference base
+	(1, "2S8M", "NM:i:0\tMD:Z:8", True),
+	(1, "8M5S2M", "NM:i:0\tMD:Z:10", False),        # invalid CIGAR
+	(1, "3M1I4M", "NM:i:0", False),                  # NM below the insertion
+])
+def test_record_check_without_seq(pos, cigar, tags, ok):
+	"""Secondary records print SEQ '*': NM and MD are checked against what
+	the CIGAR and the reference fix (REF is ACGTACGTAC)."""
+	problems = check_record_against_reference(_record(pos + 1, cigar, "*", tags), REF)
+	assert (problems == []) is ok, problems
 
 
 # ---------------------------------------------------------------------------

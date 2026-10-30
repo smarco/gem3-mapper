@@ -34,7 +34,8 @@
  *
  *   GT_CHECK* record a failure and continue; GT_REQUIRE* end the current case.
  *   The runner calls gruntime_init(1,NULL) before the first case, as
- *   gem-mapper's main does (GEM_PROFILE builds need it).
+ *   gem-mapper's main does (GEM_PROFILE builds need it). Drivers that start
+ *   threads use gt_run_threads (see "Threads" below).
  *   Only the first GT_MAX_REPORTED failures of a case are printed.
  *   gt_rng_* is a SplitMix64 generator so random cases are the same on every
  *   platform and compiler.
@@ -180,6 +181,62 @@ static inline uint64_t gt_rng_range(gt_rng_t* const rng,const uint64_t lo,const 
 // True with probability num/den
 static inline bool gt_rng_chance(gt_rng_t* const rng,const uint64_t num,const uint64_t den) {
   return gt_rng_below(rng,den) < num;
+}
+
+/*
+ * Threads
+ *
+ * gt_main sets up one profile slot and registers the master as gem thread 0
+ * (gruntime_init(1,NULL)). gem3 code run on another thread counts into the
+ * profile slot of its gem thread id in GEM_PROFILE builds (make debug), so
+ * a driver that starts threads uses gt_run_threads, which does what
+ * gem-mapper does for its mapper threads: one slot per thread plus the
+ * master (gruntime_init(threads+1)), and gem_thread_register_id(i) on
+ * thread i (1..n) before fn runs. In release builds only the registration
+ * has an effect. fn must not use GT_REQUIRE (it longjmps on the calling
+ * thread) and GT_CHECK is not synchronized: record results in the argument
+ * and check them after gt_run_threads returns.
+ */
+typedef struct {
+  uint64_t gem_thread_id;
+  void* (*fn)(void*);
+  void* arg;
+} gt_thread_start_t;
+static inline void* gt_thread_start(void* const p) {
+  const gt_thread_start_t* const start = p;
+  gem_thread_register_id(start->gem_thread_id);
+  return start->fn(start->arg);
+}
+// Profile slots for the master and num_threads threads (drops earlier counts)
+static inline void gt_threads_profile(const uint64_t num_threads) {
+  PROF_DELETE();
+  PROF_NEW(num_threads+1);
+}
+// Run fn(args + i*arg_size) on n threads with gem thread ids 1..n and join
+// them all; returns 0, or the first pthread_create error (threads already
+// started are joined).
+static inline int gt_run_threads(
+    const uint64_t n,
+    void* (*fn)(void*),
+    void* const args,
+    const size_t arg_size) {
+  pthread_t* const threads = calloc((size_t)n+1,sizeof(pthread_t));
+  gt_thread_start_t* const starts = calloc((size_t)n+1,sizeof(gt_thread_start_t));
+  gt_threads_profile(n);
+  int error = 0;
+  uint64_t i, started = 0;
+  for (i=0;i<n;++i) {
+    starts[i].gem_thread_id = i+1;
+    starts[i].fn = fn;
+    starts[i].arg = (char*)args + i*arg_size;
+    error = pthread_create(threads+i,NULL,gt_thread_start,starts+i);
+    if (error) break;
+    ++started;
+  }
+  for (i=0;i<started;++i) pthread_join(threads[i],NULL);
+  free(starts);
+  free(threads);
+  return error;
 }
 
 /*
