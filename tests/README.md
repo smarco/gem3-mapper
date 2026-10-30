@@ -252,7 +252,14 @@ modes).
 
 - **Threads and repeats.** SAM records and every header line except `@PG` and
   `@CO` are byte-identical at `-t 1, 4, 8, 32` and across repeated runs, SE,
-  PE and bisulfite. Output order follows the input order at every `-t`.
+  PE and bisulfite. Output order follows the input order at every `-t`. This
+  holds for the default `--input-model` on inputs smaller than (processors x
+  32 MB), where no input block is refilled. Blocks that get refilled race at
+  `-t` above 1 (reads lost or garbled in about 2% of runs with 512 B-2 KB
+  blocks, or a hang; `known-bugs/r1-input-model-reader-count-race.md`), and
+  blocks of a few KB drop lines
+  (`known-bugs/A-input-model-small-blocks-drop-lines.md`); the default model
+  refills only for inputs above 8 GB on this 256-core machine.
 - **Header lines that vary.** `@PG` holds `VN:` (the version string: the
   `VERSION` file plus `-release`/`-debug`, or `git describe` when the build tree
   has a `.git`) and `CL:` (the command line after getopt permuted argv and after
@@ -285,20 +292,25 @@ modes).
   `round(-10*log10(0))` = +inf converted to an integer, which C leaves
   undefined. It prints MAPQ 59 (classify 170 or 70) from AVX-512 gcc builds
   and clang, and 0 from gcc builds without AVX-512 (`-O3`, `-Og`,
-  `CC=gcc-11`, `-Ofast -march=native` on a CPU without AVX-512). Under
-  `--mapping-mode complete-partition` and `complete-partition-filter` the
-  probability is NaN and every x86 build here prints 59 (aarch64 converts NaN
-  to 0). It is not floating-point contraction or fast-math: the predictors
-  printed by `--mapq-model dump-predictors` are identical in every build. No
-  test checks MAPQ on a read whose probability rounds to 1.0; do not pin
-  one. The partition-mode pins in `test_b_pins.py` hold NaN-derived MAPQs,
-  59 on every x86 build here. The search's reference is
+  `CC=gcc-11`, `-Ofast -march=native` on a CPU without AVX-512). It is not
+  floating-point contraction or fast-math: the predictors printed by
+  `--mapq-model dump-predictors` and the probability itself are identical in
+  every build. No test checks MAPQ on a read whose probability rounds to
+  1.0 (area A's MEM pin in `test_a_candidate_generation.py` leaves MAPQ out,
+  and area B's pins leave those reads out); do not pin one. The search's
+  reference is
   the Makefile's own build (gcc 13 `-Ofast -march=skylake-avx512 -flto` on
   this machine), with the same flags for the baseline and every candidate.
 - **Uninitialized and stale memory** (checked with valgrind memcheck on a
   `-O0 -g` build, `MALLOC_PERTURB_`, ASan, and a build that logs the reads in
   question; 45 option configurations). Output depends on memory gem-mapper
-  never wrote in two cases, which the search's gate cases must avoid:
+  never wrote in three cases, which the search's gate cases must avoid:
+  `--mapping-mode complete-partition` and `complete-partition-filter`, whose
+  MAPQ comes from match metrics that are never set (read length 0 in a
+  zeroed heap gives NaN predictors, which every x86 build here converts to
+  59; ASan's heap fill turns 26 and 128 of area B's records to MAPQ 0;
+  `known-bugs/r1-complete-partition-mapq-uninitialized.md`; area B's pins of
+  these modes leave MAPQ out);
   paired-end `--sam-compact=false` at any `-M` (`XS:i` indexes one end's
   alignments by pair number, so a template with more pairs than that end has
   alignments prints a stale alignment from an earlier read of the same thread
@@ -410,8 +422,11 @@ SAM specification is not tested. Found while writing this suite:
 - Single-end `--bisulfite-read 2` and `interleaved` behave like `1`.
 - Paired-end `--bisulfite-read non-stranded` is never applied (the paired-end
   I/O handler leaves `bisulfite_read` uninitialized), so PBAT pairs do not map.
-- `--input-model` with one input block hangs once the input exceeds a block;
-  two blocks hang paired-end at `-t 32`.
+- `--input-model`: blocks of a few KB drop lines, refilled blocks race at
+  `-t` above 1, one block hangs once the input exceeds it, and two blocks
+  hang paired-end at `-t 32`.
+- `--mapping-mode complete-partition` and `complete-partition-filter` compute
+  MAPQ from match metrics that are never set.
 - Paired-end `--sam-compact=false` prints `XS:i` from another read's
   alignment or crashes when one end has fewer alignments than the template
   has pairs.
@@ -420,3 +435,8 @@ SAM specification is not tested. Found while writing this suite:
 - Tied concordant pairs are ordered by enumeration order (the layout
   tie-break compares the wrong field).
 - gem-indexer builds a correct index only from zeroed heap memory.
+- Sanitizers (ASan, UBSan) report an overlapping `memcpy` in the FASTQ
+  header parser, a read past `dna_encoded_complement_table` on run-length
+  indexes, a use after free on a failing input pipe, misaligned loads from
+  the index, undefined shifts and leaks at exit (`r1-sanitizer-findings.md`,
+  `r2-sanitizer-findings.md`).

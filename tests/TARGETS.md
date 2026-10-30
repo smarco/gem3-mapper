@@ -69,7 +69,7 @@ of making it.
 | x | `--i2` | `-2` | required | user | A | split paired input, end 2 | as --i1 |
 | x | `--gzip-input` | `-z` | none | user | A | only consulted for stdin | cli/test_a_input.py stdin_gzip; gzip_file_with_j shows files are detected by content |
 | x | `--bzip-input` | `-j` | none | user | A | only consulted for stdin | cli/test_a_input.py stdin_bzip2, gzip_file_with_j |
-|  | `--input-model` |  | required | developer | A | block_size,num_blocks,buffer_size; the buffer size changes PE output (README); known bug: PE hangs when num_blocks < threads | partial: cli/test_a_input.py (5 models with 64K to 32M blocks give identical SE output; bad values rejected); blocks of 4K or less drop lines, some only now and then at -t 4 (known-bugs/A-input-model-small-blocks-drop-lines.md), 0 blocks hang (known-bugs/A-... |
+|  | `--input-model` |  | required | developer | A | block_size,num_blocks,buffer_size; the buffer size changes PE output (README); known bug: PE hangs when num_blocks < threads | partial: cli/test_a_input.py: 5 models with 64K-32M blocks give identical SE output; 1-4K blocks refilled at -t 1 (test_small_reused_blocks_single_thread, test_interleaved_pairs_with_small_buffers); bad values rejected. Not tested: small blocks at -t > 1 (known bugs r1-input-model-reader-count-race, A-input-model-small-blocks-drop-lines), one block (hang) |
 | x | `--clipping` |  | optional (=) | advanced | A | none, uncalled, masked, fixed,<l>,<r> | cli/test_a_clipping_quality.py (default, bare, uncalled, masked, fixed with 4 values, clip longer than read, none: equal to uncalled on reads without terminal N, consistent alignments with terminal N; bad values) |
 | x | `--quality-format` | `-q` | required | advanced | A | ignore, offset-33, offset-64 | cli/test_a_clipping_quality.py::test_quality_offsets (offset-33 = default, offset-64 = same phred values in +64, ignore = FASTA), bad value rejected |
 |  | `--candidate-generation` |  | required | developer | A | region-profile strategy: fixed, CKS, OPS, factors, MEM, SMEM, OPP, test; known bug: 'adaptive' and 'adaptive-limited' rejected | partial: cli/test_a_candidate_generation.py: fixed, CKS, OPS, factors, MEM, SMEM, test (truth, pins, equivalences, bad values); not tested: OPP and fixed/factors with region_error > 0 or step 0 (known-bugs/A-candidate-generation-strategies.md), adaptive and... |
@@ -980,7 +980,7 @@ Unreachable from the command line: the parser handles `--candidate-drop-off`
 |---|---|---|---|
 |  | `match_align_swg_local_alignment_add_match_compose_cigar` | 43 | indirect: CLI test_b_alignment_options (AS vs brute-force Gotoh under -A/-O/-X, local chimeras, curation, bandwidth), test_b_mapping_modes (models), test_b_pins |
 |  | `match_align_swg_local_alignment_add_match` | 86 | indirect: CLI test_b_alignment_options (AS vs brute-force Gotoh under -A/-O/-X, local chimeras, curation, bandwidth), test_b_mapping_modes (models), test_b_pins |
-|  | `match_align_swg_local_alignment` | 132 | indirect: CLI test_b_alignment_options (AS vs brute-force Gotoh under -A/-O/-X, local chimeras, curation, bandwidth), test_b_mapping_modes (models), test_b_pins |
+|  | `match_align_swg_local_alignment` | 132 | indirect: CLI test_b_alignment_options (AS vs brute-force Gotoh under -A/-O/-X, local chimeras of 40, 50 and 60 genomic bases on the --alignment-local-min-identity/-min-score thresholds, curation, bandwidth), test_b_mapping_modes, test_b_pins |
 
 ### `src/matches/align/match_alignment.c`
 
@@ -1091,8 +1091,8 @@ Unreachable from the command line: the parser handles `--candidate-drop-off`
 
 | Done | Function | Line | Test |
 |---|---|---|---|
-|  | `nsearch_levenshtein_base_step` | 34 | not covered: gcov: not executed (base NS variant) |
-|  | `nsearch_levenshtein_base` | 75 | not covered: gcov: not executed (base NS variant) |
+|  | `nsearch_levenshtein_base_step` | 34 | not covered: known bug: reached only by --candidate-generation fixed or factors with region_error > 0 (A-candidate-generation-strategies.md) |
+|  | `nsearch_levenshtein_base` | 75 | not covered: known bug: reached only by --candidate-generation fixed or factors with region_error > 0 (A-candidate-generation-strategies.md) |
 |  | `nsearch_levenshtein_brute_force_step` | 100 | indirect: CLI test_b_mapping_modes::test_neighborhood_search_reports_exactly_loci_within_E (exact set vs brute-force Myers/Hamming scan) |
 |  | `nsearch_levenshtein_brute_force` | 156 | indirect: CLI test_b_mapping_modes::test_neighborhood_search_reports_exactly_loci_within_E (exact set vs brute-force Myers/Hamming scan) |
 |  | `nsearch_levenshtein` | 194 | indirect: CLI test_b_mapping_modes::test_neighborhood_search_reports_exactly_loci_within_E (exact set vs brute-force Myers/Hamming scan) |
@@ -1412,7 +1412,7 @@ Unreachable from the command line: the parser handles `--candidate-drop-off`
 | x | `paired_matches_get_discordant_maps` | 140 | same |
 | x | `paired_matches_limit_maps` | 143 | test_c_paired:paired_map_order, select_pe_matches |
 | x | `paired_matches_recompute_metrics` | 149 | test_c_paired:paired_map_order |
-| x | `paired_matches_cmp_swg_score` | 167 | test_c_paired:paired_map_order, hand-worked order; the 'separated first' layout tie-break compares the pair relations, which are equal by then, and returns 0 before the position tie-break: not tested, not filed |
+| x | `paired_matches_cmp_swg_score` | 167 | test_c_paired:paired_map_order (hand-worked order); the order of tied pairs (layout tie-break returns 0, known-bugs/r2-pe-tied-pair-order.md) is pinned by test_c_paired.py::test_tandem_array_pairs_are_pinned and test_d_output.py tie pins |
 | x | `paired_matches_add_map_insert_sorted` | 190 | test_c_paired:paired_map_order |
 | x | `paired_matches_add_map` | 212 | test_c_paired:paired_map_order, counters and metrics |
 | x | `paired_matches_add` | 224 | test_c_paired:add_and_cross_pair |
@@ -1506,7 +1506,7 @@ Unreachable from the command line: the parser handles `--candidate-drop-off`
 | x | `output_map_print_separator` | 228 | map |
 |  | `output_map_single_end_print_tag` | 237 | partial: map: name, /1 and /2; CASAVA and extra-tag branches not tested, known bug D-map-tag-comments.md |
 | x | `output_map_paired_end_print_tag` | 272 | map test_pe_map_matches_sam; comment branches as above |
-|  | `output_map_single_end_print_read__qualities` | 296 | partial: map: with qualities; the FASTA branch without qualities not tested |
+| x | `output_map_single_end_print_read__qualities` | 296 | test_d_map.py::test_se_map_matches_sam (with qualities), test_fasta_input_map_lines_have_no_qualities (FASTA, no qualities column) |
 |  | `output_map_paired_end_print_read__qualities` | 311 | partial: with qualities only |
 |  | `output_map_print_counters_account_mcs` | 337 | partial: map: counters syntax, at most one '+', sum >= reported matches; values pinned by map pins and X4 == MAP column; no independent stratum count |
 |  | `output_map_print_counters` | 359 | partial: map: counters syntax, at most one '+', sum >= reported matches; values pinned by map pins and X4 == MAP column; no independent stratum count |
@@ -1528,7 +1528,7 @@ Unreachable from the command line: the parser handles `--candidate-drop-off`
 | x | `output_sam_print_opt_field_tag_NM` | 417 | sam |
 | x | `output_sam_print_opt_field_tag_RG` | 441 | sam test_read_group, SE and PE |
 | x | `output_sam_print_opt_field_tag_XB` | 492 | sam test_bisulfite_records_carry_xb_not_md; rep test_report_bisulfite_pairs counts XB per end; pilot checks XB against truth |
-|  | `output_sam_print_opt_field_tag_XS` | 513 | not covered: printed only by paired --sam-compact=false, which crashes (known bug D-pe-sam-compact-false-crash.md) |
+|  | `output_sam_print_opt_field_tag_XS` | 513 | partial: values pinned by test_c_paired.py pin rg-Mall-full, where each end has as many alignments as pairs; otherwise XS reads stale memory or crashes (known bug D-pe-sam-compact-false-crash.md) |
 | x | `output_sam_calculate_flag_se` | 568 | sam test_se_records_follow_spec, test_pe_records_follow_spec: every bit from SAMv1 |
 | x | `output_sam_calculate_flag_pe` | 590 | sam test_se_records_follow_spec, test_pe_records_follow_spec: every bit from SAMv1 |
 | x | `output_sam_calculate_flag_se_match` | 633 | sam test_se_records_follow_spec, test_pe_records_follow_spec: every bit from SAMv1 |
