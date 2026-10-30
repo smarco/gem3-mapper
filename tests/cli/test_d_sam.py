@@ -164,8 +164,14 @@ def test_se_max_reported_matches_limits_records(se):
 	full = se.run(["--sam-compact=false"]).sam().by_name()
 	two = se.run(["--sam-compact=false", "-M", "2"]).sam().by_name()
 	compact = se.run(["-M", "2"]).sam()
+	n_one = 0
 	for rec in compact.records:
-		assert len(xa_entries(rec)) <= 1
+		xa = xa_entries(rec)
+		assert len(xa) <= 1
+		# A single alternative is still listed in XA
+		assert [e[:4] for e in xa] == [(r.rname, r.strand, r.pos, r.cigar) for r in two[rec.qname][1:]]
+		n_one += len(xa) == 1
+	assert n_one >= 10
 	for name, recs in two.items():
 		assert 1 <= len(recs) <= 2
 		assert [(r.rname, r.pos, r.cigar) for r in recs] == [(r.rname, r.pos, r.cigar) for r in full[name][:len(recs)]]
