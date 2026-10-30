@@ -408,6 +408,72 @@ bzip2; a wrapper script calling it with `--target=x86_64-linux-gnu
 - `gem-indexer` writes `<name>.sa.tmp` into its working directory, not beside
   the output prefix; `Gem3.build_index` runs it in the index's own directory.
 
+## Coverage (measured 2026-10-30)
+
+gem3-mapper had no tests of its own (0 tests, 0% line coverage). The whole
+suite (C drivers and CLI tests, `GEM3_TEST_THREADS=4`) was run against a
+gcc 13 build with `FLAGS_OPT="-O0 --coverage -fprofile-abs-path
+-fprofile-update=atomic"` and read with gcovr 8.8 (`gcovr --json`); the
+gem-indexer runs that build the session's indexes count too. Files under
+`resources/` and `src/gpu/` are left out.
+
+- **All of `src/` and `include/`:** 13,417 of 20,861 executable lines
+  (64.3%) in 191 files.
+- **The mapping path** (the 138 files whose functions `TARGETS.md` lists):
+  12,114 of 15,486 lines (78.2%). `TARGETS.md` ticks 232 of 252 area A
+  functions, 103 of 334 in B (most of the rest run under the CLI tests and
+  are marked `indirect`), 141 of 149 in C, 250 of 276 in D, and 54 of 69
+  options.
+
+| Part | Lines | Covered | Tests |
+|---|---:|---:|---:|
+| `src/align/` (+ `pattern/`, `include/utils/`) | 1,709 | 73.4% | 127 |
+| `src/approximate_search/` | 660 | 46.7% | 252 |
+| `src/archive/` | 505 | 91.3% | 125 |
+| `src/archive/score/` | 242 | 97.1% | 122 |
+| `src/archive/search/` | 886 | 54.6% | 249 |
+| `src/archive/builder/`, `src/fm_index/sa_builder/` (gem-indexer only) | 769 | 89.2% | 0 |
+| `src/filtering/candidates/` | 1,334 | 43.7% | 127 |
+| `src/filtering/region/` | 253 | 77.5% | 127 |
+| `src/filtering/region_profile/` | 909 | 77.2% | 125 |
+| `src/fm_index/` (+ `bwt/`) | 1,210 | 63.0% | 125 |
+| `src/io/` | 1,867 | 91.0% | 269 |
+| `src/mapper/` | 904 | 48.3% | 144 |
+| `src/matches/` | 935 | 81.1% | 122 |
+| `src/matches/align/`, `scaffold/` | 1,153 | 88.2% | 127 |
+| `src/matches/classify/` | 307 | 91.2% | 122 |
+| `src/neighborhood_search/` | 883 | 72.5% | 127 |
+| `src/profiler/` | 96 | 29.2% | 144 |
+| `src/search_pipeline/` (CUDA mapper only) | 881 | 0.0% | 0 |
+| `src/stats/` | 832 | 53.4% | 144 |
+| `src/system/` | 1,483 | 61.1% | 269 |
+| `src/text/` | 597 | 35.3% | 247 |
+| `src/tools/` (+ `interface/`) | 1,249 | 63.7% | 144 |
+| `src/utils/` | 1,197 | 44.3% | 396 |
+
+"Tests" counts the pytest items and C driver cases in the files of the areas
+that own functions in that directory (`TARGETS.md`), so a test can count in
+several rows; the suite has 583 in all (467 pytest items under `cli/`,
+harness self-tests included, and 116 cases in the 15 C drivers). Much of what the low rows miss is in files no
+test executes: `src/mapper/mapper_cuda*.c` (413 of the 467 lines missed in
+`src/mapper/`; the CUDA mapper), `src/text/cdna_text.c` and
+`cdna_bitwise_text.c` (314 lines), and `src/utils/sparse_array_locator.c`,
+`interval_set.c`, `sparse_bitmap.c` and `region_set.c` (392 lines).
+
+Mapping-path functions that no test calls (not executed in this run and not
+named in a test): the debug and `-c` failure printers
+`alignment_print_pretty`, `archive_check_se_match_print` (and its
+`_incorrect` and `_suboptimum` variants), `match_alignment_print_pretty`,
+`match_alignment_region_print`, `match_scaffold_print`;
+`nsearch_levenshtein_base` and `nsearch_levenshtein_base_step` (reached only
+through a known bug of `--candidate-generation`);
+`nsearch_hamming_preconditioned` (no input found that reaches it);
+`filtering_candidates_sort_regions_by_scaffold_coverage`,
+`filtering_candidates_classify_subdominant_match_edit`,
+`filtering_candidates_extend_candidates`; `mapper_profile_print_mapper_pe`
+(empty outside `GEM_PROFILE` builds); and `mm_allocator_free_malloc` (only
+with `MM_ALLOCATOR_MALLOC` defined).
+
 ## Known bugs
 
 Base behaviour that contradicts the help text, the source's own intent or the
