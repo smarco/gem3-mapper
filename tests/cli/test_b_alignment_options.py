@@ -326,3 +326,17 @@ def test_check_alignments_correct(gem3, genome, genome_index, threads, mixed_fas
 		threads=threads)
 	assert "Match check failed" not in res.stderr_text
 	assert strip_variable_header(res.stdout) == strip_variable_header(base.stdout)
+
+
+def test_check_alignments_correct_paired(gem3, genome, genome_index, tmp_path, threads):
+	"""-c correct on paired-end input checks both ends' alignments: no
+	failure report, same output as without -c."""
+	from gem3harness import simulate_pe, write_split
+	pairs = simulate_pe(genome, 60, 100, insert_mean=300, insert_sd=30, seed=230, sub_rate=0.02,
+		ins_rate=0.004, del_rate=0.004, unique_only=False, spacing=4)
+	fq1, fq2 = write_split(tmp_path / "1.fq", tmp_path / "2.fq", pairs)
+	base = gem3.run_map(genome_index, inputs=[fq1, fq2], threads=threads)
+	res = gem3.run_map(genome_index, inputs=[fq1, fq2], args=["-c", "correct"], threads=threads)
+	assert "Match check failed" not in res.stderr_text
+	assert strip_variable_header(res.stdout) == strip_variable_header(base.stdout)
+	assert len([r for r in res.sam().records if not r.is_unmapped]) >= 100
