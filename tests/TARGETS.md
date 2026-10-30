@@ -7,7 +7,8 @@ in **Test**: `indirect` (the function runs under the CLI tests, which check
 the output it feeds, not its own results), `partial` (what is and is not
 checked), or `not covered` (a known bug, unreachable, or no observable
 behaviour). The ticks were made from the area writers' coverage maps
-(2026-10-30); long entries are cut at 260 characters.
+(2026-10-30), entries from the maps cut at 260 characters, and updated for
+the reviewers' added tests.
 
 ## How this list was made
 
