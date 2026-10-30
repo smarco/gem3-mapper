@@ -353,6 +353,9 @@ mm_t* mm_bulk_load_file(char* const file_name) {
 #endif
 }
 mm_t* mm_bulk_mload_file(char* const file_name) {
+  return mm_bulk_mload_file_parallel(file_name,1);
+}
+mm_t* mm_bulk_mload_file_parallel(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
@@ -361,7 +364,7 @@ mm_t* mm_bulk_mload_file(char* const file_name) {
   // Allocate memory to dump the content of the file
   mm_t* const mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
   // Read the file and dump it into memory
-  fm_bulk_read_file(file_name,mem_manager->memory,0,0);
+  fm_bulk_read_file_parallel(file_name,mem_manager->memory,0,0,num_threads);
   return mem_manager;
 }
 

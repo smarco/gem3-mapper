@@ -91,7 +91,8 @@ void mapper_load_index(mapper_parameters_t* const parameters) {
   PROFILE_START(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   // Load archive
   gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
-  parameters->archive = archive_read(parameters->io.index_file_name,false);
+  parameters->archive = archive_read_parallel(
+      parameters->io.index_file_name,false,parameters->system.num_threads);
   if (parameters->misc.verbose_dev) archive_print(gem_error_get_stream(),parameters->archive);
   PROFILE_STOP(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   TIMER_STOP(&parameters->loading_time);
