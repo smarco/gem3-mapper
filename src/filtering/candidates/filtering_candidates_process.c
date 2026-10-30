@@ -211,22 +211,62 @@ void filtering_candidates_compute_text_coordinates(
 }
 /*
  * Decode of all candidate positions (index-space -> text-space)
+ *   (Same result as fm_index_decode on each position. The LF chains are independent,
+ *    so they advance one step per round together and their memory misses overlap)
  */
 void filtering_candidates_decode_filtering_positions(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern) {
   // Parameters
   fm_index_t* const fm_index = filtering_candidates->archive->fm_index;
+  const bwt_t* const bwt = fm_index->bwt;
+  const sampled_sa_t* const sampled_sa = fm_index->sampled_sa;
+  const uint64_t bwt_length = fm_index_get_length(fm_index);
   // Traverse all candidate positions in index-space
   const uint64_t num_positions = filtering_candidates_get_num_positions(filtering_candidates);
   filtering_position_t** const positions_in = filtering_candidates_get_positions(filtering_candidates);
-  uint64_t n;
-  for (n=0;n<num_positions;++n) {
-    filtering_position_t* const filtering_position = positions_in[n];
-    // Lookup Position
-    filtering_position->region_text_position = fm_index_decode(fm_index,filtering_position->region_index_position);
-    // Adjust Position
-    filtering_candidates_compute_text_coordinates(filtering_candidates,filtering_position,pattern);
+  uint64_t position[DECODE_NUM_POSITIONS_PREFETCHED]; // BWT position, then SA-sample rank
+  uint64_t distance[DECODE_NUM_POSITIONS_PREFETCHED];
+  uint64_t pending[DECODE_NUM_POSITIONS_PREFETCHED];
+  bwt_block_locator_t block_loc[DECODE_NUM_POSITIONS_PREFETCHED];
+  uint64_t base, n, i;
+  for (base=0;base<num_positions;base+=DECODE_NUM_POSITIONS_PREFETCHED) {
+    const uint64_t num_decode = MIN(num_positions-base,DECODE_NUM_POSITIONS_PREFETCHED);
+    filtering_position_t** const positions = positions_in + base;
+    uint64_t num_pending = num_decode;
+    for (n=0;n<num_decode;++n) {
+      position[n] = positions[n]->region_index_position;
+      distance[n] = 0;
+      pending[n] = n;
+    }
+    // LF until every position reaches a sampled one
+    while (num_pending > 0) {
+      for (i=0;i<num_pending;++i) {
+        bwt_prefetch(bwt,position[pending[i]],block_loc+pending[i]);
+      }
+      uint64_t num_left = 0;
+      for (i=0;i<num_pending;++i) {
+        n = pending[i];
+        bool is_sampled;
+        position[n] = bwt_prefetched_LF(bwt,position[n],&is_sampled,block_loc+n);
+        if (!is_sampled) {
+          ++(distance[n]);
+          pending[num_left++] = n;
+        }
+      }
+      num_pending = num_left;
+    }
+    // Recover sampled positions & adjust
+    for (n=0;n<num_decode;++n) {
+      sampled_sa_prefetch_sample(sampled_sa,position[n]);
+    }
+    for (n=0;n<num_decode;++n) {
+      PROF_ADD_COUNTER(GP_FMIDX_LOOKUP_DIST,distance[n]);
+      positions[n]->region_text_position =
+          (sampled_sa_get_sample(sampled_sa,position[n]) + distance[n]) % bwt_length;
+      // Adjust Position
+      filtering_candidates_compute_text_coordinates(filtering_candidates,positions[n],pattern);
+    }
   }
 }
 /*

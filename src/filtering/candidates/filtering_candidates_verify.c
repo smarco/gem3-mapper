@@ -97,6 +97,34 @@ void filtering_candidates_extend_discarded_candidates(
 /*
  * Candidate Verification
  */
+#define FILTERING_CANDIDATES_VERIFY_PREFETCH_MAX 64
+static void filtering_candidates_verify_prefetch_text(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t** const regions,
+    const uint64_t num_regions) {
+  // Positions of a run-length text are translated on retrieval
+  archive_text_t* const archive_text = filtering_candidates->archive->text;
+  if (archive_text->run_length) return;
+  const uint8_t* const text = dna_text_get_text(archive_text->enc_text);
+  const uint64_t num_prefetched = MIN(num_regions,FILTERING_CANDIDATES_VERIFY_PREFETCH_MAX);
+  uint64_t n;
+  for (n=0;n<num_prefetched;++n) {
+    filtering_region_t* const filtering_region = regions[n];
+    if (filtering_region->alignment.distance_min_bound != ALIGN_DISTANCE_UNKNOWN) continue;
+    if (filtering_region->text_trace.text != NULL) continue;
+    // The window archive_text_retrieve() reads (a reverse-strand one at its forward projection)
+    const uint64_t text_position = filtering_region->text_begin_position;
+    const uint64_t text_length = filtering_region->text_end_position - text_position;
+    const uint64_t position =
+        (text_position < archive_text->forward_text_length || archive_text->explicit_complement) ?
+        text_position : archive_text_get_projection(archive_text,text_position,text_length);
+    const uintptr_t end = (uintptr_t)(text+position+text_length);
+    uintptr_t line;
+    for (line=(uintptr_t)(text+position)&~(uintptr_t)63;line<end;line+=64) {
+      __builtin_prefetch((const void*)line,0,3);
+    }
+  }
+}
 uint64_t filtering_candidates_verify_candidates(
     filtering_candidates_t* const filtering_candidates,
     pattern_t* const pattern,
@@ -120,6 +148,8 @@ uint64_t filtering_candidates_verify_candidates(
   filtering_region_t** const regions_out = regions_in;
   filtering_region_t** const regions_discarded =
       filtering_candidates_reserve_discarded_regions(filtering_candidates,num_filtering_regions);
+  // Issue every region's text misses at once rather than one region at a time
+  filtering_candidates_verify_prefetch_text(filtering_candidates,regions_in,num_filtering_regions);
   uint64_t n, num_regions_accepted = 0, num_regions_discarded = 0;
   for (n=0;n<num_filtering_regions;++n) {
     // Verify region
