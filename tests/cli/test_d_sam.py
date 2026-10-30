@@ -206,22 +206,23 @@ def test_qname_drops_comment_and_mate_suffix(gem3, genome, se, tmp_path):
 	("@RG\\tID:grp1\\tSM:s1\\tPL:ILLUMINA", "@RG\tID:grp1\tSM:s1\tPL:ILLUMINA", "grp1"),
 	("@RG\\tSM:s2\\tID:lane.7\\n", "@RG\tSM:s2\tID:lane.7", "lane.7"),
 ], ids=["escaped-tabs", "id-not-first-trailing-newline"])
-def test_read_group(genome, se, header, rg_line, rg_id):
+def test_read_group(genome, se, pe, header, rg_line, rg_id):
 	"""-r: the header gets the @RG line (escapes \\t/\\n translated, a trailing
-	newline dropped) between @SQ and @PG, and every record RG:Z:<ID> as its
-	first optional field; nothing else changes."""
-	res = se.run(["-r", header])
-	sam = res.sam()
-	types = [l[:3] for l in sam.header_lines]
-	assert types.index("@RG") == types.index("@PG") - 1
-	assert [l for l in sam.header_lines if l.startswith("@RG")] == [rg_line]
-	plain = body_lines(se.run().stdout)
-	got = body_lines(res.stdout)
-	assert len(plain) == len(got)
-	for a, b in zip(plain, got):
-		f = b.split("\t")
-		assert f[11] == "RG:Z:" + rg_id
-		assert "\t".join(f[:11] + f[12:]) == a
+	newline dropped) between @SQ and @PG, and every record, single or paired,
+	RG:Z:<ID> as its first optional field; nothing else changes."""
+	for ds in (se, pe):
+		res = ds.run(["-r", header])
+		sam = res.sam()
+		types = [l[:3] for l in sam.header_lines]
+		assert types.index("@RG") == types.index("@PG") - 1
+		assert [l for l in sam.header_lines if l.startswith("@RG")] == [rg_line]
+		plain = body_lines(ds.run().stdout)
+		got = body_lines(res.stdout)
+		assert len(plain) == len(got)
+		for a, b in zip(plain, got):
+			f = b.split("\t")
+			assert f[11] == "RG:Z:" + rg_id
+			assert "\t".join(f[:11] + f[12:]) == a
 
 
 # ---------------------------------------------------------------------------
