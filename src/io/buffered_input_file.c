@@ -51,6 +51,7 @@ buffered_input_file_t* buffered_input_file_new(
   // Input file
   buffered_input->input_file_sliced = input_file_sliced;
   buffered_input->prefered_read_size = prefered_read_size;
+  buffered_input->read_ahead = true;
   // Block buffer info
   buffered_input->block_id = 0;
   buffered_input->num_lines = 0;
@@ -103,7 +104,7 @@ void buffered_input_file_read_buffer(
   input_file_sliced_discard_exhausted_buffers(
       buffered_input->input_file_sliced,buffered_input->input_buffers);
   // Process input-buffers (read file & annotate line lengths)
-  input_file_sliced_process(buffered_input->input_file_sliced);
+  if (buffered_input->read_ahead) input_file_sliced_process(buffered_input->input_file_sliced);
   // Read a new buffer-block
   MUTEX_BEGIN_SECTION(input_file_sliced->input_read_lines_mutex);
   buffered_input->block_id = input_file_sliced_get_next_id(input_file_sliced);

@@ -148,6 +148,9 @@ mapper_io_handler_t* mapper_io_handler_new_pe(
         buffered_input_file_new(parameters->input_file_end1,input_buffer_size);
     mapper_io_handler->buffered_fasta_input_end2 =
         buffered_input_file_new(parameters->input_file_end2,input_buffer_size);
+    // Read ahead outside the input mutex (mapper_pe_reload_buffer)
+    mapper_io_handler->buffered_fasta_input_end1->read_ahead = false;
+    mapper_io_handler->buffered_fasta_input_end2->read_ahead = false;
   } else {
     mapper_io_handler->buffered_fasta_input_end1 =
         buffered_input_file_new(parameters->input_file,input_buffer_size);
@@ -228,6 +231,9 @@ uint64_t mapper_pe_reload_buffer(
       return INPUT_STATUS_EOF;
     }
     gem_cond_fatal_error(pthread_mutex_unlock(mapper_io_handler->input_mutex),SYS_MUTEX);
+    // Read ahead outside the input mutex
+    input_file_sliced_process(mapper_io_handler->buffered_fasta_input_end1->input_file_sliced);
+    input_file_sliced_process(mapper_io_handler->buffered_fasta_input_end2->input_file_sliced);
   }
   // OK
   return INPUT_STATUS_OK;
