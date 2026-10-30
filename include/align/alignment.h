@@ -89,6 +89,21 @@ void alignment_verify_edit_kmer(
     const uint64_t max_error,
     const uint64_t kmer_tiles,
     const uint64_t kmer_length);
+/*
+ * Same, given the diagonal on which key position p meets text position
+ * p+diagonal (any value gives the same result)
+ */
+void alignment_verify_edit_kmer_diagonal(
+    alignment_t* const alignment,
+    pattern_tiled_t* const pattern_tiled,
+    uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const uint64_t kmer_tiles,
+    const uint64_t kmer_length,
+    const int64_t diagonal);
 
 /*
  * Verify edit distance using BPM
@@ -98,6 +113,12 @@ void alignment_verify_edit_bpm(
     pattern_tiled_t* const pattern_tiled,
     uint8_t* const key,
     uint8_t* const text,
+    const uint64_t max_error);
+void alignment_verify_edit_bpm_1tile_result(
+    alignment_t* const alignment,
+    pattern_tiled_t* const pattern_tiled,
+    const uint64_t tile_distance,
+    const uint64_t tile_match_column,
     const uint64_t max_error);
 
 /*

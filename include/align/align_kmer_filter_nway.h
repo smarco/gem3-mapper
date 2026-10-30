@@ -107,5 +107,16 @@ uint64_t kmer_counting_min_bound_nway_cutoff(
     const uint64_t text_length,
     const uint64_t max_error,
     mm_allocator_t* const mm_allocator);
+/*
+ * Same, given the diagonal on which key position p meets text position
+ * p+diagonal (any value is exact; the seed's diagonal is fast)
+ */
+uint64_t kmer_counting_min_bound_nway_cutoff_diagonal(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const int64_t diagonal,
+    mm_allocator_t* const mm_allocator);
 
 #endif /* ALIGN_KMER_FILTER_NWAY_H_ */
