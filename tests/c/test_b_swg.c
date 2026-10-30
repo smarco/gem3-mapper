@@ -44,6 +44,10 @@
  *     search_parameters_init(search_parameters_t*), search_instantiate_values(search_parameters_t*,uint64_t)
  *     search_configure_alignment_match_scores(search_parameters_t*,int32_t)
  *     search_configure_alignment_mismatch_scores(search_parameters_t*,int32_t)
+ *   and reads these fields: search_parameters_t (mapping_mode, the alignment
+ *   fractions and their *_nominal values, swg_penalties, check_type,
+ *   mapq_model_se, candidate_verification.verification_strategy),
+ *   match_alignment_t, cigar_element_t.
  */
 
 #include "gem3_test.h"

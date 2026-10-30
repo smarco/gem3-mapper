@@ -38,6 +38,9 @@
  *         uint64_t kmer_tiles,uint64_t kmer_length,uint64_t kmer_enabled,mm_allocator_t*)
  *     alignment_init(alignment_t*,key_length,text_begin_offset,text_end_offset,max_error,num_tiles,tile_length)
  *     alignment_verify_edit_bpm(alignment_t*,pattern_tiled_t*,uint8_t* key,uint8_t* text,uint64_t max_error)
+ *   and reads pattern_tiled_t (num_tiles, tile_length, tiles[].tile_offset,
+ *   tile_length, bpm_pattern_tile), alignment_t.distance_min_bound,
+ *   match_alignment_t and cigar_element_t.
  */
 
 #include "gem3_test.h"
