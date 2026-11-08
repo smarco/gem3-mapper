@@ -92,4 +92,40 @@ void region_profile_generate_adaptive_limited(
     const uint64_t key_length,
     const region_profile_model_t* const profile_model);
 
+/*
+ * Region Profile Adaptive computed ahead of its search, outside the search's mm_allocator
+ *   (region_profile_generate_adaptive(...,ALL,false) on the key, replayed by
+ *    region_profile_ahead_restore when the search's own key turns out to be the same)
+ */
+#define REGION_PROFILE_AHEAD_MAX_REGIONS 64 // Longest key profiled ahead: 640 bases
+#define REGION_PROFILE_AHEAD_MAX_KEY_LENGTH (10*REGION_PROFILE_AHEAD_MAX_REGIONS)
+#define REGION_PROFILE_AHEAD_MAX_KEYS 32    // Keys profiled in lockstep
+typedef struct {
+  bool ready;                                // Profile computed and replayable
+  fm_index_t* fm_index;                      // Index profiled against
+  uint64_t region_th;                        // Profile model used
+  uint64_t max_steps;
+  uint64_t dec_factor;
+  uint64_t key_length;
+  uint8_t key[REGION_PROFILE_AHEAD_MAX_KEY_LENGTH];
+  region_profile_t region_profile;           // Scalars of the profile
+  region_search_t regions[REGION_PROFILE_AHEAD_MAX_REGIONS+1];
+} region_profile_ahead_t;
+
+bool region_profile_ahead_prepare(
+    region_profile_ahead_t* const ahead,
+    const uint64_t key_length);
+void region_profile_ahead_generate(
+    region_profile_ahead_t* const* const aheads,
+    const uint64_t num_aheads,
+    fm_index_t* const fm_index,
+    const region_profile_model_t* const profile_model);
+bool region_profile_ahead_restore(
+    region_profile_ahead_t* const ahead,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const region_profile_model_t* const profile_model);
+
 #endif /* REGION_PROFILE_ADAPTIVE_H_ */
