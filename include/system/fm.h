@@ -125,12 +125,12 @@ void fm_bulk_read_file(
     void* const dst,
     const uint64_t offset,
     const uint64_t size);
-// TODO void fm_bulk_read_file_parallel(
-//    char* const file_name,
-//    void* const dst,
-//    const uint64_t offset,
-//    const uint64_t size,
-//    const uint64_t num_threads);
+void fm_bulk_read_file_parallel(
+    char* const file_name,
+    void* const dst,
+    const uint64_t offset,
+    const uint64_t size,
+    const uint64_t num_threads);
 
 /*
  * FileManager Wrappers

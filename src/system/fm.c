@@ -33,6 +33,7 @@
 #include <bzlib.h>
 #endif
 #include "utils/vector.h"
+#include <pthread.h>
 
 /*
  * Debug
@@ -106,6 +107,8 @@ struct _fm_t {
  */
 // Buffer Size
 #define FM_BULK_COPY_BLOCK_SIZE BUFFER_SIZE_256M // SSIZE_MAX
+#define FM_BULK_PARALLEL_BLOCK_SIZE BUFFER_SIZE_64M
+#define FM_BULK_PARALLEL_PAGE_SIZE  BUFFER_SIZE_2M
 #define FM_SKIP_BUFFER_SIZE     BUFFER_SIZE_2M
 // Open Flags
 const int fm_open_flags[3] = { O_RDONLY, O_WRONLY|O_CREAT|O_TRUNC, O_RDWR|O_CREAT };
@@ -742,6 +745,87 @@ void fm_bulk_read_file(
   }
   // Read file
   fm_bulk_read_fd(fd,dst,(size==0) ? stat_info.st_size-offset : size);
+}
+typedef struct {
+  int fd;
+  char* dst;
+  uint64_t offset;
+  uint64_t size;
+  uint64_t num_blocks;
+  uint64_t next_block;
+  bool failed;
+} fm_bulk_read_parallel_t;
+static uint64_t fm_bulk_read_parallel_block_begin(
+    fm_bulk_read_parallel_t* const job,
+    const uint64_t block) {
+  if (block==0) return 0;
+  if (block>=job->num_blocks) return job->size;
+  // Blocks start on huge-page boundaries of dst, so no page is faulted by two threads
+  const uintptr_t base = (uintptr_t)job->dst;
+  const uintptr_t aligned =
+      (base + block*FM_BULK_PARALLEL_BLOCK_SIZE + FM_BULK_PARALLEL_PAGE_SIZE-1) & ~(uintptr_t)(FM_BULK_PARALLEL_PAGE_SIZE-1);
+  const uint64_t begin = aligned - base;
+  return (begin < job->size) ? begin : job->size;
+}
+static void* fm_bulk_read_parallel_worker(void* const arg) {
+  fm_bulk_read_parallel_t* const job = arg;
+  while (true) {
+    const uint64_t block = __atomic_fetch_add(&job->next_block,1,__ATOMIC_RELAXED);
+    if (block >= job->num_blocks) break;
+    uint64_t position = fm_bulk_read_parallel_block_begin(job,block);
+    const uint64_t end = fm_bulk_read_parallel_block_begin(job,block+1);
+    while (position < end) {
+      const uint64_t bytes_pending = end-position;
+      const uint64_t chunk_size = (bytes_pending<FM_BULK_COPY_BLOCK_SIZE) ? bytes_pending : FM_BULK_COPY_BLOCK_SIZE;
+      const ssize_t bytes_read = pread(job->fd,job->dst+position,chunk_size,job->offset+position);
+      if (bytes_read < 0 && errno == EINTR) continue;
+      if (bytes_read <= 0) {
+        __atomic_store_n(&job->failed,true,__ATOMIC_RELAXED);
+        return NULL;
+      }
+      position += bytes_read;
+    }
+  }
+  return NULL;
+}
+void fm_bulk_read_file_parallel(
+    char* const file_name,
+    void* const dst,
+    const uint64_t offset,
+    const uint64_t size,
+    const uint64_t num_threads) {
+  // Retrieve input file info
+  struct stat stat_info;
+  gem_cond_fatal_error(stat(file_name,&stat_info)==-1,FM_STAT,file_name);
+  const uint64_t read_size = (size==0) ? stat_info.st_size-offset : size;
+  const uint64_t num_blocks = DIV_CEIL(read_size,FM_BULK_PARALLEL_BLOCK_SIZE);
+  const uint64_t num_workers = MIN(num_threads,num_blocks);
+  if (num_workers <= 1) {
+    fm_bulk_read_file(file_name,dst,offset,size);
+    return;
+  }
+  // Open file descriptor (shared: pread leaves the file offset alone)
+  const int fd = open(file_name,O_RDONLY,S_IRUSR);
+  gem_cond_fatal_error(fd==-1,FM_FDOPEN,file_name);
+  fm_bulk_read_parallel_t job = {
+    .fd = fd, .dst = dst, .offset = offset, .size = read_size,
+    .num_blocks = num_blocks, .next_block = 0, .failed = false,
+  };
+  // Threads take blocks from a shared counter; this thread is one of them
+  pthread_t* const threads = mm_calloc(num_workers-1,pthread_t,false);
+  bool* const started = mm_calloc(num_workers-1,bool,true);
+  uint64_t i;
+  for (i=0;i<num_workers-1;++i) {
+    started[i] = (pthread_create(threads+i,NULL,fm_bulk_read_parallel_worker,&job)==0);
+  }
+  fm_bulk_read_parallel_worker(&job);
+  for (i=0;i<num_workers-1;++i) {
+    if (started[i]) pthread_join(threads[i],NULL);
+  }
+  mm_free(started);
+  mm_free(threads);
+  gem_cond_fatal_error(job.failed,FM_FDREAD,read_size,fd);
+  close(fd);
 }
 /*
  * FileManager Wrappers
