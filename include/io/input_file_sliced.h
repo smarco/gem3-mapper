@@ -54,6 +54,7 @@ typedef struct {
   pthread_mutex_t input_buffers_mutex;        // Mutex
   pthread_cond_t input_buffers_ready_cond;    // CV
   pthread_cond_t input_buffers_empty_cond;    // CV
+  pthread_mutex_t input_file_read_mutex;      // Reads the file (taken before input_buffers_mutex)
   /* Input-buffer request queue */
   uint64_t input_buffer_id;                   // ID generator
   uint64_t current_buffer_line;               // Current buffer line number
