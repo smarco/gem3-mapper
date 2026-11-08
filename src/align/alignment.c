@@ -139,7 +139,7 @@ void alignment_verify_edit_kmer(
   PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES);
   // Compute minimum edit distance bound
   const uint64_t distance_min_bound =
-      kmer_counting_min_bound_nway(&pattern_tiled->kmer_filter_nway,
+      kmer_counting_min_bound_nway_cutoff(&pattern_tiled->kmer_filter_nway,
           text,text_length,max_error,pattern_tiled->mm_allocator);
   //  // DEBUG
   //  const bpm_pattern_t* const bpm_pattern = pattern_tiled->bpm_pattern;
@@ -171,7 +171,7 @@ void alignment_verify_edit_bpm_tile(
   const uint64_t tile_offset = alignment_tile->text_begin_offset;
   const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
   bpm_compute_edit_distance(bpm_pattern_tile,text+tile_offset,
-      tile_wide,tile_distance,tile_match_column,max_tile_error,false); // TODO Activate quick-abandon at compile tiles
+      tile_wide,tile_distance,tile_match_column,max_tile_error,true);
   PROF_INC_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED);
 }
 void alignment_verify_edit_bpm(
