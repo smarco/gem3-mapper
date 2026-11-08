@@ -29,6 +29,10 @@
 
 /*
  * SWG Compute Column Banded
+ *   D is carried down the column in a local (still stored: the traceback reads
+ *   it) as D' = MAX(MAX(match,I)+g(1), D+MAX(g(1),ge)), equal to the textbook
+ *   MAX(M+g(1), D+ge) barring int32 overflow and one max shorter per row; the
+ *   max score is updated without a branch.
  */
 void align_swg_banded_compute_column(
     const uint8_t* const key,
@@ -45,35 +49,49 @@ void align_swg_banded_compute_column(
     const swg_matching_score_t* const matching_score,
     const uint64_t single_gap,
     const uint64_t gap_extension) {
+  swg_cell_t* const dp_prev = dp[column-1];
+  swg_cell_t* const dp_column = dp[column];
+  swg_cell_t* const dp_next = dp[column+1];
+  uint64_t band_high = *band_high_offset;
+  uint64_t band_low = *band_low_offset;
   // Initialize band boundaries & update band limits
-  if (*band_low_offset < num_rows) { //  Below band
-    dp[column][*band_low_offset].I = SWG_SCORE_MIN;
-    dp[column-1][*band_low_offset].I = SWG_SCORE_MIN;
-    ++(*band_low_offset); // Swift band
+  if (band_low < num_rows) { //  Below band
+    dp_column[band_low].I = SWG_SCORE_MIN;
+    dp_prev[band_low].I = SWG_SCORE_MIN;
+    ++band_low; // Swift band
   }
   // Initialize band boundaries & update band limits
   if (column >= column_start_band) {
-    ++(*band_high_offset); // Swift band
-    dp[column][*band_high_offset+1].D = SWG_SCORE_MIN;
+    ++band_high; // Swift band
+    dp_column[band_high+1].D = SWG_SCORE_MIN;
   }
+  *band_high_offset = band_high;
+  *band_low_offset = band_low;
   // Locate the cursor at the proper cell & calculate DP
-  uint64_t row;
-  for (row=*band_high_offset+1;row<*band_low_offset;++row) {
-    // Update DP.M
+  uint64_t row = band_high+1;
+  if (row < band_low) {
     const uint8_t enc_text = text[(reverse_strings) ? text_length - column : column-1];
-    const uint8_t enc_key = key[(reverse_strings) ? key_length - row : row-1];
-    const int32_t d_value = dp[column][row].D;
-    const int32_t i_value = dp[column][row].I;
-    const int32_t match = dp[column-1][row-1].M + (*matching_score)[enc_text][enc_key];
-    const int32_t m_value = MAX(match,MAX(d_value,i_value));
-    dp[column][row].M = m_value;
-    // Update DP.D
-    const int32_t gap_new = m_value + single_gap;
-    const int32_t del_ext = d_value + gap_extension;
-    dp[column][row+1].D = MAX(gap_new,del_ext);
-    // Update DP.I
-    const int32_t ins_ext = i_value + gap_extension;
-    dp[column+1][row].I = MAX(gap_new,ins_ext);
+    const int32_t* const score_row = (*matching_score)[enc_text];
+    const int32_t gap_open_ext = single_gap;
+    const int32_t gap_ext = gap_extension;
+    const int32_t del_step = MAX(gap_open_ext,gap_ext);
+    int32_t d_value = dp_column[row].D;
+    for (;row<band_low;++row) {
+      // Update DP.M
+      const uint8_t enc_key = key[(reverse_strings) ? key_length - row : row-1];
+      const int32_t i_value = dp_column[row].I;
+      const int32_t match = dp_prev[row-1].M + score_row[enc_key];
+      const int32_t match_ins = MAX(match,i_value);
+      const int32_t m_value = MAX(match_ins,d_value);
+      dp_column[row].M = m_value;
+      // Update DP.D
+      const int32_t gap_new = m_value + gap_open_ext;
+      d_value = MAX(match_ins+gap_open_ext,d_value+del_step);
+      dp_column[row+1].D = d_value;
+      // Update DP.I
+      const int32_t ins_ext = i_value + gap_ext;
+      dp_next[row].I = MAX(gap_new,ins_ext);
+    }
   }
 }
 void align_swg_banded_compute_column__max_score(
@@ -93,42 +111,58 @@ void align_swg_banded_compute_column__max_score(
     const uint64_t gap_extension,
     int32_t* const max_score,
     uint64_t* const max_score_row) {
+  swg_cell_t* const dp_prev = dp[column-1];
+  swg_cell_t* const dp_column = dp[column];
+  swg_cell_t* const dp_next = dp[column+1];
+  uint64_t band_high = *band_high_offset;
+  uint64_t band_low = *band_low_offset;
   // Initialize band boundaries & update band limits
-  if (*band_low_offset < num_rows) { //  Below band
-    dp[column][*band_low_offset].I = SWG_SCORE_MIN;
-    dp[column-1][*band_low_offset].I = SWG_SCORE_MIN;
-    ++(*band_low_offset); // Swift band
+  if (band_low < num_rows) { //  Below band
+    dp_column[band_low].I = SWG_SCORE_MIN;
+    dp_prev[band_low].I = SWG_SCORE_MIN;
+    ++band_low; // Swift band
   }
   // Initialize band boundaries & update band limits
   if (column >= column_start_band) {
-    ++(*band_high_offset); // Swift band
-    dp[column][*band_high_offset+1].D = SWG_SCORE_MIN;
+    ++band_high; // Swift band
+    dp_column[band_high+1].D = SWG_SCORE_MIN;
   }
+  *band_high_offset = band_high;
+  *band_low_offset = band_low;
   // Locate the cursor at the proper cell & calculate DP
-  uint64_t row;
-  *max_score = SWG_SCORE_MIN;
-  for (row=*band_high_offset+1;row<*band_low_offset;++row) {
-    // Update DP.M
+  int32_t max = SWG_SCORE_MIN;
+  uint64_t row = band_high+1;
+  if (row < band_low) {
     const uint8_t enc_text = text[(reverse_strings) ? text_length - column : column-1];
-    const uint8_t enc_key = key[(reverse_strings) ? key_length - row : row-1];
-    const int32_t d_value = dp[column][row].D;
-    const int32_t i_value = dp[column][row].I;
-    const int32_t match = dp[column-1][row-1].M + (*matching_score)[enc_text][enc_key];
-    const int32_t m_value = MAX(match,MAX(d_value,i_value));
-    dp[column][row].M = m_value;
-    // Update Max Score
-    if (*max_score < m_value) {
-      *max_score = m_value;
-      *max_score_row = row;
+    const int32_t* const score_row = (*matching_score)[enc_text];
+    uint64_t max_row = *max_score_row;
+    const int32_t gap_open_ext = single_gap;
+    const int32_t gap_ext = gap_extension;
+    const int32_t del_step = MAX(gap_open_ext,gap_ext);
+    int32_t d_value = dp_column[row].D;
+    for (;row<band_low;++row) {
+      // Update DP.M
+      const uint8_t enc_key = key[(reverse_strings) ? key_length - row : row-1];
+      const int32_t i_value = dp_column[row].I;
+      const int32_t match = dp_prev[row-1].M + score_row[enc_key];
+      const int32_t match_ins = MAX(match,i_value);
+      const int32_t m_value = MAX(match_ins,d_value);
+      dp_column[row].M = m_value;
+      // Update Max Score
+      const bool better = (max < m_value);
+      max_row = better ? row : max_row;
+      max = better ? m_value : max;
+      // Update DP.D
+      const int32_t gap_new = m_value + gap_open_ext;
+      d_value = MAX(match_ins+gap_open_ext,d_value+del_step);
+      dp_column[row+1].D = d_value;
+      // Update DP.I
+      const int32_t ins_ext = i_value + gap_ext;
+      dp_next[row].I = MAX(gap_new,ins_ext);
     }
-    // Update DP.D
-    const int32_t gap_new = m_value + single_gap;
-    const int32_t del_ext = d_value + gap_extension;
-    dp[column][row+1].D = MAX(gap_new,del_ext);
-    // Update DP.I
-    const int32_t ins_ext = i_value + gap_extension;
-    dp[column+1][row].I = MAX(gap_new,ins_ext);
+    *max_score_row = max_row;
   }
+  *max_score = max;
 }
 /*
  * SWG Banded
