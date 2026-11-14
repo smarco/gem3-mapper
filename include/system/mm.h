@@ -205,6 +205,7 @@ void mm_bulk_free(mm_t* const mem_manager);
 mm_t* mm_bulk_mmap_file(char* const file_name,const mm_mode mode,const bool populate_page_tables);
 mm_t* mm_bulk_load_file(char* const file_name);
 mm_t* mm_bulk_mload_file(char* const file_name);
+mm_t* mm_bulk_mload_file_parallel(char* const file_name,const uint64_t num_threads);
 
 // Accessors
 void* mm_get_mem(mm_t* const mem_manager);

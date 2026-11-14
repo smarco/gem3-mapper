@@ -67,6 +67,10 @@ typedef struct {
 archive_t* archive_read(
     char* const file_name,
     const bool read_text_only);
+archive_t* archive_read_parallel(
+    char* const file_name,
+    const bool read_text_only,
+    const uint64_t num_threads);
 void archive_delete(archive_t* const archive);
 
 /*
