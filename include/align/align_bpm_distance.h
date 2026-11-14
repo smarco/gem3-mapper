@@ -147,6 +147,18 @@ bool bpm_compute_edit_distance(
     uint64_t* const match_column,
     uint64_t max_distance,
     const bool quick_abandon);
+// Cut-off with quick abandon, several texts against one pattern (as many calls of
+// bpm_compute_edit_distance in text order); 1-word patterns run four texts at a time,
+// 2-4 word patterns two
+#define BPM_BATCH_MAX_WORDS 4
+void bpm_compute_edit_distance_batch(
+    const bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const* const texts,
+    const uint64_t* const text_lengths,
+    const uint64_t num_texts,
+    uint64_t max_distance,
+    uint64_t* const match_distances,
+    uint64_t* const match_columns);
 // Find all local minimums
 uint64_t bpm_compute_edit_distance_all(
     pattern_t* const pattern,

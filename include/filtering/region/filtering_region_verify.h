@@ -40,6 +40,13 @@ bool filtering_region_verify(
     filtering_region_t* const filtering_region,
     const bool kmer_count_filter,
     pattern_t* const pattern);
+bool filtering_region_verify_prepare(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    const bool kmer_count_filter,
+    pattern_t* const pattern);
+bool filtering_region_verify_check(
+    filtering_region_t* const filtering_region);
 uint64_t filtering_region_verify_extension(
     filtering_candidates_t* const filtering_candidates,
     text_trace_t* const text_trace,

@@ -48,6 +48,7 @@ typedef struct {
   /* Input file */
   input_file_sliced_t* input_file_sliced;   // Source input file
   uint64_t prefered_read_size;              // Size to reload the buffer
+  bool read_ahead;                          // Read ahead on reload (else the caller does)
   /* Block buffer info */
   uint32_t block_id;                        // Block ID
   uint64_t num_lines;                       // Total number of lines in buffer

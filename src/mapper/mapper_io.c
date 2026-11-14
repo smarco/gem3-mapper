@@ -91,7 +91,8 @@ void mapper_load_index(mapper_parameters_t* const parameters) {
   PROFILE_START(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   // Load archive
   gem_cond_log(parameters->misc.verbose_user,"[Loading GEM index '%s']",parameters->io.index_file_name);
-  parameters->archive = archive_read(parameters->io.index_file_name,false);
+  parameters->archive = archive_read_parallel(
+      parameters->io.index_file_name,false,parameters->system.num_threads);
   if (parameters->misc.verbose_dev) archive_print(gem_error_get_stream(),parameters->archive);
   PROFILE_STOP(GP_MAPPER_LOAD_INDEX,PROFILE_LEVEL);
   TIMER_STOP(&parameters->loading_time);
@@ -148,6 +149,9 @@ mapper_io_handler_t* mapper_io_handler_new_pe(
         buffered_input_file_new(parameters->input_file_end1,input_buffer_size);
     mapper_io_handler->buffered_fasta_input_end2 =
         buffered_input_file_new(parameters->input_file_end2,input_buffer_size);
+    // Read ahead outside the input mutex (mapper_pe_reload_buffer)
+    mapper_io_handler->buffered_fasta_input_end1->read_ahead = false;
+    mapper_io_handler->buffered_fasta_input_end2->read_ahead = false;
   } else {
     mapper_io_handler->buffered_fasta_input_end1 =
         buffered_input_file_new(parameters->input_file,input_buffer_size);
@@ -228,6 +232,9 @@ uint64_t mapper_pe_reload_buffer(
       return INPUT_STATUS_EOF;
     }
     gem_cond_fatal_error(pthread_mutex_unlock(mapper_io_handler->input_mutex),SYS_MUTEX);
+    // Read ahead outside the input mutex
+    input_file_sliced_process(mapper_io_handler->buffered_fasta_input_end1->input_file_sliced);
+    input_file_sliced_process(mapper_io_handler->buffered_fasta_input_end2->input_file_sliced);
   }
   // OK
   return INPUT_STATUS_OK;

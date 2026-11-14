@@ -158,9 +158,14 @@ void approximate_search_region_profile(approximate_search_t* const search) {
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_adaptive:
-      region_profile_generate_adaptive(
-          region_profile,fm_index,key,key_length,
-          &parameters->region_profile_model,ALL,false);
+      if (search->region_profile_ahead == NULL ||
+          !region_profile_ahead_restore(search->region_profile_ahead,
+              region_profile,fm_index,key,key_length,&parameters->region_profile_model)) {
+        region_profile_generate_adaptive(
+            region_profile,fm_index,key,key_length,
+            &parameters->region_profile_model,ALL,false);
+      }
+      search->region_profile_ahead = NULL;
       // region_profile_print(stderr,region_profile,false);
       break;
     case region_profile_adaptive_limited:

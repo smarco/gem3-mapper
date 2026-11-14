@@ -32,6 +32,7 @@
 #include "archive/archive.h"
 #include "align/pattern/pattern.h"
 #include "filtering/region_profile/region_profile.h"
+#include "filtering/region_profile/region_profile_adaptive.h"
 #include "filtering/candidates/filtering_candidates.h"
 #include "filtering/candidates/filtering_candidates_buffered.h"
 #include "neighborhood_search/nsearch_schedule.h"
@@ -84,6 +85,7 @@ typedef struct {
   uint64_t max_search_error;                                     // Search max-error (can be adjusted on-the-fly by matches found)
   /* Filtering Structures */
   region_profile_t region_profile;                               // Region Profile
+  region_profile_ahead_t* region_profile_ahead;                  // Adaptive profile computed ahead (or NULL)
   filtering_candidates_t* filtering_candidates;                  // Filtering Candidates
   filtering_candidates_buffered_t filtering_candidates_buffered; // Filtering Candidates Buffered
   uint64_t num_limited_exact_matches;                            // Number of exact matches limited

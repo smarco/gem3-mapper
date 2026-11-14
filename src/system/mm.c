@@ -215,6 +215,10 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   if (use_huge_pages) flags |= MAP_HUGETLB;
   mem_manager->memory = mmap(0,num_bytes,PROT_READ|PROT_WRITE,flags,-1,0);
   gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_FAIL,num_bytes);
+#ifdef MADV_HUGEPAGE
+  // Transparent huge pages when THP is set to "madvise": fewer faults on load, fewer TLB misses on random index access
+  if (!use_huge_pages) madvise(mem_manager->memory,num_bytes,MADV_HUGEPAGE);
+#endif
   mem_manager->cursor = mem_manager->memory;
   // Set MM
   mem_manager->mem_type = MM_MMAPPED;
@@ -349,6 +353,9 @@ mm_t* mm_bulk_load_file(char* const file_name) {
 #endif
 }
 mm_t* mm_bulk_mload_file(char* const file_name) {
+  return mm_bulk_mload_file_parallel(file_name,1);
+}
+mm_t* mm_bulk_mload_file_parallel(char* const file_name,const uint64_t num_threads) {
   GEM_CHECK_NULL(file_name);
   // Retrieve input file info
   struct stat stat_info;
@@ -357,7 +364,7 @@ mm_t* mm_bulk_mload_file(char* const file_name) {
   // Allocate memory to dump the content of the file
   mm_t* const mem_manager = mm_bulk_mmalloc(stat_info.st_size,false);
   // Read the file and dump it into memory
-  fm_bulk_read_file(file_name,mem_manager->memory,0,0);
+  fm_bulk_read_file_parallel(file_name,mem_manager->memory,0,0,num_threads);
   return mem_manager;
 }
 

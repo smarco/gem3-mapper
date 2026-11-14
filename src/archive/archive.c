@@ -63,8 +63,14 @@ archive_t* archive_read_mem(mm_t* const memory_manager,const bool read_text_only
   return archive;
 }
 archive_t* archive_read(char* const file_name,const bool read_text_only) {
+  return archive_read_parallel(file_name,read_text_only,1);
+}
+archive_t* archive_read_parallel(
+    char* const file_name,
+    const bool read_text_only,
+    const uint64_t num_threads) {
   // Load the whole archive in memory at once
-  mm_t* const mm = mm_bulk_mload_file(file_name);
+  mm_t* const mm = mm_bulk_mload_file_parallel(file_name,num_threads);
   // Return the loaded archive
   return archive_read_mem(mm,read_text_only);
 }

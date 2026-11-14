@@ -101,7 +101,7 @@ void filtering_region_verify_hamming(
 /*
  * Verify Leveshtein
  */
-void filtering_region_verify_levenshtein(
+static bool filtering_region_verify_levenshtein_kmer(
     filtering_candidates_t* const filtering_candidates,
     filtering_region_t* const filtering_region,
     const bool kmer_count_filter,
@@ -117,11 +117,16 @@ void filtering_region_verify_levenshtein(
   filtering_candidates_init_alignment(filtering_candidates,alignment,pattern,text_length,max_error);
   // Filter using kmer-counting
   if (kmer_count_filter) {
-    alignment_verify_edit_kmer(
+    // The seed's diagonal: key position p sits at text_padded[p+diagonal]
+    const int64_t diagonal =
+        (int64_t)filtering_region->text_source_region_offset -
+        (int64_t)filtering_region->key_source_region_offset +
+        (int64_t)text_trace->text_padded_left;
+    alignment_verify_edit_kmer_diagonal(
         &filtering_region->alignment,&pattern->pattern_tiled,
         pattern->key,pattern->key_length,text,text_length,max_error,
         search_parameters->candidate_verification.kmer_tiles,
-        search_parameters->candidate_verification.kmer_length);
+        search_parameters->candidate_verification.kmer_length,diagonal);
     if (alignment->distance_min_bound==ALIGN_DISTANCE_INF) {
       // DEBUG
       gem_cond_debug_block(DEBUG_FILTERING_REGION_VERIFY_KMER_FILTER)  {
@@ -133,12 +138,24 @@ void filtering_region_verify_levenshtein(
             "Filtering.Region.Verify: K-mer filtering wrong discarding (edit-distance=%"PRIu64")",distance);
       }
       // Return Discarded
-      return;
+      return false;
     }
   }
-  // Filter using BPM
-  alignment_verify_edit_bpm(&filtering_region->alignment,
-      &pattern->pattern_tiled,pattern->key,text,max_error);
+  return true;
+}
+void filtering_region_verify_levenshtein(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    const bool kmer_count_filter,
+    pattern_t* const pattern) {
+  if (filtering_region_verify_levenshtein_kmer(
+      filtering_candidates,filtering_region,kmer_count_filter,pattern)) {
+    // Filter using BPM
+    alignment_verify_edit_bpm(&filtering_region->alignment,
+        &pattern->pattern_tiled,pattern->key,
+        filtering_region->text_trace.text_padded,
+        pattern->max_effective_filtering_error);
+  }
 }
 /*
  * Verify (Switch)
@@ -188,6 +205,46 @@ bool filtering_region_verify(
   } else {
     filtering_region->status = filtering_region_verified_discarded;
     PROF_STOP(GP_FC_VERIFY_CANDIDATES_REGION);
+    PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
+    return false;
+  }
+}
+/*
+ * Verify, split around BPM (1-tile patterns, Levenshtein-family models)
+ *   filtering_region_verify_prepare does what filtering_region_verify does before
+ *   BPM and returns true when the only tile still needs it (its result is then stored
+ *   with alignment_verify_edit_bpm_1tile_result); filtering_region_verify_check sets
+ *   the status from the distance and returns what filtering_region_verify returns
+ */
+bool filtering_region_verify_prepare(
+    filtering_candidates_t* const filtering_candidates,
+    filtering_region_t* const filtering_region,
+    const bool kmer_count_filter,
+    pattern_t* const pattern) {
+  alignment_t* const alignment = &filtering_region->alignment;
+  if (alignment->distance_min_bound != ALIGN_DISTANCE_UNKNOWN) return false;
+  // Retrieve text-candidate
+  filtering_region_retrieve_text(filtering_region,pattern,
+      filtering_candidates->archive->text,filtering_candidates->mm_allocator);
+  // Prepare alignment and filter using kmer-counting
+  if (!filtering_region_verify_levenshtein_kmer(
+      filtering_candidates,filtering_region,kmer_count_filter,pattern)) return false;
+  // Tile already verified
+  if (alignment->alignment_tiles->distance != ALIGN_DISTANCE_UNKNOWN) {
+    alignment_verify_edit_bpm(alignment,&pattern->pattern_tiled,pattern->key,
+        filtering_region->text_trace.text_padded,pattern->max_effective_filtering_error);
+    return false;
+  }
+  return true;
+}
+bool filtering_region_verify_check(
+    filtering_region_t* const filtering_region) {
+  if (filtering_region->alignment.distance_min_bound != ALIGN_DISTANCE_INF) {
+    filtering_region->status = filtering_region_accepted;
+    PROF_INC_COUNTER(GP_ACCEPTED_REGIONS);
+    return true;
+  } else {
+    filtering_region->status = filtering_region_verified_discarded;
     PROF_INC_COUNTER(GP_DISCARDED_REGIONS);
     return false;
   }

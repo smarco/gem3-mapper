@@ -113,6 +113,20 @@ uint64_t archive_text_get_projection(
 /*
  * Archive Text Retriever
  */
+/*
+ * Equals dna_encoded_complement for the encoded values 0-6 (A,C,G,T swap; N,
+ * SEP and JUMP map to themselves) without a table load, so the loop vectorizes.
+ */
+static inline void archive_text_reverse_complement(
+    uint8_t* const restrict dst,
+    const uint8_t* const restrict src,
+    const uint64_t length) {
+  uint64_t i;
+  for (i=0;i<length;++i) {
+    const uint8_t enc_char = src[length-1-i];
+    dst[i] = (enc_char < 4) ? 3 - enc_char : enc_char;
+  }
+}
 void archive_text_retrieve(
     archive_text_t* const archive_text,
     const uint64_t text_position,
@@ -135,12 +149,10 @@ void archive_text_retrieve(
       } else {
         // Reverse-Complement the text
         uint8_t* const text = dna_text_retrieve_sequence(archive_text->enc_text,text_position);
-        text_trace->text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+        uint8_t* const dst = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+        archive_text_reverse_complement(dst,text,text_length);
+        text_trace->text = dst;
         text_trace->text_allocated = true;
-        uint64_t i_forward, i_backward;
-        for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
-          text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
-        }
       }
     } else {
       text_trace->text = dna_text_retrieve_sequence(archive_text->enc_text,text_position);
@@ -153,12 +165,10 @@ void archive_text_retrieve(
       text_trace->text = text;
     } else {
       // Reverse-Complement the text
-      text_trace->text = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+      uint8_t* const dst = mm_allocator_calloc(mm_allocator,text_length,uint8_t,false);
+      archive_text_reverse_complement(dst,text,text_length);
+      text_trace->text = dst;
       text_trace->text_allocated = true;
-      uint64_t i_forward, i_backward;
-      for (i_forward=0,i_backward=text_length-1;i_forward<text_length;++i_forward,--i_backward) {
-        text_trace->text[i_forward] = dna_encoded_complement(text[i_backward]);
-      }
     }
   }
   // Compute RL-text
