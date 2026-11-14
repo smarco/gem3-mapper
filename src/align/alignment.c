@@ -126,6 +126,18 @@ int64_t alignment_dp_compute_edit_distance(
 /*
  * Verify edit distance using Kmer
  */
+static void alignment_verify_edit_kmer_bound(
+    alignment_t* const alignment,
+    const uint64_t distance_min_bound,
+    const uint64_t max_error) {
+  if (distance_min_bound > max_error) {
+    alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
+  } else {
+    alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
+    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
+  }
+}
 void alignment_verify_edit_kmer(
     alignment_t* const alignment,
     pattern_tiled_t* const pattern_tiled,
@@ -139,7 +151,7 @@ void alignment_verify_edit_kmer(
   PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES);
   // Compute minimum edit distance bound
   const uint64_t distance_min_bound =
-      kmer_counting_min_bound_nway(&pattern_tiled->kmer_filter_nway,
+      kmer_counting_min_bound_nway_cutoff(&pattern_tiled->kmer_filter_nway,
           text,text_length,max_error,pattern_tiled->mm_allocator);
   //  // DEBUG
   //  const bpm_pattern_t* const bpm_pattern = pattern_tiled->bpm_pattern;
@@ -147,13 +159,25 @@ void alignment_verify_edit_kmer(
   //  bpm_compute_edit_distance(bpm_pattern,text,text_length,
   //      &distance,&match_column,1000,false);
   //  if (distance < distance_min_bound) { fprintf(stderr,"error\n"); }
-  if (distance_min_bound > max_error) {
-    alignment->distance_min_bound = ALIGN_DISTANCE_INF;
-    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_DISCARDED);
-  } else {
-    alignment->distance_min_bound = ALIGN_DISTANCE_UNKNOWN;
-    PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_ACCEPTED);
-  }
+  alignment_verify_edit_kmer_bound(alignment,distance_min_bound,max_error);
+}
+void alignment_verify_edit_kmer_diagonal(
+    alignment_t* const alignment,
+    pattern_tiled_t* const pattern_tiled,
+    uint8_t* const key,
+    const uint64_t key_length,
+    uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const uint64_t kmer_tiles,
+    const uint64_t kmer_length,
+    const int64_t diagonal) {
+  PROF_INC_COUNTER(GP_FC_KMER_COUNTER_FILTER_CANDIDATES);
+  // Compute minimum edit distance bound
+  const uint64_t distance_min_bound =
+      kmer_counting_min_bound_nway_cutoff_diagonal(&pattern_tiled->kmer_filter_nway,
+          text,text_length,max_error,diagonal,pattern_tiled->mm_allocator);
+  alignment_verify_edit_kmer_bound(alignment,distance_min_bound,max_error);
 }
 /*
  * Verify edit distance using BPM
@@ -171,7 +195,7 @@ void alignment_verify_edit_bpm_tile(
   const uint64_t tile_offset = alignment_tile->text_begin_offset;
   const uint64_t tile_wide = alignment_tile->text_end_offset-alignment_tile->text_begin_offset;
   bpm_compute_edit_distance(bpm_pattern_tile,text+tile_offset,
-      tile_wide,tile_distance,tile_match_column,max_tile_error,false); // TODO Activate quick-abandon at compile tiles
+      tile_wide,tile_distance,tile_match_column,max_tile_error,true);
   PROF_INC_COUNTER(GP_BMP_DISTANCE_NUM_TILES_VERIFIED);
 }
 void alignment_verify_edit_bpm(
@@ -235,6 +259,32 @@ void alignment_verify_edit_bpm(
       PROF_INC_COUNTER(GP_FC_BPM_FILTER_ACCEPTED);
     }
   }
+}
+/*
+ * Store the BPM result of a 1-tile pattern's only tile, whose distance was unknown,
+ * as alignment_verify_edit_bpm does
+ */
+void alignment_verify_edit_bpm_1tile_result(
+    alignment_t* const alignment,
+    pattern_tiled_t* const pattern_tiled,
+    const uint64_t tile_distance,
+    const uint64_t tile_match_column,
+    const uint64_t max_error) {
+  alignment_tile_t* const alignment_tile = alignment->alignment_tiles;
+  pattern_tile_t* const pattern_tile = pattern_tiled->tiles;
+  alignment_tile->distance = tile_distance;
+  if (tile_distance==ALIGN_DISTANCE_INF) {
+    alignment->distance_min_bound = ALIGN_DISTANCE_INF;
+    return;
+  }
+  const uint64_t tile_end_offset = tile_match_column+1;
+  const uint64_t tile_tall = pattern_tile->tile_length;
+  const uint64_t tile_begin_offset =
+      BOUNDED_SUBTRACTION(tile_end_offset,tile_tall+tile_distance,0);
+  const uint64_t tile_offset = alignment_tile->text_begin_offset;
+  alignment_tile->text_end_offset = tile_offset + tile_end_offset;
+  alignment_tile->text_begin_offset = tile_offset + tile_begin_offset;
+  alignment->distance_min_bound = (tile_distance > max_error) ? ALIGN_DISTANCE_INF : tile_distance;
 }
 /*
  * Check alignment (CIGAR string against text & pattern)

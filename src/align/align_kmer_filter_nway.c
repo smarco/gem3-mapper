@@ -387,6 +387,133 @@ uint64_t __attribute__ ((noinline)) kmer_counting_min_bound_nway_ks2(
   min_error += (text_tiles[1].num_key_kmers-text_tiles[1].max_text_kmers)/kmer_length;
   return min_error;
 }
+/*
+ * Bound of the 2 tiles from the k-mers each key tile shares with its text
+ * tile on one diagonal: key k-mer p paired with text k-mer p+diagonal when
+ * equal (text taken as KMER_COUNTING_FILTER_CHAR takes it). The pairing is
+ * one-to-one, so each tile's count is at most the scan's matched count, and
+ * the bound is at least the scan's final bound, for any diagonal.
+ * UINT64_MAX when no k-mer lies on the diagonal or the key is longer than
+ * the buffers.
+ */
+#define KMER_COUNTING_DIAGONAL_MAX_LENGTH 1024
+static inline void kmer_counting_diagonal_and(
+    uint8_t* const restrict dst,
+    const uint8_t* const restrict src,
+    const uint64_t step,
+    const uint64_t length) {
+  uint64_t i;
+  for (i=0;i<length;++i) dst[i] = src[i] & src[i+step];
+}
+static uint64_t kmer_counting_diagonal_bound_ks2(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const int64_t diagonal) {
+  const int64_t kmer_length = kmer_counting->kmer_length;
+  // Key positions whose diagonal position lies in the text
+  const int64_t begin = MAX((int64_t)0,-diagonal);
+  const int64_t end = MIN((int64_t)kmer_counting->key_length,(int64_t)text_length-diagonal);
+  if (end-begin < kmer_length) return UINT64_MAX; // No k-mer on it
+  if (end-begin > KMER_COUNTING_DIAGONAL_MAX_LENGTH) return UINT64_MAX;
+  const uint64_t length = end-begin;
+  uint8_t run_a[KMER_COUNTING_DIAGONAL_MAX_LENGTH], run_b[KMER_COUNTING_DIAGONAL_MAX_LENGTH];
+  const uint8_t* const key = kmer_counting->key + begin;
+  const uint8_t* const text_diagonal = text + begin + diagonal;
+  uint64_t i;
+  for (i=0;i<length;++i) {
+    run_a[i] = (key[i] == KMER_COUNTING_FILTER_CHAR(text_diagonal[i]));
+  }
+  // run[i] = 1 when positions [i,i+span) all match, for i <= length-span
+  uint8_t* src = run_a;
+  uint8_t* dst = run_b;
+  uint64_t span = 1;
+  while (span < (uint64_t)kmer_length) {
+    const uint64_t step = MIN(span,kmer_length-span);
+    kmer_counting_diagonal_and(dst,src,step,length-(span+step)+1);
+    uint8_t* const swap = src; src = dst; dst = swap;
+    span += step;
+  }
+  // Matched k-mers per tile: starts in the key tile whose text k-mer lies in the text tile
+  const kmer_counting_key_tile_t* const key_tiles = kmer_counting->key_tiles;
+  const kmer_counting_text_tile_t* const text_tiles = kmer_counting->text_tiles;
+  uint64_t bound = 0, tile_idx;
+  for (tile_idx=0;tile_idx<2;++tile_idx) {
+    const int64_t lo = MAX(MAX((int64_t)key_tiles[tile_idx].begin,
+        (int64_t)text_tiles[tile_idx].text_begin-diagonal),begin);
+    const int64_t hi = MIN(MIN((int64_t)key_tiles[tile_idx].end,
+        (int64_t)text_tiles[tile_idx].text_end-diagonal),end) - kmer_length;
+    uint64_t matched = 0;
+    int64_t p;
+    for (p=lo;p<=hi;++p) matched += src[p-begin];
+    bound += (text_tiles[tile_idx].num_key_kmers-matched)/kmer_length;
+  }
+  return bound;
+}
+/*
+ * 2-tile kernel that returns once the bound falls to max_error (it never
+ * rises again), so its result is exact only when it exceeds max_error.
+ * Clears the text profile itself, and only when it has to scan; with
+ * use_diagonal, not when the diagonal bound already reaches max_error.
+ */
+uint64_t __attribute__ ((noinline)) kmer_counting_min_bound_nway_ks2_cutoff(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const int64_t diagonal,
+    const bool use_diagonal) {
+  // Parameters
+  const uint64_t kmer_length = kmer_counting->kmer_length;
+  const uint64_t num_tiles = kmer_counting->num_tiles;
+  kmer_counting_text_tile_t* const text_tiles = kmer_counting->text_tiles;
+  uint16_t* const kmer_count_pattern = kmer_counting->kmer_count_pattern;
+  uint16_t* const kmer_count_text = kmer_counting->kmer_count_text;
+  // Tile bound (num_key_kmers-matched)/kmer_length: matches counted down
+  // modulo kmer_length, the summed bound decremented on each wrap
+  uint64_t remainder_0 = text_tiles[0].num_key_kmers % kmer_length;
+  uint64_t remainder_1 = text_tiles[1].num_key_kmers % kmer_length;
+  uint64_t min_error =
+      text_tiles[0].num_key_kmers/kmer_length +
+      text_tiles[1].num_key_kmers/kmer_length;
+  if (min_error <= max_error) return min_error;
+  if (use_diagonal) {
+    const uint64_t diagonal_bound =
+        kmer_counting_diagonal_bound_ks2(kmer_counting,text,text_length,diagonal);
+    if (diagonal_bound <= max_error) return diagonal_bound;
+  }
+  memset(kmer_count_text,0,kmer_counting->num_kmers*num_tiles*sizeof(uint16_t));
+  uint64_t kmer_idx = 0, kmer_end, kmer_begin;
+  // Initial fill (kmer)
+  for (kmer_end=0;kmer_end<kmer_length-1;++kmer_end) {
+    KMER_COUNTING_ADD_INDEX__MASK(kmer_idx,KMER_COUNTING_FILTER_CHAR(text[kmer_end]));
+  }
+  // Sliding window
+  for (kmer_begin=0;kmer_end<text_length;++kmer_begin,++kmer_end) {
+    KMER_COUNTING_IN_FETCH_COUNTERS(text_count_ptr,pattern_count_ptr);
+    if (text_tiles[0].text_begin<=kmer_begin && kmer_end<text_tiles[0].text_end) {
+      if (gem_expect_false(pattern_count_ptr[0] > 0 && text_count_ptr[0] < pattern_count_ptr[0])) {
+        if (remainder_0==0) {
+          remainder_0 = kmer_length;
+          if (--min_error <= max_error) return min_error;
+        }
+        --remainder_0;
+      }
+      ++text_count_ptr[0];
+    }
+    if (text_tiles[1].text_begin<=kmer_begin && kmer_end<text_tiles[1].text_end) {
+      if (gem_expect_false(pattern_count_ptr[1] > 0 && text_count_ptr[1] < pattern_count_ptr[1])) {
+        if (remainder_1==0) {
+          remainder_1 = kmer_length;
+          if (--min_error <= max_error) return min_error;
+        }
+        --remainder_1;
+      }
+      ++text_count_ptr[1];
+    }
+  }
+  return min_error;
+}
 uint64_t __attribute__ ((noinline)) kmer_counting_min_bound_nway_ks3(
     kmer_counting_nway_t* const kmer_counting,
     const uint8_t* const text,
@@ -570,11 +697,14 @@ uint64_t __attribute__ ((noinline)) kmer_counting_min_bound_nway_ksn(
  * K-mer counting compute min-error bound
  *   Init + Switch
  */
-uint64_t kmer_counting_min_bound_nway(
+static inline uint64_t kmer_counting_min_bound_nway_compute(
     kmer_counting_nway_t* const kmer_counting,
     const uint8_t* const text,
     const uint64_t text_length,
     const uint64_t max_error,
+    const bool cutoff,
+    const int64_t diagonal,
+    const bool use_diagonal,
     mm_allocator_t* const mm_allocator) {
   PROFILE_START(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
   // Check enabled
@@ -586,7 +716,14 @@ uint64_t kmer_counting_min_bound_nway(
   // Prepare filter
   if (kmer_counting->kmer_count_text==NULL) return 0; // Don't filter
   const uint64_t num_tiles = kmer_counting->num_tiles;
-  memset(kmer_counting->kmer_count_text,0,kmer_counting->num_kmers*num_tiles*sizeof(uint16_t));
+#ifdef KMER_COUNTING_SLIDING_WINDOW
+  const bool ks2_cutoff = false; // The window lowers counts again
+#else
+  const bool ks2_cutoff = cutoff && num_tiles==2;
+#endif
+  if (!ks2_cutoff) {
+    memset(kmer_counting->kmer_count_text,0,kmer_counting->num_kmers*num_tiles*sizeof(uint16_t));
+  }
   // Prepare tiling
   kmer_counting_prepare_tiling(kmer_counting,text_length,max_error);
   // MM Push
@@ -603,8 +740,11 @@ uint64_t kmer_counting_min_bound_nway(
           text,text_length,sliding_window_length,kmer_window,kmer_window_length);
       break;
     case 2:
-      min_error = kmer_counting_min_bound_nway_ks2(kmer_counting,
-          text,text_length,sliding_window_length,kmer_window,kmer_window_length);
+      min_error = ks2_cutoff ?
+          kmer_counting_min_bound_nway_ks2_cutoff(kmer_counting,
+              text,text_length,max_error,diagonal,use_diagonal) :
+          kmer_counting_min_bound_nway_ks2(kmer_counting,
+              text,text_length,sliding_window_length,kmer_window,kmer_window_length);
       break;
     case 3:
       min_error = kmer_counting_min_bound_nway_ks3(kmer_counting,
@@ -624,4 +764,32 @@ uint64_t kmer_counting_min_bound_nway(
   // Return min-error
   PROFILE_STOP(GP_FC_KMER_COUNTER_FILTER,PROFILE_LEVEL);
   return min_error;
+}
+uint64_t kmer_counting_min_bound_nway(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    mm_allocator_t* const mm_allocator) {
+  return kmer_counting_min_bound_nway_compute(
+      kmer_counting,text,text_length,max_error,false,0,false,mm_allocator);
+}
+uint64_t kmer_counting_min_bound_nway_cutoff(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    mm_allocator_t* const mm_allocator) {
+  return kmer_counting_min_bound_nway_compute(
+      kmer_counting,text,text_length,max_error,true,0,false,mm_allocator);
+}
+uint64_t kmer_counting_min_bound_nway_cutoff_diagonal(
+    kmer_counting_nway_t* const kmer_counting,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_error,
+    const int64_t diagonal,
+    mm_allocator_t* const mm_allocator) {
+  return kmer_counting_min_bound_nway_compute(
+      kmer_counting,text,text_length,max_error,true,diagonal,true,mm_allocator);
 }

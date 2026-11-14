@@ -34,6 +34,157 @@
 #include "matches/matches_cigar.h"
 
 /*
+ * BPM-DP-Matrix for patterns of at most 4 words (BPM_MATRIX_MAX_WORDS)
+ *   Each word's Pv/Mv and score are carried in locals (P0..P3, M0..M3,
+ *   score0..score3): what the array loop reloads from the matrix is what it
+ *   stored one column earlier, or the ONES/0 of an activation. Every matrix
+ *   store is kept (align_bpm_backtrace_matrix reads them) and score is
+ *   written back on return. A text byte above ENC_DNA_CHAR_N indexes PEQ
+ *   into the pattern's P/M, which this function never writes, so unlike the
+ *   distance kernels these need no text guard.
+ */
+#define BPM_MATRIX_MAX_WORDS 4
+#define BPM_MATRIX_STEP(k) { \
+  uint64_t Pv_in = P##k; \
+  uint64_t Mv_in = M##k; \
+  const uint64_t Eq = PEQ[BPM_PATTERN_PEQ_IDX(k,enc_char)]; \
+  BPM_ADVANCE_BLOCK(Eq,mask##k,Pv_in,Mv_in,PHin,MHin,PHout,MHout); \
+  Pv_next[k] = Pv_in; \
+  Mv_next[k] = Mv_in; \
+  P##k = Pv_in; \
+  M##k = Mv_in; \
+  score##k += PHout-MHout; \
+  PHin = PHout; \
+  MHin = MHout; \
+}
+#define BPM_MATRIX_EXTEND(k) { \
+  const uint64_t Peq = PEQ[BPM_PATTERN_PEQ_IDX(k,enc_char)]; \
+  uint64_t Pv_in = BMP_W64_ONES; \
+  uint64_t Mv_in = 0; \
+  Pv_col[k] = BMP_W64_ONES; \
+  Mv_col[k] = 0; \
+  BPM_ADVANCE_BLOCK(Peq,mask##k,Pv_in,Mv_in,PHin,MHin,PHout,MHout); \
+  Pv_next[k] = Pv_in; \
+  Mv_next[k] = Mv_in; \
+  P##k = Pv_in; \
+  M##k = Mv_in; \
+  score##k = last_score + init_score##k + (PHout-MHout); \
+  top_level = k+1; \
+  if (max_level < k+1) max_level = k+1; \
+  current_score = score##k; \
+}
+/* The array loop's while; it never goes below level 1, since score0 <= init_score0 */
+#define BPM_MATRIX_DOWN_1 { top_level = 1; current_score = score0; }
+#define BPM_MATRIX_DOWN_2 { \
+  if (score1 > (max_distance+init_score1)) BPM_MATRIX_DOWN_1 \
+  else { top_level = 2; current_score = score1; } \
+}
+#define BPM_MATRIX_DOWN_3 { \
+  if (score2 > (max_distance+init_score2)) BPM_MATRIX_DOWN_2 \
+  else { top_level = 3; current_score = score2; } \
+}
+#define BPM_MATRIX_DOWN_4 { \
+  if (score3 > (max_distance+init_score3)) BPM_MATRIX_DOWN_3 \
+  else { top_level = 4; current_score = score3; } \
+}
+/* Cut-off at top_level T (last word L=T-1) */
+#define BPM_MATRIX_CUT_OFF(T,L) \
+  if (gem_expect_false(score##L<=max_distance__1 && L<top)) { \
+    const uint64_t last_score = score##L+(MHin-PHin); \
+    if (last_score<=max_distance && (MHin || (PEQ[BPM_PATTERN_PEQ_IDX(T,enc_char)] & 1))) BPM_MATRIX_EXTEND(T) \
+    else BPM_MATRIX_DOWN_##T \
+  } else BPM_MATRIX_DOWN_##T
+static inline __attribute__((always_inline)) void align_bpm_compute_matrix_wn(
+    bpm_pattern_t* const bpm_pattern,
+    const uint8_t* const text,
+    const uint64_t text_length,
+    const uint64_t max_distance,
+    uint64_t* const Pv,
+    uint64_t* const Mv,
+    bpm_align_matrix_t* const bpm_align_matrix,
+    const uint64_t num_words64) {
+  // Pattern variables
+  const uint64_t* const PEQ = bpm_pattern->PEQ;
+  const uint64_t* const level_mask = bpm_pattern->level_mask;
+  int64_t* const score = bpm_pattern->score;
+  const int64_t* const init_score = bpm_pattern->init_score;
+  const uint64_t mask0 = level_mask[0];
+  const uint64_t mask1 = (num_words64>1) ? level_mask[1] : 0;
+  const uint64_t mask2 = (num_words64>2) ? level_mask[2] : 0;
+  const uint64_t mask3 = (num_words64>3) ? level_mask[3] : 0;
+  const int64_t init_score0 = init_score[0];
+  const int64_t init_score1 = (num_words64>1) ? init_score[1] : 0;
+  const int64_t init_score2 = (num_words64>2) ? init_score[2] : 0;
+  const int64_t init_score3 = (num_words64>3) ? init_score[3] : 0;
+  const uint64_t max_distance__1 = max_distance+1;
+  const uint8_t top = num_words64-1;
+  // Initialize search (bpm_reset_search_cutoff)
+  const uint8_t y = (max_distance>0) ? (max_distance+(BMP_W64_LENGTH-1))/BMP_W64_LENGTH : 1;
+  uint8_t top_level = y, max_level = y;
+  uint64_t P0 = BMP_W64_ONES, P1 = 0, P2 = 0, P3 = 0;
+  uint64_t M0 = 0, M1 = 0, M2 = 0, M3 = 0;
+  int64_t score0 = init_score0, score1 = 0, score2 = 0, score3 = 0;
+  Pv[0] = BMP_W64_ONES; Mv[0] = 0;
+  if (y>1) { P1 = BMP_W64_ONES; Pv[1] = BMP_W64_ONES; Mv[1] = 0; score1 = score0 + init_score1; }
+  if (y>2) { P2 = BMP_W64_ONES; Pv[2] = BMP_W64_ONES; Mv[2] = 0; score2 = score1 + init_score2; }
+  if (y>3) { P3 = BMP_W64_ONES; Pv[3] = BMP_W64_ONES; Mv[3] = 0; score3 = score2 + init_score3; }
+  uint64_t min_score = ALIGN_DISTANCE_INF, min_score_column = ALIGN_COLUMN_INF;
+  // Advance in DP-bit_encoded matrix
+  uint64_t* Pv_col = Pv;
+  uint64_t* Mv_col = Mv;
+  uint64_t text_position;
+  for (text_position=0;text_position<text_length;++text_position) {
+    uint64_t* const Pv_next = Pv_col + num_words64;
+    uint64_t* const Mv_next = Mv_col + num_words64;
+    const uint8_t enc_char = text[text_position];
+    uint64_t PHin=0,MHin=0,PHout,MHout;
+    int64_t current_score;
+    if (num_words64==1 || top_level==1) {
+      BPM_MATRIX_STEP(0)
+      BPM_MATRIX_CUT_OFF(1,0)
+    } else if (num_words64==2 || top_level==2) {
+      BPM_MATRIX_STEP(0) BPM_MATRIX_STEP(1)
+      BPM_MATRIX_CUT_OFF(2,1)
+    } else if (num_words64==3 || top_level==3) {
+      BPM_MATRIX_STEP(0) BPM_MATRIX_STEP(1) BPM_MATRIX_STEP(2)
+      BPM_MATRIX_CUT_OFF(3,2)
+    } else {
+      BPM_MATRIX_STEP(0) BPM_MATRIX_STEP(1) BPM_MATRIX_STEP(2) BPM_MATRIX_STEP(3)
+      BPM_MATRIX_DOWN_4
+    }
+    // Check match
+    if (top_level==num_words64 && current_score<=max_distance) {
+      if (current_score < min_score)  {
+        min_score_column = text_position;
+        min_score = current_score;
+      }
+    }
+    Pv_col = Pv_next;
+    Mv_col = Mv_next;
+  }
+  // Write back the scores the array loop would have left
+  score[0] = score0;
+  if (num_words64>1 && max_level>1) score[1] = score1;
+  if (num_words64>2 && max_level>2) score[2] = score2;
+  if (num_words64>3 && max_level>3) score[3] = score3;
+  // Return optimal column/distance
+  bpm_align_matrix->min_score = min_score;
+  bpm_align_matrix->min_score_column = min_score_column;
+}
+/* Out of line, so each column loop gets the registers to itself */
+#define BPM_MATRIX_KERNEL(NW) \
+static __attribute__((noinline)) void align_bpm_compute_matrix_w##NW( \
+    bpm_pattern_t* const bpm_pattern,const uint8_t* const text,const uint64_t text_length, \
+    const uint64_t max_distance,uint64_t* const Pv,uint64_t* const Mv, \
+    bpm_align_matrix_t* const bpm_align_matrix) { \
+  align_bpm_compute_matrix_wn(bpm_pattern,text,text_length, \
+      max_distance,Pv,Mv,bpm_align_matrix,NW); \
+}
+BPM_MATRIX_KERNEL(1)
+BPM_MATRIX_KERNEL(2)
+BPM_MATRIX_KERNEL(3)
+BPM_MATRIX_KERNEL(4)
+/*
  * BPM. Compute BPM-DP-Matrix
  */
 void align_bpm_compute_matrix(
@@ -59,6 +210,13 @@ void align_bpm_compute_matrix(
   // Initialize search
   if (max_distance >= bpm_pattern->pattern_length) {
     max_distance = bpm_pattern->pattern_length-1; // Correct max-distance
+  }
+  switch (num_words64) {
+    case 1: align_bpm_compute_matrix_w1(bpm_pattern,text,text_length,max_distance,Pv,Mv,bpm_align_matrix); PROF_STOP(GP_BPM_COMPUTE_MATRIX); return;
+    case 2: align_bpm_compute_matrix_w2(bpm_pattern,text,text_length,max_distance,Pv,Mv,bpm_align_matrix); PROF_STOP(GP_BPM_COMPUTE_MATRIX); return;
+    case 3: align_bpm_compute_matrix_w3(bpm_pattern,text,text_length,max_distance,Pv,Mv,bpm_align_matrix); PROF_STOP(GP_BPM_COMPUTE_MATRIX); return;
+    case 4: align_bpm_compute_matrix_w4(bpm_pattern,text,text_length,max_distance,Pv,Mv,bpm_align_matrix); PROF_STOP(GP_BPM_COMPUTE_MATRIX); return;
+    default: break;
   }
   const uint64_t max_distance__1 = max_distance+1;
   const uint8_t top = num_words64-1;
