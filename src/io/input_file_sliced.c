@@ -27,6 +27,13 @@
 #include "io/input_buffer.h"
 
 /*
+ * Blocks read ahead of the current one on each reload (more are read on demand)
+ */
+#ifndef INPUT_FILE_SLICED_READ_AHEAD
+#define INPUT_FILE_SLICED_READ_AHEAD 2
+#endif
+
+/*
  * Setup
  */
 void input_file_sliced_initialize(
@@ -49,6 +56,7 @@ void input_file_sliced_initialize(
   MUTEX_INIT(input_file_sliced->input_buffers_mutex);
   CV_INIT(input_file_sliced->input_buffers_ready_cond);
   CV_INIT(input_file_sliced->input_buffers_empty_cond);
+  MUTEX_INIT(input_file_sliced->input_file_read_mutex);
   // Input-buffer request queue
   input_file_sliced->input_buffer_id = 0;
   input_file_sliced->current_buffer_offset = 0;
@@ -118,6 +126,7 @@ input_file_sliced_t* input_file_sliced_popen(
 void input_file_sliced_close(input_file_sliced_t* const input_file_sliced) {
   fm_close(input_file_sliced->file_manager);
   MUTEX_DESTROY(input_file_sliced->input_buffers_mutex);
+  MUTEX_DESTROY(input_file_sliced->input_file_read_mutex);
   MUTEX_DESTROY(input_file_sliced->input_read_lines_mutex);
   // Buffers
   const uint64_t total_input_buffers = input_file_sliced->total_input_buffers;
@@ -172,7 +181,8 @@ input_buffer_t* input_file_sliced_find_buffer(
   input_buffer_t* input_buffer = NULL;
   uint64_t i;
   for (i=0;i<total_input_buffers;++i) {
-    if (input_file_sliced->input_buffers[i]->buffer_id == buffer_id) {
+    if (input_file_sliced->input_buffers[i]->buffer_id == buffer_id &&
+        input_file_sliced->input_buffers[i]->buffer_state != input_buffer_empty) {
       input_buffer = input_file_sliced->input_buffers[i];
       break;
     }
@@ -190,35 +200,48 @@ void input_file_sliced_input_buffer_read(
   fm_prefetch_next(input_file_sliced->file_manager,input_buffer->buffer_allocated);
   PROF_ADD_COUNTER(GP_BUFFERED_INPUT_BUFFER_SIZE,input_buffer->buffer_size);
 }
-void input_file_sliced_input_buffer_process(
-    input_file_sliced_t* const input_file_sliced,
-    input_buffer_t* const input_buffer) {
+/*
+ * Reads the next block of the file into an empty buffer and annotates its lines.
+ * Called holding input_file_read_mutex and input_buffers_mutex, with a buffer empty;
+ * returns holding input_buffers_mutex only. input_buffers_mutex is released during
+ * the read; input_file_read_mutex keeps the reads in block-id order.
+ */
+input_buffer_t* input_file_sliced_input_buffer_process(
+    input_file_sliced_t* const input_file_sliced) {
+  input_buffer_t* const input_buffer = input_file_sliced_request_buffer_empty(input_file_sliced);
   input_buffer->buffer_id = input_file_sliced->processed_buffer_id;
   input_buffer->buffer_state = input_buffer_processing;
   ++(input_file_sliced->processed_buffer_id); // Next Input-Block
-  input_file_sliced_input_buffer_read(input_file_sliced,input_buffer);
   MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
+  input_file_sliced_input_buffer_read(input_file_sliced,input_buffer);
+  MUTEX_END_SECTION(input_file_sliced->input_file_read_mutex);
   // Annotate the lines in the buffer
   input_buffer_annotate_lines(input_buffer);
   // Store the annotated buffer
   MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
   input_buffer->buffer_state = input_buffer_ready;
-  if (input_buffer->buffer_id == input_file_sliced->current_buffer_id) {
-    CV_BROADCAST(input_file_sliced->input_buffers_ready_cond);
-  }
+  CV_BROADCAST(input_file_sliced->input_buffers_ready_cond);
+  return input_buffer;
 }
 void input_file_sliced_process(
     input_file_sliced_t* const input_file_sliced) {
-  // Check input buffers
-  MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
-  while (true) {
-    // Check the number of count-pending buffers
-    if (input_file_sliced->num_buffers_empty == 0 || fm_eof(input_file_sliced->file_manager)) break;
-    // Read into the next empty buffer
-    input_buffer_t* const input_buffer = input_file_sliced_request_buffer_empty(input_file_sliced);
-    input_file_sliced_input_buffer_process(input_file_sliced,input_buffer);
+  // Read up to INPUT_FILE_SLICED_READ_AHEAD blocks past the current one;
+  // while another thread is reading, leave the read-ahead to it
+  while (pthread_mutex_trylock(&input_file_sliced->input_file_read_mutex) == 0) {
+    MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
+    const bool read_next =
+        input_file_sliced->num_buffers_empty > 0 &&
+        input_file_sliced->processed_buffer_id <=
+            input_file_sliced->current_buffer_id + INPUT_FILE_SLICED_READ_AHEAD &&
+        !fm_eof(input_file_sliced->file_manager);
+    if (read_next) {
+      input_file_sliced_input_buffer_process(input_file_sliced); // Releases input_file_read_mutex
+    } else {
+      MUTEX_END_SECTION(input_file_sliced->input_file_read_mutex);
+    }
+    MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
+    if (!read_next) break;
   }
-  MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
 }
 void input_file_sliced_discard_exhausted_buffers(
     input_file_sliced_t* const input_file_sliced,
@@ -298,59 +321,46 @@ bool input_file_sliced_read_lines(
  */
 input_buffer_t* input_file_sliced_input_buffer_get_current(
     input_file_sliced_t* const input_file_sliced) {
-  // Check current buffer
-  input_buffer_t* input_buffer = NULL;
-  if (input_file_sliced->current_buffer != NULL) {
-    input_buffer = input_file_sliced->current_buffer;
-    // Increase the number of readers
-    ++(input_buffer->num_readers);
-    // Return the buffer
-    return input_buffer;
-  }
-  // Find next buffer ready
   MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
+  input_buffer_t* input_buffer = input_file_sliced->current_buffer;
   while (input_buffer == NULL) {
     // Find next buffer
-    const uint64_t current_buffer_id = input_file_sliced->current_buffer_id;
-    input_buffer = input_file_sliced_find_buffer(input_file_sliced,current_buffer_id);
+    input_buffer = input_file_sliced_find_buffer(input_file_sliced,input_file_sliced->current_buffer_id);
     if (input_buffer != NULL) {
-      // Buffer found
-      switch (input_buffer->buffer_state) {
-        case input_buffer_ready:
-          input_file_sliced->current_buffer = input_buffer;
-          break;
-        case input_buffer_processing:
-          // Another thread is annotating the buffer (just wait for it)
-          CV_WAIT(input_file_sliced->input_buffers_ready_cond,input_file_sliced->input_buffers_mutex);
-          input_file_sliced->current_buffer = input_buffer;
-          break;
-        default:
-          GEM_INVALID_CASE();
-          break;
-      }
-    } else {
-      // EOF
-      if (fm_eof(input_file_sliced->file_manager)) {
-        MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
-        return NULL;
-      }
-      // Buffer not processed yet
-      if (input_file_sliced->num_buffers_empty > 0) {
-        // Read into the next empty buffer
-        input_buffer = input_file_sliced_request_buffer_empty(input_file_sliced);
-        input_file_sliced_input_buffer_process(input_file_sliced,input_buffer);
+      if (input_buffer->buffer_state == input_buffer_ready) {
         input_file_sliced->current_buffer = input_buffer;
-        break;
       } else {
-        // No empty buffers (go sleep & wait)
-        CV_WAIT(input_file_sliced->input_buffers_empty_cond,input_file_sliced->input_buffers_mutex);
+        // Another thread is reading or annotating the buffer (just wait for it)
+        CV_WAIT(input_file_sliced->input_buffers_ready_cond,input_file_sliced->input_buffers_mutex);
+        input_buffer = NULL;
       }
+      continue;
+    }
+    // Buffer not read yet (input_file_read_mutex goes before input_buffers_mutex)
+    MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
+    MUTEX_BEGIN_SECTION(input_file_sliced->input_file_read_mutex);
+    MUTEX_BEGIN_SECTION(input_file_sliced->input_buffers_mutex);
+    if (input_file_sliced_find_buffer(input_file_sliced,input_file_sliced->current_buffer_id) != NULL) {
+      // Read by another thread meanwhile
+      MUTEX_END_SECTION(input_file_sliced->input_file_read_mutex);
+    } else if (fm_eof(input_file_sliced->file_manager)) {
+      // EOF
+      MUTEX_END_SECTION(input_file_sliced->input_file_read_mutex);
+      MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
+      return NULL;
+    } else if (input_file_sliced->num_buffers_empty > 0) {
+      // Read into the next empty buffer
+      input_buffer = input_file_sliced_input_buffer_process(input_file_sliced);
+      input_file_sliced->current_buffer = input_buffer;
+    } else {
+      // No empty buffers (go sleep & wait)
+      MUTEX_END_SECTION(input_file_sliced->input_file_read_mutex);
+      CV_WAIT(input_file_sliced->input_buffers_empty_cond,input_file_sliced->input_buffers_mutex);
     }
   }
-  MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
-  // Increase the number of readers
+  // Increase the number of readers (under input_buffers_mutex, like the decrease)
   ++(input_buffer->num_readers);
+  MUTEX_END_SECTION(input_file_sliced->input_buffers_mutex);
   // Return the buffer
   return input_buffer;
 }
-
