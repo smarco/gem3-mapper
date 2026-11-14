@@ -215,6 +215,10 @@ mm_t* mm_bulk_mmalloc(const uint64_t num_bytes,const bool use_huge_pages) {
   if (use_huge_pages) flags |= MAP_HUGETLB;
   mem_manager->memory = mmap(0,num_bytes,PROT_READ|PROT_WRITE,flags,-1,0);
   gem_cond_fatal_error(mem_manager->memory==MAP_FAILED,MEM_ALLOC_MMAP_FAIL,num_bytes);
+#ifdef MADV_HUGEPAGE
+  // Transparent huge pages when THP is set to "madvise": fewer faults on load, fewer TLB misses on random index access
+  if (!use_huge_pages) madvise(mem_manager->memory,num_bytes,MADV_HUGEPAGE);
+#endif
   mem_manager->cursor = mem_manager->memory;
   // Set MM
   mem_manager->mem_type = MM_MMAPPED;
