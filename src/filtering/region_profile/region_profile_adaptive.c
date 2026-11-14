@@ -70,17 +70,20 @@ void region_profile_generator_restart(region_profile_generator_t* const generato
 /*
  * Region Profile Generation (Region Handling)
  */
-void region_profile_generator_init(
+static void region_profile_generator_setup(
     region_profile_generator_t* const generator,
     region_profile_t* const region_profile,
     fm_index_t* const fm_index,
     const uint8_t* const key,
     const uint64_t key_length,
-    const bool allow_zero_regions) {
+    const bool allow_zero_regions,
+    const bool allocate_regions) {
   // Region profile
   generator->region_profile = region_profile;
   region_profile_clear(region_profile);
-  region_profile_allocate_regions(region_profile,region_profile->max_expected_regions); // Allocate
+  if (allocate_regions) {
+    region_profile_allocate_regions(region_profile,region_profile->max_expected_regions); // Allocate
+  }
   // Region state
   generator->expected_count = 0;
   generator->max_steps = 0;
@@ -92,6 +95,16 @@ void region_profile_generator_init(
   // Query state
   generator->key_position = key_length;
   region_profile_generator_restart(generator);
+}
+void region_profile_generator_init(
+    region_profile_generator_t* const generator,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const bool allow_zero_regions) {
+  region_profile_generator_setup(generator,
+      region_profile,fm_index,key,key_length,allow_zero_regions,true);
 }
 void region_profile_generator_close_region(
     region_profile_generator_t* const generator,
@@ -297,6 +310,173 @@ void region_profile_generate_adaptive(
   gem_cond_debug_block(REGION_PROFILE_DEBUG_PRINT_PROFILE) {
     fprintf(gem_log_get_stream(),"\n");
   }
+}
+/*
+ * Region Profile Adaptive computed ahead (several keys in lockstep)
+ */
+#define REGION_AHEAD_UNSET UINT64_MAX
+static bool region_profile_generator_adaptive_step(
+    region_profile_generator_t* const generator,
+    const region_profile_model_t* const profile_model,
+    const uint64_t proper_length) {
+  // One iteration of region_profile_generate_adaptive's loop (false once it would have left it)
+  if (generator->key_position == 0) return false;
+  if (generator->region_profile->num_filtering_regions >=
+      generator->region_profile->max_expected_regions) return false;
+  --(generator->key_position);
+  const uint8_t enc_char = generator->key[generator->key_position];
+  if (enc_char == ENC_DNA_CHAR_N) {
+    region_profile_generator_disallow_character(generator,profile_model);
+  } else {
+    region_profile_query_character(generator->fm_index,
+        &generator->rank_mquery,&generator->lo,&generator->hi,enc_char);
+    region_profile_generator_add_character(generator,profile_model,proper_length);
+  }
+  return true;
+}
+static void region_profile_generator_prefetch_step(
+    const region_profile_generator_t* const generator,
+    const rank_mtable_t* const rank_mtable,
+    const bwt_t* const bwt) {
+  // Prefetch what the next region_profile_query_character of this generator reads
+  if (generator->key_position == 0) return;
+  const uint8_t enc_char = generator->key[generator->key_position-1];
+  if (enc_char == ENC_DNA_CHAR_N) return;
+  if (!rank_mquery_is_exhausted(&generator->rank_mquery)) {
+    const uint64_t level = generator->rank_mquery.level + 1;
+    if (level >= rank_mtable->min_matching_depth) {
+      const uint64_t hi_position = generator->rank_mquery.hi_position + enc_char*rank_mtable->level_skip[level];
+      const uint64_t* const rank = rank_mtable->sa_ranks_levels[level] + (hi_position-1);
+      PREFETCH(rank);
+      PREFETCH(rank+1);
+    }
+  } else {
+    const uint64_t lo = generator->lo, hi = generator->hi;
+    const uint64_t* const block_hi = bwt->bwt_mem + (hi/64) * ((16 * 8 + 64 * 3 + 64) / 8 / 8);
+    PREFETCH(block_hi);
+    PREFETCH(block_hi+4);
+    PREFETCH(bwt->mayor_counters + (hi / ((1 << 10) * 64)) * 8);
+    if ((lo/64) != (hi/64)) {
+      const uint64_t* const block_lo = bwt->bwt_mem + (lo/64) * ((16 * 8 + 64 * 3 + 64) / 8 / 8);
+      PREFETCH(block_lo);
+      PREFETCH(block_lo+4);
+      PREFETCH(bwt->mayor_counters + (lo / ((1 << 10) * 64)) * 8);
+    }
+  }
+}
+bool region_profile_ahead_prepare(
+    region_profile_ahead_t* const ahead,
+    const uint64_t key_length) {
+  // As region_profile_init; the regions are marked to tell the fields the generator writes
+  ahead->ready = false;
+  if (key_length == 0 || key_length > REGION_PROFILE_AHEAD_MAX_KEY_LENGTH) return false;
+  region_profile_t* const region_profile = &ahead->region_profile;
+  region_profile_init(region_profile,key_length);
+  if (region_profile->max_expected_regions > REGION_PROFILE_AHEAD_MAX_REGIONS) return false;
+  region_profile->filtering_region = ahead->regions;
+  region_profile->mm_allocator = NULL;
+  ahead->key_length = key_length;
+  uint64_t i;
+  for (i=0;i<=region_profile->max_expected_regions;++i) {
+    region_search_t* const region = ahead->regions + i;
+    region->begin = REGION_AHEAD_UNSET;
+    region->end = REGION_AHEAD_UNSET;
+    region->degree = REGION_AHEAD_UNSET;
+    region->hi = REGION_AHEAD_UNSET;
+    region->lo = REGION_AHEAD_UNSET;
+  }
+  return true;
+}
+void region_profile_ahead_generate(
+    region_profile_ahead_t* const* const aheads,
+    const uint64_t num_aheads,
+    fm_index_t* const fm_index,
+    const region_profile_model_t* const profile_model) {
+  PROFILE_START(GP_REGION_PROFILE,PROFILE_LEVEL);
+  // Parameters
+  const uint64_t proper_length = fm_index_get_proper_length(fm_index);
+  const rank_mtable_t* const rank_mtable = fm_index->rank_table;
+  const bwt_t* const bwt = fm_index->bwt;
+  // Init (the regions are already in place: nothing is allocated)
+  region_profile_generator_t generators[REGION_PROFILE_AHEAD_MAX_KEYS];
+  uint64_t active[REGION_PROFILE_AHEAD_MAX_KEYS];
+  uint64_t i, num_active = 0;
+  for (i=0;i<num_aheads;++i) {
+    region_profile_ahead_t* const ahead = aheads[i];
+    region_profile_generator_setup(generators+i,&ahead->region_profile,
+        fm_index,ahead->key,ahead->key_length,false,false);
+    region_profile_generator_prefetch_step(generators+i,rank_mtable,bwt);
+    active[num_active++] = i;
+  }
+  // Delimit regions, one character of each key in turn (independent rank queries in flight)
+  while (num_active > 0) {
+    uint64_t j = 0;
+    while (j < num_active) {
+      region_profile_generator_t* const generator = generators + active[j];
+      if (region_profile_generator_adaptive_step(generator,profile_model,proper_length)) {
+        region_profile_generator_prefetch_step(generator,rank_mtable,bwt);
+        ++j;
+      } else {
+        active[j] = active[--num_active];
+      }
+    }
+  }
+  // Close
+  for (i=0;i<num_aheads;++i) {
+    region_profile_generator_close_profile(generators+i,profile_model);
+    // A write to the last slot lands past the allocation in region_profile_generate_adaptive: leave it to that
+    region_profile_ahead_t* const ahead = aheads[i];
+    const region_search_t* const past = ahead->regions + ahead->region_profile.max_expected_regions;
+    ahead->fm_index = fm_index;
+    ahead->region_th = profile_model->region_th;
+    ahead->max_steps = profile_model->max_steps;
+    ahead->dec_factor = profile_model->dec_factor;
+    ahead->ready =
+        past->begin == REGION_AHEAD_UNSET && past->end == REGION_AHEAD_UNSET &&
+        past->degree == REGION_AHEAD_UNSET && past->hi == REGION_AHEAD_UNSET &&
+        past->lo == REGION_AHEAD_UNSET;
+  }
+  PROFILE_STOP(GP_REGION_PROFILE,PROFILE_LEVEL);
+}
+bool region_profile_ahead_restore(
+    region_profile_ahead_t* const ahead,
+    region_profile_t* const region_profile,
+    fm_index_t* const fm_index,
+    const uint8_t* const key,
+    const uint64_t key_length,
+    const region_profile_model_t* const profile_model) {
+  // Replay only a profile of this very call: region_profile_generate_adaptive(...,ALL,false)
+  if (!ahead->ready) return false;
+  ahead->ready = false;
+  if (ahead->fm_index != fm_index) return false;
+  if (ahead->key_length != key_length) return false;
+  if (region_profile->pattern_length != key_length) return false;
+  if (region_profile->max_expected_regions != ahead->region_profile.max_expected_regions) return false;
+  if (ahead->region_th != profile_model->region_th ||
+      ahead->max_steps != profile_model->max_steps ||
+      ahead->dec_factor != profile_model->dec_factor) return false;
+  if (memcmp(ahead->key,key,key_length) != 0) return false;
+  // As region_profile_generator_init (same allocation, in the same place)
+  region_profile_clear(region_profile);
+  region_profile_allocate_regions(region_profile,region_profile->max_expected_regions);
+  // The fields the generator wrote (the others keep what the allocation holds)
+  uint64_t i;
+  for (i=0;i<region_profile->max_expected_regions;++i) {
+    const region_search_t* const src = ahead->regions + i;
+    region_search_t* const dst = region_profile->filtering_region + i;
+    if (src->begin != REGION_AHEAD_UNSET) dst->begin = src->begin;
+    if (src->end != REGION_AHEAD_UNSET) dst->end = src->end;
+    if (src->degree != REGION_AHEAD_UNSET) dst->degree = src->degree;
+    if (src->hi != REGION_AHEAD_UNSET) dst->hi = src->hi;
+    if (src->lo != REGION_AHEAD_UNSET) dst->lo = src->lo;
+  }
+  const region_profile_t* const profiled = &ahead->region_profile;
+  region_profile->num_filtering_regions = profiled->num_filtering_regions;
+  region_profile->num_filtered_regions = profiled->num_filtered_regions;
+  region_profile->total_candidates = profiled->total_candidates;
+  region_profile->max_region_length = profiled->max_region_length;
+  region_profile->avg_region_length = profiled->avg_region_length;
+  return true;
 }
 /*
  * Region Profile Adaptive (limited to extract a minimum number of regions)
